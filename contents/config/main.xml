@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile/>
+  <group name="General">
+    <entry name="maxScale" type="Double">
+      <default>1.45</default>
+    </entry>
+    <entry name="zoomRadius" type="Int">
+      <default>70</default>
+    </entry>
+    <entry name="iconSize" type="Int">
+      <default>44</default>
+    </entry>
+    <entry name="dockMargin" type="Int">
+      <default>16</default>
+    </entry>
+    <entry name="dockCrossMargin" type="Int">
+      <default>5</default>
+    </entry>
+    <entry name="screenEdgeMargin" type="Int">
+      <default>8</default>
+    </entry>
+    <entry name="backgroundOpacity" type="Double">
+      <default>0.55</default>
+    </entry>
+    <entry name="hideOnMaximized" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="launchAnimation" type="Int">
+      <default>1</default>
+    </entry>
+    <entry name="launchers" type="StringList"/>
+  </group>
+</kcfg>

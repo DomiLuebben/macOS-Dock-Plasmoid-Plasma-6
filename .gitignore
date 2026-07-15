@@ -1,0 +1,5 @@
+/build/
+contents/ui/effects/*.so
+*.user
+*.swp
+*~
