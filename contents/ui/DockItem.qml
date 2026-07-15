@@ -35,7 +35,7 @@ Item {
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
     Accessible.name: appName
-    Accessible.description: isRunning ? i18n("Läuft") : i18n("Starter")
+    Accessible.description: isRunning ? i18n("Running") : i18n("Launcher")
     Accessible.onPressAction: root.clicked()
 
     signal clicked()

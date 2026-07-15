@@ -1,6 +1,6 @@
 # macOS Dock Plasmoid for KDE Plasma 6
 
-**English** | [Deutsch](README.de.md)
+**English** | [Deutsch](README.de.md) | [Français](README.fr.md)
 
 A standalone macOS-style dock for Plasma 6 with magnification, task
 management, window controls, and a blurred background that follows the Qt
@@ -15,6 +15,7 @@ color scheme.
 - Animated slide-in and slide-out at every screen edge
 - Background, border, and activity indicators based on the Qt system palette
 - Precise rounded blur region without a rectangular hover background
+- Complete German, US English, and French interface selected from the system language
 
 ## Requirements
 
@@ -22,11 +23,12 @@ color scheme.
 - Qt 6 with Qt Quick/QML
 - KDE Frameworks 6 WindowSystem
 - CMake and a C++20 compiler
+- Gettext (`msgfmt`) for the translation catalogs
 
 On Arch Linux, the build dependencies can be installed with:
 
 ```bash
-sudo pacman -S --needed base-devel cmake qt6-declarative kwindowsystem
+sudo pacman -S --needed base-devel cmake gettext qt6-declarative kwindowsystem
 ```
 
 ## Installation

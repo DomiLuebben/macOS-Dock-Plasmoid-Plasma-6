@@ -1,0 +1,125 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.7.0\n"
+"PO-Revision-Date: 2026-07-15 00:00+0200\n"
+"Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid " px"
+msgstr " px"
+
+msgid "Activate"
+msgstr "Activer"
+
+msgid "Appearance"
+msgstr "Apparence"
+
+msgid "Application"
+msgstr "Application"
+
+msgid "Applications"
+msgstr "Applications"
+
+msgid "Automatically hide when a window is maximized"
+msgstr "Masquer automatiquement lorsqu’une fenêtre est maximisée"
+
+msgid "Background opacity:"
+msgstr "Opacité de l’arrière-plan :"
+
+msgid "Bounce"
+msgstr "Rebond"
+
+msgid "Close"
+msgstr "Fermer"
+
+msgid "Configure Dock…"
+msgstr "Configurer le Dock…"
+
+msgid "Distance from screen edge:"
+msgstr "Distance du bord de l’écran :"
+
+msgid "Dock content:"
+msgstr "Contenu du Dock :"
+
+msgid "General"
+msgstr "Général"
+
+msgid "Icon size:"
+msgstr "Taille des icônes :"
+
+msgid "Keep in Dock"
+msgstr "Conserver dans le Dock"
+
+msgid "Launch animation:"
+msgstr "Animation de lancement :"
+
+msgid "Launcher"
+msgstr "Lanceur"
+
+msgid "Left/right margin:"
+msgstr "Marge gauche/droite :"
+
+msgid "Magnification and animation"
+msgstr "Agrandissement et animation"
+
+msgid "Magnification radius:"
+msgstr "Rayon d’agrandissement :"
+
+msgid "Maximum magnification:"
+msgstr "Agrandissement maximal :"
+
+msgid "Maximize"
+msgstr "Maximiser"
+
+msgid "Minimize"
+msgstr "Réduire"
+
+msgid "Move Down"
+msgstr "Déplacer vers le bas"
+
+msgid "Move Left"
+msgstr "Déplacer vers la gauche"
+
+msgid "Move Right"
+msgstr "Déplacer vers la droite"
+
+msgid "Move Up"
+msgstr "Déplacer vers le haut"
+
+msgid "New Window"
+msgstr "Nouvelle fenêtre"
+
+msgid "None"
+msgstr "Aucune"
+
+msgid "Open"
+msgstr "Ouvrir"
+
+msgid "Panel integration:"
+msgstr "Intégration au panneau :"
+
+msgid "Restore"
+msgstr "Restaurer"
+
+msgid "Running"
+msgstr "En cours d’exécution"
+
+msgid "Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers."
+msgstr "Les applications en cours d’exécution apparaissent automatiquement. Faites un clic droit sur une icône pour la conserver dans le Dock, la détacher ou la déplacer. Le composant graphique ne contient aucun lanceur prédéfini."
+
+msgid "The Dock runs in its own transparent window at the screen edge. BetterBlur can blur this window directly. The invisible desktop widget only persists settings and launchers."
+msgstr "Le Dock s’exécute dans sa propre fenêtre transparente au bord de l’écran. BetterBlur peut flouter directement cette fenêtre. Le composant graphique invisible du bureau sert uniquement à conserver les réglages et les lanceurs."
+
+msgid "Top/bottom margin:"
+msgstr "Marge supérieure/inférieure :"
+
+msgid "Unpin from Dock"
+msgstr "Détacher du Dock"
+
+msgid "Window behavior:"
+msgstr "Comportement des fenêtres :"

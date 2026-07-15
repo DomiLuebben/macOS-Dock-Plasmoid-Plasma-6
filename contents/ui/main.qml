@@ -462,7 +462,7 @@ PlasmoidItem {
         readonly property bool canOpenNewInstance: launcherOnly
             || model.CanLaunchNewInstance !== false
 
-        appName: String(model.AppName || model.display || i18n("Anwendung"))
+        appName: String(model.AppName || model.display || i18n("Application"))
         appIcon: model.decoration || "application-x-executable"
         baseSize: root.baseIconSize
         currentScale: displayScale
@@ -519,14 +519,14 @@ PlasmoidItem {
 
             QQC2.MenuItem {
                 text: taskDelegate.runningTask
-                    ? i18n("Aktivieren") : i18n("Öffnen")
+                    ? i18n("Activate") : i18n("Open")
                 icon.name: taskDelegate.runningTask ? "window" : "system-run"
                 onTriggered: root.openTask(taskDelegate.index,
                     taskDelegate.launcherOnly)
             }
 
             QQC2.MenuItem {
-                text: i18n("Neues Fenster")
+                text: i18n("New Window")
                 icon.name: "window-new"
                 visible: taskDelegate.canOpenNewInstance
                 onTriggered: root.launchNewInstance(taskDelegate.index)
@@ -536,14 +536,14 @@ PlasmoidItem {
 
             QQC2.MenuItem {
                 text: taskDelegate.pinned
-                    ? i18n("Vom Dock lösen") : i18n("Im Dock behalten")
+                    ? i18n("Unpin from Dock") : i18n("Keep in Dock")
                 icon.name: taskDelegate.pinned ? "list-remove" : "bookmark-new"
                 enabled: taskDelegate.launcherTarget.length > 0
                 onTriggered: root.toggleLauncher(taskDelegate.model)
             }
 
             QQC2.MenuItem {
-                text: root.isVertical ? i18n("Nach oben") : i18n("Nach links")
+                text: root.isVertical ? i18n("Move Up") : i18n("Move Left")
                 icon.name: root.isVertical ? "go-up" : "go-previous"
                 visible: taskDelegate.pinned
                 enabled: taskDelegate.index > 0
@@ -551,7 +551,7 @@ PlasmoidItem {
             }
 
             QQC2.MenuItem {
-                text: root.isVertical ? i18n("Nach unten") : i18n("Nach rechts")
+                text: root.isVertical ? i18n("Move Down") : i18n("Move Right")
                 icon.name: root.isVertical ? "go-down" : "go-next"
                 visible: taskDelegate.pinned
                 enabled: taskDelegate.index < root.taskCount - 1
@@ -564,7 +564,7 @@ PlasmoidItem {
 
             QQC2.MenuItem {
                 text: Boolean(taskDelegate.model.IsMinimized)
-                    ? i18n("Wiederherstellen") : i18n("Minimieren")
+                    ? i18n("Restore") : i18n("Minimize")
                 icon.name: Boolean(taskDelegate.model.IsMinimized)
                     ? "window-restore" : "window-minimize"
                 visible: taskDelegate.runningTask
@@ -574,7 +574,7 @@ PlasmoidItem {
 
             QQC2.MenuItem {
                 text: Boolean(taskDelegate.model.IsMaximized)
-                    ? i18n("Wiederherstellen") : i18n("Maximieren")
+                    ? i18n("Restore") : i18n("Maximize")
                 icon.name: Boolean(taskDelegate.model.IsMaximized)
                     ? "window-restore" : "window-maximize"
                 visible: taskDelegate.runningTask
@@ -583,7 +583,7 @@ PlasmoidItem {
             }
 
             QQC2.MenuItem {
-                text: i18n("Schließen")
+                text: i18n("Close")
                 icon.name: "window-close"
                 visible: taskDelegate.runningTask
                 enabled: Boolean(taskDelegate.model.IsClosable)
@@ -945,7 +945,7 @@ PlasmoidItem {
                 }
 
                 QQC2.MenuItem {
-                    text: i18n("Dock einrichten …")
+                    text: i18n("Configure Dock…")
                     icon.name: "configure"
                     onTriggered: Plasmoid.internalAction("configure").trigger()
                 }

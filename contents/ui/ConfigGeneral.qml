@@ -46,11 +46,11 @@ KCM.SimpleKCM {
 
         Item {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Erscheinungsbild")
+            Kirigami.FormData.label: i18n("Appearance")
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Icongröße:")
+            Kirigami.FormData.label: i18n("Icon size:")
 
             QQC2.Slider {
                 id: iconSizeSlider
@@ -67,7 +67,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Rand links/rechts:")
+            Kirigami.FormData.label: i18n("Left/right margin:")
 
             QQC2.Slider {
                 id: dockMarginSlider
@@ -84,7 +84,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Rand oben/unten:")
+            Kirigami.FormData.label: i18n("Top/bottom margin:")
 
             QQC2.Slider {
                 id: dockCrossMarginSlider
@@ -101,7 +101,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Abstand zum Bildschirmrand:")
+            Kirigami.FormData.label: i18n("Distance from screen edge:")
 
             QQC2.Slider {
                 id: screenEdgeMarginSlider
@@ -118,7 +118,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Hintergrunddeckkraft:")
+            Kirigami.FormData.label: i18n("Background opacity:")
 
             QQC2.Slider {
                 id: backgroundOpacitySlider
@@ -137,17 +137,17 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             id: hideOnMaximizedCheckBox
 
-            Kirigami.FormData.label: i18n("Fensterverhalten:")
-            text: i18n("Bei maximiertem Fenster automatisch ausblenden")
+            Kirigami.FormData.label: i18n("Window behavior:")
+            text: i18n("Automatically hide when a window is maximized")
         }
 
         Item {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Vergrößerung und Animation")
+            Kirigami.FormData.label: i18n("Magnification and animation")
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Maximale Vergrößerung:")
+            Kirigami.FormData.label: i18n("Maximum magnification:")
 
             QQC2.Slider {
                 id: maxScaleSlider
@@ -164,7 +164,7 @@ KCM.SimpleKCM {
         }
 
         RowLayout {
-            Kirigami.FormData.label: i18n("Vergrößerungsradius:")
+            Kirigami.FormData.label: i18n("Magnification radius:")
 
             QQC2.Slider {
                 id: zoomRadiusSlider
@@ -183,29 +183,29 @@ KCM.SimpleKCM {
         QQC2.ComboBox {
             id: launchAnimationCombo
 
-            Kirigami.FormData.label: i18n("Startanimation:")
+            Kirigami.FormData.label: i18n("Launch animation:")
             Layout.fillWidth: true
-            model: [i18n("Keine"), i18n("Springen")]
+            model: [i18n("None"), i18n("Bounce")]
         }
 
         Item {
             Kirigami.FormData.isSection: true
-            Kirigami.FormData.label: i18n("Anwendungen")
+            Kirigami.FormData.label: i18n("Applications")
         }
 
         QQC2.Label {
-            Kirigami.FormData.label: i18n("Dock-Inhalt:")
+            Kirigami.FormData.label: i18n("Dock content:")
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            text: i18n("Laufende Anwendungen erscheinen automatisch. Mit einem Rechtsklick auf ein Icon kannst du es im Dock behalten, wieder lösen oder verschieben. Das Plasmoid bringt keine festen Starter mit.")
+            text: i18n("Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers.")
             opacity: 0.78
         }
 
         QQC2.Label {
-            Kirigami.FormData.label: i18n("Leistenintegration:")
+            Kirigami.FormData.label: i18n("Panel integration:")
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            text: i18n("Das Dock läuft als eigenes transparentes Fenster am unteren Bildschirmrand. BetterBlur kann dieses Fenster direkt blurren. Das unsichtbare Desktop-Miniprogramm dient nur dazu, Einstellungen und Starter dauerhaft zu speichern.")
+            text: i18n("The Dock runs in its own transparent window at the screen edge. BetterBlur can blur this window directly. The invisible desktop widget only persists settings and launchers.")
             opacity: 0.78
         }
     }

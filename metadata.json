@@ -2,18 +2,20 @@
     "KPlugin": {
         "Authors": [
             {
-                "Name": "Antigravity Team"
+                "Name": "Dominik Lübben"
             }
         ],
         "Category": "Application Launchers",
         "Description": "A macOS-style Plasma task manager with magnification and window controls",
         "Description[de]": "Ein macOS-artiger Plasma-Taskmanager mit Vergrößerung und Fenstersteuerung",
+        "Description[fr]": "Un gestionnaire de tâches Plasma de style macOS avec agrandissement et contrôle des fenêtres",
         "Icon": "preferences-desktop-icons",
         "Id": "org.kde.plasma.macosdock",
         "License": "GPL-2.0+",
         "Name": "macOS Dock Task Manager",
         "Name[de]": "macOS Dock Taskmanager",
-        "Version": "1.6.0"
+        "Name[fr]": "Gestionnaire de tâches macOS Dock",
+        "Version": "1.7.0"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0"

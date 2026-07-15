@@ -1,0 +1,125 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.7.0\n"
+"PO-Revision-Date: 2026-07-15 00:00+0200\n"
+"Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid " px"
+msgstr " px"
+
+msgid "Activate"
+msgstr "Aktivieren"
+
+msgid "Appearance"
+msgstr "Erscheinungsbild"
+
+msgid "Application"
+msgstr "Anwendung"
+
+msgid "Applications"
+msgstr "Anwendungen"
+
+msgid "Automatically hide when a window is maximized"
+msgstr "Bei maximiertem Fenster automatisch ausblenden"
+
+msgid "Background opacity:"
+msgstr "Hintergrunddeckkraft:"
+
+msgid "Bounce"
+msgstr "Springen"
+
+msgid "Close"
+msgstr "Schließen"
+
+msgid "Configure Dock…"
+msgstr "Dock einrichten …"
+
+msgid "Distance from screen edge:"
+msgstr "Abstand zum Bildschirmrand:"
+
+msgid "Dock content:"
+msgstr "Dock-Inhalt:"
+
+msgid "General"
+msgstr "Allgemein"
+
+msgid "Icon size:"
+msgstr "Icongröße:"
+
+msgid "Keep in Dock"
+msgstr "Im Dock behalten"
+
+msgid "Launch animation:"
+msgstr "Startanimation:"
+
+msgid "Launcher"
+msgstr "Starter"
+
+msgid "Left/right margin:"
+msgstr "Rand links/rechts:"
+
+msgid "Magnification and animation"
+msgstr "Vergrößerung und Animation"
+
+msgid "Magnification radius:"
+msgstr "Vergrößerungsradius:"
+
+msgid "Maximum magnification:"
+msgstr "Maximale Vergrößerung:"
+
+msgid "Maximize"
+msgstr "Maximieren"
+
+msgid "Minimize"
+msgstr "Minimieren"
+
+msgid "Move Down"
+msgstr "Nach unten"
+
+msgid "Move Left"
+msgstr "Nach links"
+
+msgid "Move Right"
+msgstr "Nach rechts"
+
+msgid "Move Up"
+msgstr "Nach oben"
+
+msgid "New Window"
+msgstr "Neues Fenster"
+
+msgid "None"
+msgstr "Keine"
+
+msgid "Open"
+msgstr "Öffnen"
+
+msgid "Panel integration:"
+msgstr "Leistenintegration:"
+
+msgid "Restore"
+msgstr "Wiederherstellen"
+
+msgid "Running"
+msgstr "Läuft"
+
+msgid "Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers."
+msgstr "Laufende Anwendungen erscheinen automatisch. Mit einem Rechtsklick auf ein Icon kannst du es im Dock behalten, wieder lösen oder verschieben. Das Plasmoid bringt keine festen Starter mit."
+
+msgid "The Dock runs in its own transparent window at the screen edge. BetterBlur can blur this window directly. The invisible desktop widget only persists settings and launchers."
+msgstr "Das Dock läuft als eigenes transparentes Fenster am Bildschirmrand. BetterBlur kann dieses Fenster direkt blurren. Das unsichtbare Desktop-Miniprogramm dient nur dazu, Einstellungen und Starter dauerhaft zu speichern."
+
+msgid "Top/bottom margin:"
+msgstr "Rand oben/unten:"
+
+msgid "Unpin from Dock"
+msgstr "Vom Dock lösen"
+
+msgid "Window behavior:"
+msgstr "Fensterverhalten:"
