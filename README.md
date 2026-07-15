@@ -1,4 +1,4 @@
-# macOS Dock Task Manager for KDE Plasma 6
+# macOS Dock Plasmoid Plasma 6
 
 Ein eigenständiges Plasma-6-Dock im macOS-Stil mit Vergrößerung, Taskmanager,
 Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
@@ -30,8 +30,8 @@ sudo pacman -S --needed base-devel cmake qt6-declarative kwindowsystem
 ## Installation
 
 ```bash
-git clone <repository-url>
-cd org.kde.plasma.macosdock
+git clone https://github.com/DomiLuebben/macOS-Dock-Plasmoid-Plasma-6.git
+cd macOS-Dock-Plasmoid-Plasma-6
 ./install.sh
 systemctl --user restart plasma-plasmashell.service
 ```
