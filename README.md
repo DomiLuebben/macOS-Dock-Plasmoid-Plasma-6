@@ -1,27 +1,29 @@
-# macOS Dock Plasmoid Plasma 6
+# macOS Dock Plasmoid for KDE Plasma 6
 
-Ein eigenständiges Plasma-6-Dock im macOS-Stil mit Vergrößerung, Taskmanager,
-Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
+**English** | [Deutsch](README.de.md)
 
-## Funktionen
+A standalone macOS-style dock for Plasma 6 with magnification, task
+management, window controls, and a blurred background that follows the Qt
+color scheme.
 
-- flüssige macOS-artige Vergrößerung beim Überfahren der Symbole
-- Launcher und laufende Anwendungen in einem gemeinsamen Taskmanager
-- Fensteraktionen und Kontextmenüs
-- automatisches Ausblenden bei maximierten Fenstern
-- animiertes Ein- und Ausfahren an allen Bildschirmkanten
-- Hintergrund, Rahmen und Aktivitätsanzeigen aus der Qt-Systempalette
-- präzise, abgerundete Blur-Region ohne rechteckigen Hover-Hintergrund
+## Features
 
-## Voraussetzungen
+- Smooth macOS-style icon magnification on hover
+- Launchers and running applications in a unified task manager
+- Window actions and context menus
+- Automatic hiding when a window is maximized
+- Animated slide-in and slide-out at every screen edge
+- Background, border, and activity indicators based on the Qt system palette
+- Precise rounded blur region without a rectangular hover background
+
+## Requirements
 
 - KDE Plasma 6
-- Qt 6 mit Qt Quick/QML
+- Qt 6 with Qt Quick/QML
 - KDE Frameworks 6 WindowSystem
-- CMake und ein C++20-Compiler
+- CMake and a C++20 compiler
 
-Unter Arch Linux werden die Build-Abhängigkeiten beispielsweise mit folgendem
-Befehl installiert:
+On Arch Linux, the build dependencies can be installed with:
 
 ```bash
 sudo pacman -S --needed base-devel cmake qt6-declarative kwindowsystem
@@ -36,12 +38,12 @@ cd macOS-Dock-Plasmoid-Plasma-6
 systemctl --user restart plasma-plasmashell.service
 ```
 
-Das Installationsskript baut zuerst das kleine native QML-Modul für die
-Blur-Region und installiert bzw. aktualisiert anschließend das Plasmoid.
+The installation script first builds the small native QML module used for the
+blur region and then installs or updates the plasmoid.
 
-Danach kann **macOS Dock Task Manager** über „Miniprogramme hinzufügen“ zu
-einer Plasma-Leiste hinzugefügt werden.
+After installation, add **macOS Dock Task Manager** to a Plasma panel through
+the widget picker.
 
-## Lizenz
+## License
 
 GPL-2.0-or-later
