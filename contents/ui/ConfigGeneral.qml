@@ -5,6 +5,7 @@ import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
+import org.kde.kquickcontrols as KQuickControls
 
 KCM.SimpleKCM {
     id: configPage
@@ -16,6 +17,13 @@ KCM.SimpleKCM {
     property alias cfg_dockCrossMargin: dockCrossMarginSlider.value
     property alias cfg_screenEdgeMargin: screenEdgeMarginSlider.value
     property alias cfg_backgroundOpacity: backgroundOpacitySlider.value
+    property alias cfg_useThemeBackground: useThemeBackgroundCheckBox.checked
+    property alias cfg_customBackgroundColor: backgroundColorButton.color
+    property alias cfg_cornerRadius: cornerRadiusSlider.value
+    property alias cfg_borderOpacity: borderOpacitySlider.value
+    property alias cfg_shadowOpacity: shadowOpacitySlider.value
+    property alias cfg_showHighlight: showHighlightCheckBox.checked
+    property alias cfg_enableBlur: enableBlurCheckBox.checked
     property alias cfg_hideOnMaximized: hideOnMaximizedCheckBox.checked
     property alias cfg_launchAnimation: launchAnimationCombo.currentIndex
     property var cfg_launchers: []
@@ -29,6 +37,13 @@ KCM.SimpleKCM {
     property int cfg_dockCrossMarginDefault: 5
     property int cfg_screenEdgeMarginDefault: 8
     property real cfg_backgroundOpacityDefault: 0.55
+    property bool cfg_useThemeBackgroundDefault: true
+    property color cfg_customBackgroundColorDefault: "#20242b"
+    property int cfg_cornerRadiusDefault: 12
+    property real cfg_borderOpacityDefault: 0.22
+    property real cfg_shadowOpacityDefault: 0.42
+    property bool cfg_showHighlightDefault: true
+    property bool cfg_enableBlurDefault: true
     property bool cfg_hideOnMaximizedDefault: true
     property int cfg_launchAnimationDefault: 1
     property var cfg_launchersDefault: []
@@ -124,13 +139,114 @@ KCM.SimpleKCM {
                 id: backgroundOpacitySlider
                 Layout.fillWidth: true
                 from: 0.15
-                to: 0.9
+                to: 1.0
                 stepSize: 0.05
                 live: true
             }
 
             QQC2.Label {
                 text: Math.round(backgroundOpacitySlider.value * 100) + "%"
+            }
+        }
+
+        QQC2.CheckBox {
+            id: useThemeBackgroundCheckBox
+
+            Kirigami.FormData.label: i18n("Background:")
+            text: i18n("Use color from the Plasma theme")
+        }
+
+        KQuickControls.ColorButton {
+            id: backgroundColorButton
+
+            Kirigami.FormData.label: i18n("Custom background color:")
+            enabled: !useThemeBackgroundCheckBox.checked
+            showAlphaChannel: false
+            dialogTitle: i18n("Choose Dock Background Color")
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Corner radius:")
+
+            QQC2.Slider {
+                id: cornerRadiusSlider
+                Layout.fillWidth: true
+                from: 0
+                to: 48
+                stepSize: 1
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(cornerRadiusSlider.value) + i18n(" px")
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Border strength:")
+
+            QQC2.Slider {
+                id: borderOpacitySlider
+                Layout.fillWidth: true
+                from: 0
+                to: 0.5
+                stepSize: 0.02
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(borderOpacitySlider.value * 100) + "%"
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Shadow strength:")
+
+            QQC2.Slider {
+                id: shadowOpacitySlider
+                Layout.fillWidth: true
+                from: 0
+                to: 0.7
+                stepSize: 0.02
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(shadowOpacitySlider.value * 100) + "%"
+            }
+        }
+
+        ColumnLayout {
+            Kirigami.FormData.label: i18n("Effects:")
+
+            QQC2.CheckBox {
+                id: enableBlurCheckBox
+                text: i18n("Blur the background")
+            }
+
+            QQC2.CheckBox {
+                id: showHighlightCheckBox
+                text: i18n("Show glass highlight")
+            }
+        }
+
+        Item {
+            Kirigami.FormData.label: i18n("Preview:")
+            Layout.fillWidth: true
+            implicitHeight: 64
+
+            DockBackground {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(parent.width, 280)
+                height: 52
+                surfaceOpacity: backgroundOpacitySlider.value
+                useThemeColor: useThemeBackgroundCheckBox.checked
+                customColor: backgroundColorButton.color
+                requestedRadius: cornerRadiusSlider.value
+                borderOpacity: borderOpacitySlider.value
+                shadowOpacity: shadowOpacitySlider.value
+                showHighlight: showHighlightCheckBox.checked
             }
         }
 

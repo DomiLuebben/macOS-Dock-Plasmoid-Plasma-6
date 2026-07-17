@@ -19,12 +19,12 @@ PlasmoidItem {
     preferredRepresentation: fullRepresentation
     activationTogglesExpanded: false
 
-    readonly property real maxScale: Math.min(2.0,
-        Math.max(1.0, Number(Plasmoid.configuration.maxScale) || 1.45))
-    readonly property real zoomRadius: Math.min(200,
-        Math.max(30, Number(Plasmoid.configuration.zoomRadius) || 70))
-    readonly property real configuredIconSize: Number(
-        Plasmoid.configuration.iconSize)
+    readonly property real maxScale: boundedNumber(
+        Plasmoid.configuration.maxScale, 1.45, 1.0, 2.0)
+    readonly property real zoomRadius: boundedNumber(
+        Plasmoid.configuration.zoomRadius, 70, 30, 200)
+    readonly property real configuredIconSize: boundedNumber(
+        Plasmoid.configuration.iconSize, 44, 24, 96)
     readonly property int dockLocation: Plasmoid.formFactor
         === PlasmaCore.Types.Planar
         ? PlasmaCore.Types.BottomEdge : Plasmoid.location
@@ -33,24 +33,40 @@ PlasmoidItem {
         || dockLocation === PlasmaCore.Types.RightEdge
     readonly property real itemSpacing: 4
     readonly property real windowPadding: 10
-    readonly property real mainMargin: Math.min(40,
-        Math.max(4, Number(Plasmoid.configuration.dockMargin) || 16))
-    readonly property real crossMargin: Math.min(20,
-        Math.max(0, Number(Plasmoid.configuration.dockCrossMargin) || 0))
-    readonly property real panelEdgeMargin: Math.min(32,
-        Math.max(0, Number(Plasmoid.configuration.screenEdgeMargin) || 0))
-    readonly property real backgroundOpacity: Math.min(0.9,
-        Math.max(0.15, Number(Plasmoid.configuration.backgroundOpacity) || 0.55))
+    readonly property real mainMargin: boundedNumber(
+        Plasmoid.configuration.dockMargin, 16, 4, 40)
+    readonly property real crossMargin: boundedNumber(
+        Plasmoid.configuration.dockCrossMargin, 5, 0, 20)
+    readonly property real panelEdgeMargin: boundedNumber(
+        Plasmoid.configuration.screenEdgeMargin, 8, 0, 32)
+    readonly property real backgroundOpacity: boundedNumber(
+        Plasmoid.configuration.backgroundOpacity, 0.55, 0.15, 1.0)
+    readonly property bool useThemeBackground:
+        Plasmoid.configuration.useThemeBackground === undefined
+            ? true : Boolean(Plasmoid.configuration.useThemeBackground)
+    readonly property color customBackgroundColor:
+        Plasmoid.configuration.customBackgroundColor || "#20242b"
+    readonly property real cornerRadius: boundedNumber(
+        Plasmoid.configuration.cornerRadius, 12, 0, 48)
+    readonly property real borderOpacity: boundedNumber(
+        Plasmoid.configuration.borderOpacity, 0.22, 0, 0.5)
+    readonly property real shadowOpacity: boundedNumber(
+        Plasmoid.configuration.shadowOpacity, 0.42, 0, 0.7)
+    readonly property bool showHighlight:
+        Plasmoid.configuration.showHighlight === undefined
+            ? true : Boolean(Plasmoid.configuration.showHighlight)
+    readonly property bool enableBlur:
+        Plasmoid.configuration.enableBlur === undefined
+            ? true : Boolean(Plasmoid.configuration.enableBlur)
     readonly property bool hideOnMaximized:
         Plasmoid.configuration.hideOnMaximized === undefined
             ? true : Boolean(Plasmoid.configuration.hideOnMaximized)
-    readonly property int launchAnimation: Math.max(0,
-        Math.min(1, Number(Plasmoid.configuration.launchAnimation)))
+    readonly property int launchAnimation: Math.round(boundedNumber(
+        Plasmoid.configuration.launchAnimation, 1, 0, 1))
     readonly property real indicatorSize: 3
     readonly property real indicatorGap: 2
     readonly property real indicatorSpace: indicatorSize + indicatorGap
-    readonly property real baseIconSize: Math.min(96,
-        Math.max(24, configuredIconSize || 44))
+    readonly property real baseIconSize: configuredIconSize
     readonly property real baseSurfaceCrossLength:
         baseIconSize + indicatorSpace + 2 * crossMargin
     readonly property real baseSurfaceMainLength: preferredMainLength
@@ -110,6 +126,11 @@ PlasmoidItem {
     property bool overlayHovered: false
     property bool edgeHovered: false
     property int openMenuCount: 0
+    property var openContextMenu: null
+    property var adjustedContainment: null
+    property int previousContainmentBackgroundHints: 0
+    property int previousContainmentUserBackgroundHints: 0
+    property bool containmentBackgroundAdjusted: false
     property real lastPointerMain: isVertical
         ? overlayWindowHeight / 2 : overlayWindowWidth / 2
 
@@ -128,6 +149,7 @@ PlasmoidItem {
             baseSurface.y + root.dockSlideY(baseWindow.height),
             baseSurface.width, baseSurface.height)
         radius: baseSurface.radius
+        enabled: root.enableBlur
     }
 
     DockEffects.BlurRegion {
@@ -139,24 +161,57 @@ PlasmoidItem {
             overlayBackgroundSurface.width,
             overlayBackgroundSurface.height)
         radius: overlayBackgroundSurface.radius
+        enabled: root.enableBlur
     }
 
-    DockEffects.BlurRegion {
-        window: edgeWindow
-        region: Qt.rect(0, 0, 1, 1)
-        radius: 0
+    DockEffects.WindowActions {
+        id: windowActions
+    }
+
+    function boundedNumber(value, fallback, minimum, maximum) {
+        var number = Number(value);
+        if (!Number.isFinite(number)) {
+            number = fallback;
+        }
+        return Math.min(maximum, Math.max(minimum, number));
     }
 
     function makePanelTransparent() {
         var containment = Plasmoid.containment;
         if (containment
                 && Plasmoid.formFactor !== PlasmaCore.Types.Planar) {
+            if (!containmentBackgroundAdjusted) {
+                adjustedContainment = containment;
+                previousContainmentBackgroundHints = containment.backgroundHints;
+                previousContainmentUserBackgroundHints =
+                    containment.userBackgroundHints;
+                containmentBackgroundAdjusted = true;
+            }
             containment.backgroundHints = PlasmaCore.Types.NoBackground;
             containment.userBackgroundHints = PlasmaCore.Types.NoBackground;
         }
     }
 
+    function restorePanelBackground() {
+        if (!containmentBackgroundAdjusted || !adjustedContainment) {
+            return;
+        }
+        if (adjustedContainment.backgroundHints
+                === PlasmaCore.Types.NoBackground) {
+            adjustedContainment.backgroundHints =
+                previousContainmentBackgroundHints;
+        }
+        if (adjustedContainment.userBackgroundHints
+                === PlasmaCore.Types.NoBackground) {
+            adjustedContainment.userBackgroundHints =
+                previousContainmentUserBackgroundHints;
+        }
+        adjustedContainment = null;
+        containmentBackgroundAdjusted = false;
+    }
+
     Component.onCompleted: makePanelTransparent()
+    Component.onDestruction: restorePanelBackground()
 
     function dockSlideX(windowWidth) {
         var hiddenFraction = 1.0 - dockRevealProgress;
@@ -239,17 +294,40 @@ PlasmoidItem {
         }
     }
 
-    function menuOpened() {
+    function configureContextMenu(menu) {
+        // Qt 6.8+ can place the menu in a real transient window. On Wayland,
+        // the compositor can then dismiss it for clicks outside the Dock's
+        // own layer-shell surfaces. Keep the item-popup fallback for older Qt.
+        if (menu && menu["popupType"] !== undefined
+                && QQC2.Popup["Window"] !== undefined) {
+            menu["popupType"] = QQC2.Popup["Window"];
+        }
+    }
+
+    function menuOpened(menu) {
+        if (openContextMenu && openContextMenu !== menu) {
+            openContextMenu.close();
+        }
+        openContextMenu = menu;
         ++openMenuCount;
         overlayCloseTimer.stop();
         revealDock();
         overlayOpen = true;
     }
 
-    function menuClosed() {
+    function menuClosed(menu) {
+        if (openContextMenu === menu) {
+            openContextMenu = null;
+        }
         openMenuCount = Math.max(0, openMenuCount - 1);
         scheduleOverlayClose();
         scheduleDockHide();
+    }
+
+    function closeOpenContextMenu() {
+        if (openContextMenu) {
+            openContextMenu.close();
+        }
     }
 
     function sameStringList(first, second) {
@@ -270,15 +348,60 @@ PlasmoidItem {
         return tasksModel.makeModelIndex(row);
     }
 
-    function activateTask(row, launcher, active, minimized) {
+    function taskRole(index, role) {
+        return tasksModel.data(index, role);
+    }
+
+    function isGroup(row) {
+        return Boolean(taskRole(modelIndex(row),
+            TaskManager.AbstractTasksModel.IsGroupParent));
+    }
+
+    function preferredWindowIndex(row) {
+        var parentIndex = modelIndex(row);
+        if (!isGroup(row)) {
+            return parentIndex;
+        }
+
+        var childCount = tasksModel.rowCount(parentIndex);
+        var preferredIndex = childCount > 0
+            ? tasksModel.makeModelIndex(row, 0) : parentIndex;
+        var latestActivation = -1;
+        for (var child = 0; child < childCount; ++child) {
+            var childIndex = tasksModel.makeModelIndex(row, child);
+            if (Boolean(taskRole(childIndex,
+                    TaskManager.AbstractTasksModel.IsActive))) {
+                return childIndex;
+            }
+            var activated = taskRole(childIndex,
+                TaskManager.AbstractTasksModel.LastActivated);
+            var timestamp = activated && activated.getTime
+                ? activated.getTime() : Date.parse(String(activated || ""));
+            if (Number.isFinite(timestamp) && timestamp > latestActivation) {
+                latestActivation = timestamp;
+                preferredIndex = childIndex;
+            }
+        }
+        return preferredIndex;
+    }
+
+    function activateTask(row, launcher) {
         var index = modelIndex(row);
         if (launcher) {
             tasksModel.requestNewInstance(index);
-        } else if (active && !minimized) {
-            tasksModel.requestToggleMinimized(index);
-        } else {
-            tasksModel.requestActivate(index);
+            return;
         }
+
+        var windowIndex = preferredWindowIndex(row);
+        var active = Boolean(taskRole(windowIndex,
+            TaskManager.AbstractTasksModel.IsActive));
+        var minimized = Boolean(taskRole(windowIndex,
+            TaskManager.AbstractTasksModel.IsMinimized));
+        if (active && !minimized) {
+            tasksModel.requestToggleMinimized(windowIndex);
+            return;
+        }
+        tasksModel.requestActivate(windowIndex);
     }
 
     function openTask(row, launcher) {
@@ -286,24 +409,157 @@ PlasmoidItem {
         if (launcher) {
             tasksModel.requestNewInstance(index);
         } else {
-            tasksModel.requestActivate(index);
+            tasksModel.requestActivate(preferredWindowIndex(row));
         }
     }
 
-    function toggleMinimized(row) {
-        tasksModel.requestToggleMinimized(modelIndex(row));
+    function allTaskWindowsHaveState(row, stateRole, parentState,
+            modelChildCount) {
+        var parentIndex = modelIndex(row);
+        if (!isGroup(row)) {
+            return Boolean(parentState);
+        }
+
+        // modelChildCount is passed so the binding is reevaluated whenever a
+        // grouped task gains or loses a child window.
+        var childCount = tasksModel.rowCount(parentIndex);
+        if (childCount === 0) {
+            return Boolean(parentState);
+        }
+        for (var child = 0; child < childCount; ++child) {
+            if (!Boolean(taskRole(tasksModel.makeModelIndex(row, child),
+                    stateRole))) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    function toggleMaximized(row) {
-        tasksModel.requestToggleMaximized(modelIndex(row));
+    function anyTaskWindowCan(row, capabilityRole, parentCapability,
+            modelChildCount) {
+        var parentIndex = modelIndex(row);
+        if (!isGroup(row)) {
+            return Boolean(parentCapability);
+        }
+
+        var childCount = tasksModel.rowCount(parentIndex);
+        for (var child = 0; child < childCount; ++child) {
+            if (Boolean(taskRole(tasksModel.makeModelIndex(row, child),
+                    capabilityRole))) {
+                return true;
+            }
+        }
+        return Boolean(parentCapability) && childCount === 0;
+    }
+
+    function setTaskMinimized(row, minimized) {
+        var parentIndex = modelIndex(row);
+        if (!isGroup(row)) {
+            if (Boolean(taskRole(parentIndex,
+                    TaskManager.AbstractTasksModel.IsMinimizable))
+                    && Boolean(taskRole(parentIndex,
+                        TaskManager.AbstractTasksModel.IsMinimized)) !== minimized) {
+                tasksModel.requestToggleMinimized(parentIndex);
+            }
+            return;
+        }
+
+        var childCount = tasksModel.rowCount(parentIndex);
+        for (var child = 0; child < childCount; ++child) {
+            var childIndex = tasksModel.makeModelIndex(row, child);
+            if (Boolean(taskRole(childIndex,
+                    TaskManager.AbstractTasksModel.IsMinimizable))
+                    && Boolean(taskRole(childIndex,
+                        TaskManager.AbstractTasksModel.IsMinimized)) !== minimized) {
+                tasksModel.requestToggleMinimized(childIndex);
+            }
+        }
+    }
+
+    function setTaskMaximized(row, maximized) {
+        var parentIndex = modelIndex(row);
+        if (!isGroup(row)) {
+            if (Boolean(taskRole(parentIndex,
+                    TaskManager.AbstractTasksModel.IsMaximizable))
+                    && Boolean(taskRole(parentIndex,
+                        TaskManager.AbstractTasksModel.IsMaximized)) !== maximized) {
+                tasksModel.requestToggleMaximized(parentIndex);
+            }
+            return;
+        }
+
+        var childCount = tasksModel.rowCount(parentIndex);
+        for (var child = 0; child < childCount; ++child) {
+            var childIndex = tasksModel.makeModelIndex(row, child);
+            if (Boolean(taskRole(childIndex,
+                    TaskManager.AbstractTasksModel.IsMaximizable))
+                    && Boolean(taskRole(childIndex,
+                        TaskManager.AbstractTasksModel.IsMaximized)) !== maximized) {
+                tasksModel.requestToggleMaximized(childIndex);
+            }
+        }
+    }
+
+    function taskCanLaunchNewInstance(row, parentCapability,
+            modelChildCount) {
+        var parentIndex = modelIndex(row);
+        if (Boolean(taskRole(parentIndex,
+                TaskManager.AbstractTasksModel.IsLauncher))) {
+            return true;
+        }
+        if (anyTaskWindowCan(row,
+                TaskManager.AbstractTasksModel.CanLaunchNewInstance,
+                parentCapability, modelChildCount)) {
+            return true;
+        }
+
+        var launcher = taskRole(parentIndex,
+            TaskManager.AbstractTasksModel.LauncherUrlWithoutIcon)
+            || taskRole(parentIndex,
+                TaskManager.AbstractTasksModel.LauncherUrl);
+        return String(launcher || "").length > 0;
     }
 
     function launchNewInstance(row) {
-        tasksModel.requestNewInstance(modelIndex(row));
+        var parentIndex = modelIndex(row);
+        if (!isGroup(row)) {
+            tasksModel.requestNewInstance(parentIndex);
+            return;
+        }
+
+        var childCount = tasksModel.rowCount(parentIndex);
+        for (var child = 0; child < childCount; ++child) {
+            var childIndex = tasksModel.makeModelIndex(row, child);
+            if (Boolean(taskRole(childIndex,
+                    TaskManager.AbstractTasksModel.CanLaunchNewInstance))) {
+                tasksModel.requestNewInstance(childIndex);
+                return;
+            }
+        }
+        if (childCount > 0) {
+            tasksModel.requestNewInstance(tasksModel.makeModelIndex(row, 0));
+        }
     }
 
     function closeTask(row) {
-        tasksModel.requestClose(modelIndex(row));
+        var parentIndex = modelIndex(row);
+        if (!isGroup(row)) {
+            tasksModel.requestClose(parentIndex);
+            return;
+        }
+
+        for (var child = tasksModel.rowCount(parentIndex) - 1;
+                child >= 0; --child) {
+            var childIndex = tasksModel.makeModelIndex(row, child);
+            if (Boolean(taskRole(childIndex,
+                    TaskManager.AbstractTasksModel.IsClosable))) {
+                tasksModel.requestClose(childIndex);
+            }
+        }
+    }
+
+    function startInteractiveForceQuit() {
+        windowActions.startInteractiveForceQuit();
     }
 
     function launcherUrl(task) {
@@ -363,6 +619,16 @@ PlasmoidItem {
                     && root.openMenuCount === 0) {
                 root.overlayOpen = false;
                 root.revealedForMaximized = false;
+            }
+        }
+    }
+
+    Connections {
+        target: Qt.application
+
+        function onStateChanged(state) {
+            if (state !== Qt.ApplicationActive) {
+                root.closeOpenContextMenu();
             }
         }
     }
@@ -457,10 +723,33 @@ PlasmoidItem {
             && (Boolean(model.IsWindow)
                 || Boolean(model.IsStartup)
                 || Boolean(model.IsGroupParent))
-        readonly property bool pinned: root.launcherExists(model)
+        readonly property bool groupParent: Boolean(model.IsGroupParent)
+        readonly property bool pinned: Boolean(model.HasLauncher)
+            || root.launcherExists(model)
         readonly property string launcherTarget: root.launcherUrl(model)
-        readonly property bool canOpenNewInstance: launcherOnly
-            || model.CanLaunchNewInstance !== false
+        readonly property bool canOpenNewInstance:
+            root.taskCanLaunchNewInstance(index,
+                Boolean(model.CanLaunchNewInstance), Number(model.ChildCount))
+        readonly property bool allMinimized: runningTask
+            && root.allTaskWindowsHaveState(index,
+                TaskManager.AbstractTasksModel.IsMinimized,
+                Boolean(model.IsMinimized), Number(model.ChildCount))
+        readonly property bool allMaximized: runningTask
+            && root.allTaskWindowsHaveState(index,
+                TaskManager.AbstractTasksModel.IsMaximized,
+                Boolean(model.IsMaximized), Number(model.ChildCount))
+        readonly property bool canMinimize: runningTask
+            && root.anyTaskWindowCan(index,
+                TaskManager.AbstractTasksModel.IsMinimizable,
+                Boolean(model.IsMinimizable), Number(model.ChildCount))
+        readonly property bool canMaximize: runningTask
+            && root.anyTaskWindowCan(index,
+                TaskManager.AbstractTasksModel.IsMaximizable,
+                Boolean(model.IsMaximizable), Number(model.ChildCount))
+        readonly property bool canClose: runningTask
+            && root.anyTaskWindowCan(index,
+                TaskManager.AbstractTasksModel.IsClosable,
+                Boolean(model.IsClosable), Number(model.ChildCount))
 
         appName: String(model.AppName || model.display || i18n("Application"))
         appIcon: model.decoration || "application-x-executable"
@@ -483,8 +772,7 @@ PlasmoidItem {
 
         onClicked: {
             triggerBounce();
-            root.activateTask(index, launcherOnly, Boolean(model.IsActive),
-                Boolean(model.IsMinimized));
+            root.activateTask(index, launcherOnly);
         }
 
         onNewInstanceRequested: {
@@ -498,22 +786,29 @@ PlasmoidItem {
             id: taskMenu
 
             property bool countedAsOpen: false
+            closePolicy: QQC2.Popup.CloseOnEscape
+                | QQC2.Popup.CloseOnPressOutside
+                | QQC2.Popup.CloseOnReleaseOutside
+                | QQC2.Popup.CloseOnPressOutsideParent
+                | QQC2.Popup.CloseOnReleaseOutsideParent
+
+            Component.onCompleted: root.configureContextMenu(taskMenu)
 
             onOpened: {
                 if (!countedAsOpen) {
                     countedAsOpen = true;
-                    root.menuOpened();
+                    root.menuOpened(taskMenu);
                 }
             }
             onClosed: {
                 if (countedAsOpen) {
                     countedAsOpen = false;
-                    root.menuClosed();
+                    root.menuClosed(taskMenu);
                 }
             }
             Component.onDestruction: {
                 if (countedAsOpen) {
-                    root.menuClosed();
+                    root.menuClosed(taskMenu);
                 }
             }
 
@@ -526,7 +821,7 @@ PlasmoidItem {
             }
 
             QQC2.MenuItem {
-                text: i18n("New Window")
+                text: i18n("Open New Window")
                 icon.name: "window-new"
                 visible: taskDelegate.canOpenNewInstance
                 onTriggered: root.launchNewInstance(taskDelegate.index)
@@ -563,31 +858,52 @@ PlasmoidItem {
             }
 
             QQC2.MenuItem {
-                text: Boolean(taskDelegate.model.IsMinimized)
-                    ? i18n("Restore") : i18n("Minimize")
-                icon.name: Boolean(taskDelegate.model.IsMinimized)
+                text: taskDelegate.allMinimized
+                    ? (taskDelegate.groupParent
+                        ? i18n("Restore All") : i18n("Restore"))
+                    : (taskDelegate.groupParent
+                        ? i18n("Minimize All") : i18n("Minimize"))
+                icon.name: taskDelegate.allMinimized
                     ? "window-restore" : "window-minimize"
                 visible: taskDelegate.runningTask
-                enabled: Boolean(taskDelegate.model.IsMinimizable)
-                onTriggered: root.toggleMinimized(taskDelegate.index)
+                enabled: taskDelegate.canMinimize
+                onTriggered: root.setTaskMinimized(taskDelegate.index,
+                    !taskDelegate.allMinimized)
             }
 
             QQC2.MenuItem {
-                text: Boolean(taskDelegate.model.IsMaximized)
-                    ? i18n("Restore") : i18n("Maximize")
-                icon.name: Boolean(taskDelegate.model.IsMaximized)
+                text: taskDelegate.allMaximized
+                    ? (taskDelegate.groupParent
+                        ? i18n("Restore All") : i18n("Restore"))
+                    : (taskDelegate.groupParent
+                        ? i18n("Maximize All") : i18n("Maximize"))
+                icon.name: taskDelegate.allMaximized
                     ? "window-restore" : "window-maximize"
                 visible: taskDelegate.runningTask
-                enabled: Boolean(taskDelegate.model.IsMaximizable)
-                onTriggered: root.toggleMaximized(taskDelegate.index)
+                enabled: taskDelegate.canMaximize
+                onTriggered: root.setTaskMaximized(taskDelegate.index,
+                    !taskDelegate.allMaximized)
             }
 
             QQC2.MenuItem {
-                text: i18n("Close")
+                text: taskDelegate.groupParent
+                    ? i18n("Close All Windows") : i18n("Close")
                 icon.name: "window-close"
                 visible: taskDelegate.runningTask
-                enabled: Boolean(taskDelegate.model.IsClosable)
+                enabled: taskDelegate.canClose
                 onTriggered: root.closeTask(taskDelegate.index)
+            }
+
+            QQC2.MenuSeparator {
+                visible: taskDelegate.runningTask
+            }
+
+            QQC2.MenuItem {
+                text: i18n("Force Quit Application…")
+                icon.name: "process-stop"
+                visible: taskDelegate.runningTask
+                enabled: windowActions.interactiveForceQuitAvailable
+                onTriggered: root.startInteractiveForceQuit()
             }
         }
     }
@@ -662,6 +978,12 @@ PlasmoidItem {
 
                 anchors.fill: parent
                 surfaceOpacity: root.backgroundOpacity
+                useThemeColor: root.useThemeBackground
+                customColor: root.customBackgroundColor
+                requestedRadius: root.cornerRadius
+                borderOpacity: root.borderOpacity
+                shadowOpacity: root.shadowOpacity
+                showHighlight: root.showHighlight
             }
 
             HoverHandler {
@@ -826,9 +1148,13 @@ PlasmoidItem {
             readonly property real currentMainLength: calculateCurrentMainLength()
 
             function scaleAt(index) {
-                var countDependency = root.taskCount;
                 var item = overlayRepeater.itemAt(index);
-                return item ? item.currentScale : 1.0;
+                // Repeater.itemAt() is statically typed as Item, while every
+                // delegate is a TaskDelegate/DockItem with currentScale.
+                // qmllint disable missing-property
+                var scale = item ? Number(item["currentScale"]) : 1.0;
+                // qmllint enable missing-property
+                return Number.isFinite(scale) ? scale : 1.0;
             }
 
             function calculateCurrentMainLength() {
@@ -845,7 +1171,6 @@ PlasmoidItem {
             }
 
             function centerForIndex(index) {
-                var countDependency = root.taskCount;
                 var cursor = (mainLength - currentMainLength) / 2;
                 for (var previous = 0; previous < index; ++previous) {
                     cursor += root.baseIconSize * scaleAt(previous)
@@ -859,6 +1184,12 @@ PlasmoidItem {
 
                 z: 0
                 surfaceOpacity: root.backgroundOpacity
+                useThemeColor: root.useThemeBackground
+                customColor: root.customBackgroundColor
+                requestedRadius: root.cornerRadius
+                borderOpacity: root.borderOpacity
+                shadowOpacity: root.shadowOpacity
+                showHighlight: root.showHighlight
                 x: root.isVertical
                     ? overlayContent.surfaceCrossStart(width)
                     : (overlayContent.width - width) / 2
@@ -877,19 +1208,17 @@ PlasmoidItem {
                 var crossLength = root.isVertical ? width : height;
                 if (!root.isVertical) {
                     if (root.dockLocation === PlasmaCore.Types.TopEdge) {
-                        return root.windowPadding;
+                        return 0;
                     }
                     if (root.dockLocation === PlasmaCore.Types.BottomEdge) {
-                        return crossLength - root.windowPadding
-                            - surfaceCrossLength;
+                        return crossLength - surfaceCrossLength;
                     }
                 } else {
                     if (root.dockLocation === PlasmaCore.Types.LeftEdge) {
-                        return root.windowPadding;
+                        return 0;
                     }
                     if (root.dockLocation === PlasmaCore.Types.RightEdge) {
-                        return crossLength - root.windowPadding
-                            - surfaceCrossLength;
+                        return crossLength - surfaceCrossLength;
                     }
                 }
                 return (crossLength - surfaceCrossLength) / 2;
@@ -930,17 +1259,29 @@ PlasmoidItem {
                 id: dockMenu
 
                 property bool countedAsOpen: false
+                closePolicy: QQC2.Popup.CloseOnEscape
+                    | QQC2.Popup.CloseOnPressOutside
+                    | QQC2.Popup.CloseOnReleaseOutside
+                    | QQC2.Popup.CloseOnPressOutsideParent
+                    | QQC2.Popup.CloseOnReleaseOutsideParent
+
+                Component.onCompleted: root.configureContextMenu(dockMenu)
 
                 onOpened: {
                     if (!countedAsOpen) {
                         countedAsOpen = true;
-                        root.menuOpened();
+                        root.menuOpened(dockMenu);
                     }
                 }
                 onClosed: {
                     if (countedAsOpen) {
                         countedAsOpen = false;
-                        root.menuClosed();
+                        root.menuClosed(dockMenu);
+                    }
+                }
+                Component.onDestruction: {
+                    if (countedAsOpen) {
+                        root.menuClosed(dockMenu);
                     }
                 }
 

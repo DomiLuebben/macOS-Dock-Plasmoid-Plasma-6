@@ -118,14 +118,19 @@ void BlurRegion::apply()
         return;
     }
 
+    // Applying an effect before a layer-shell surface becomes visible can
+    // race its native surface creation. visibleChanged schedules a fresh pass.
+    if (!m_window->isVisible()) {
+        return;
+    }
+
     if (!m_enabled || m_region.isEmpty()) {
         disableFor(m_window);
         return;
     }
 
     const QRect windowBounds(0, 0, m_window->width(), m_window->height());
-    QRect blurRect(qRound(m_region.x()), qRound(m_region.y()),
-                   qRound(m_region.width()), qRound(m_region.height()));
+    QRect blurRect = m_region.toAlignedRect();
     blurRect = blurRect.intersected(windowBounds);
 
     if (blurRect.isEmpty()) {

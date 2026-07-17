@@ -10,10 +10,14 @@ couleurs du thème Qt.
 
 - Agrandissement fluide des icônes au survol
 - Lanceurs et applications en cours d’exécution dans un gestionnaire commun
-- Actions de fenêtre et menus contextuels
+- Menu contextuel pour ouvrir de nouvelles fenêtres et réduire, maximiser,
+  restaurer ou fermer des fenêtres individuelles ou groupées
+- Sélecteur de fenêtre KWin sécurisé pour forcer l’arrêt d’une fenêtre bloquée
 - Masquage automatique lorsqu’une fenêtre est maximisée
 - Animation d’entrée et de sortie sur chaque bord de l’écran
 - Arrière-plan, bordure et indicateurs d’activité selon la palette Qt du système
+- Couleur d’arrière-plan du thème ou personnalisée, avec arrondi, bordure,
+  ombre, reflet et flou configurables
 - Zone de flou précisément arrondie, sans fond rectangulaire au survol
 - Interface complète en allemand, anglais américain et français selon la langue du système
 
@@ -40,8 +44,12 @@ cd macOS-Dock-Plasmoid-Plasma-6
 systemctl --user restart plasma-plasmashell.service
 ```
 
-Le script compile le petit module QML natif utilisé pour la zone de flou,
-compile les traductions, puis installe ou met à jour le composant graphique.
+Le script compile le petit module QML natif utilisé pour la zone de flou et
+les actions KWin, compile les traductions, puis installe ou met à jour le
+composant graphique.
+
+Après « Forcer à quitter l’application… », le pointeur devient un sélecteur de
+fenêtre. Sélectionnez la fenêtre bloquée ou appuyez sur `Échap` pour annuler.
 
 Ajoutez ensuite **Gestionnaire de tâches macOS Dock** à un panneau Plasma depuis
 le sélecteur de composants graphiques.

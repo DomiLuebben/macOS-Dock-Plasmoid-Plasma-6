@@ -10,10 +10,14 @@ color scheme.
 
 - Smooth macOS-style icon magnification on hover
 - Launchers and running applications in a unified task manager
-- Window actions and context menus
+- Context-menu actions to open new windows and minimize, maximize, restore, or
+  close individual and grouped windows
+- Safe KWin window picker for force-quitting unresponsive windows
 - Automatic hiding when a window is maximized
 - Animated slide-in and slide-out at every screen edge
 - Background, border, and activity indicators based on the Qt system palette
+- Theme or custom background color with configurable rounding, border, shadow,
+  highlight, and blur
 - Precise rounded blur region without a rectangular hover background
 - Complete German, US English, and French interface selected from the system language
 
@@ -41,7 +45,10 @@ systemctl --user restart plasma-plasmashell.service
 ```
 
 The installation script first builds the small native QML module used for the
-blur region and then installs or updates the plasmoid.
+blur region and KWin window actions, then installs or updates the plasmoid.
+
+After choosing “Force Quit Application…”, the pointer becomes a window picker.
+Select the unresponsive window or press `Esc` to cancel.
 
 After installation, add **macOS Dock Task Manager** to a Plasma panel through
 the widget picker.

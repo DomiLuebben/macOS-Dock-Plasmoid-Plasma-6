@@ -1,4 +1,5 @@
 #include "blurregion.h"
+#include "windowactions.h"
 
 #include <QQmlEngine>
 #include <QQmlExtensionPlugin>
@@ -12,6 +13,7 @@ public:
     void registerTypes(const char *uri) override
     {
         qmlRegisterType<BlurRegion>(uri, 1, 0, "BlurRegion");
+        qmlRegisterType<WindowActions>(uri, 1, 0, "WindowActions");
     }
 };
 

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.7.0\n"
-"PO-Revision-Date: 2026-07-15 00:00+0200\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.9.0\n"
+"PO-Revision-Date: 2026-07-17 00:00+0200\n"
 "Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
 "Language-Team: German\n"
 "Language: de\n"
@@ -31,20 +31,47 @@ msgstr "Bei maximiertem Fenster automatisch ausblenden"
 msgid "Background opacity:"
 msgstr "Hintergrunddeckkraft:"
 
+msgid "Background:"
+msgstr "Hintergrund:"
+
+msgid "Blur the background"
+msgstr "Hintergrund weichzeichnen"
+
+msgid "Border strength:"
+msgstr "Rahmenintensität:"
+
 msgid "Bounce"
 msgstr "Springen"
 
 msgid "Close"
 msgstr "Schließen"
 
+msgid "Close All Windows"
+msgstr "Alle Fenster schließen"
+
+msgid "Choose Dock Background Color"
+msgstr "Dock-Hintergrundfarbe auswählen"
+
 msgid "Configure Dock…"
 msgstr "Dock einrichten …"
+
+msgid "Corner radius:"
+msgstr "Eckenradius:"
+
+msgid "Custom background color:"
+msgstr "Eigene Hintergrundfarbe:"
 
 msgid "Distance from screen edge:"
 msgstr "Abstand zum Bildschirmrand:"
 
 msgid "Dock content:"
 msgstr "Dock-Inhalt:"
+
+msgid "Effects:"
+msgstr "Effekte:"
+
+msgid "Force Quit Application…"
+msgstr "Anwendung sofort beenden …"
 
 msgid "General"
 msgstr "Allgemein"
@@ -76,8 +103,14 @@ msgstr "Maximale Vergrößerung:"
 msgid "Maximize"
 msgstr "Maximieren"
 
+msgid "Maximize All"
+msgstr "Alle maximieren"
+
 msgid "Minimize"
 msgstr "Minimieren"
+
+msgid "Minimize All"
+msgstr "Alle minimieren"
 
 msgid "Move Down"
 msgstr "Nach unten"
@@ -91,23 +124,35 @@ msgstr "Nach rechts"
 msgid "Move Up"
 msgstr "Nach oben"
 
-msgid "New Window"
-msgstr "Neues Fenster"
-
 msgid "None"
 msgstr "Keine"
 
 msgid "Open"
 msgstr "Öffnen"
 
+msgid "Open New Window"
+msgstr "Neues Fenster öffnen"
+
 msgid "Panel integration:"
 msgstr "Leistenintegration:"
+
+msgid "Preview:"
+msgstr "Vorschau:"
 
 msgid "Restore"
 msgstr "Wiederherstellen"
 
+msgid "Restore All"
+msgstr "Alle wiederherstellen"
+
 msgid "Running"
 msgstr "Läuft"
+
+msgid "Shadow strength:"
+msgstr "Schattenintensität:"
+
+msgid "Show glass highlight"
+msgstr "Glas-Glanzlicht anzeigen"
 
 msgid "Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers."
 msgstr "Laufende Anwendungen erscheinen automatisch. Mit einem Rechtsklick auf ein Icon kannst du es im Dock behalten, wieder lösen oder verschieben. Das Plasmoid bringt keine festen Starter mit."
@@ -120,6 +165,9 @@ msgstr "Rand oben/unten:"
 
 msgid "Unpin from Dock"
 msgstr "Vom Dock lösen"
+
+msgid "Use color from the Plasma theme"
+msgstr "Farbe des Plasma-Designs verwenden"
 
 msgid "Window behavior:"
 msgstr "Fensterverhalten:"

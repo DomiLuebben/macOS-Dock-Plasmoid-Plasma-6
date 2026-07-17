@@ -25,6 +25,27 @@
     <entry name="backgroundOpacity" type="Double">
       <default>0.55</default>
     </entry>
+    <entry name="useThemeBackground" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="customBackgroundColor" type="Color">
+      <default>#20242b</default>
+    </entry>
+    <entry name="cornerRadius" type="Int">
+      <default>12</default>
+    </entry>
+    <entry name="borderOpacity" type="Double">
+      <default>0.22</default>
+    </entry>
+    <entry name="shadowOpacity" type="Double">
+      <default>0.42</default>
+    </entry>
+    <entry name="showHighlight" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="enableBlur" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="hideOnMaximized" type="Bool">
       <default>true</default>
     </entry>

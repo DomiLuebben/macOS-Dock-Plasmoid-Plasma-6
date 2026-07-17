@@ -9,10 +9,14 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 
 - flüssige macOS-artige Vergrößerung beim Überfahren der Symbole
 - Launcher und laufende Anwendungen in einem gemeinsamen Taskmanager
-- Fensteraktionen und Kontextmenüs
+- Kontextmenü zum Öffnen neuer Fenster sowie zum Minimieren, Maximieren,
+  Wiederherstellen und Schließen einzelner oder gruppierter Fenster
+- sichere KWin-Fensterauswahl zum sofortigen Beenden nicht reagierender Fenster
 - automatisches Ausblenden bei maximierten Fenstern
 - animiertes Ein- und Ausfahren an allen Bildschirmkanten
 - Hintergrund, Rahmen und Aktivitätsanzeigen aus der Qt-Systempalette
+- Theme- oder eigene Hintergrundfarbe sowie einstellbare Rundung, Rahmen,
+  Schatten, Glanzlicht und Blur
 - präzise, abgerundete Blur-Region ohne rechteckigen Hover-Hintergrund
 - vollständige deutsche, US-englische und französische Oberfläche nach Systemsprache
 
@@ -41,7 +45,11 @@ systemctl --user restart plasma-plasmashell.service
 ```
 
 Das Installationsskript baut zuerst das kleine native QML-Modul für die
-Blur-Region und installiert bzw. aktualisiert anschließend das Plasmoid.
+Blur-Region und die KWin-Fensteraktionen und installiert bzw. aktualisiert
+anschließend das Plasmoid.
+
+Bei „Anwendung sofort beenden …“ wird der Mauszeiger zur Zielauswahl. Klicke das
+nicht reagierende Fenster an oder brich mit `Esc` ab.
 
 Danach kann **macOS Dock Task Manager** über „Miniprogramme hinzufügen“ zu
 einer Plasma-Leiste hinzugefügt werden.
