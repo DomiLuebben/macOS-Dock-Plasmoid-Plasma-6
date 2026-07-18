@@ -14,6 +14,8 @@ color scheme.
   close individual and grouped windows
 - Safe KWin window picker for force-quitting unresponsive windows
 - Automatic hiding when a window is maximized
+- Fullscreen-safe stacking and forced hiding for media players such as mpv and
+  Dragon Player
 - Animated slide-in and slide-out at every screen edge
 - Background, border, and activity indicators based on the Qt system palette
 - Theme or custom background color with configurable rounding, border, shadow,

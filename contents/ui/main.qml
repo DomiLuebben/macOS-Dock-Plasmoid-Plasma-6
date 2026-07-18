@@ -110,13 +110,15 @@ PlasmoidItem {
         && representationItem !== null
     readonly property bool maximizedWindowPresent:
         maximizedWindowsModel.count > 0
+    property bool fullscreenWindowPresent: false
     readonly property bool autoHideRequired:
-        hideOnMaximized && maximizedWindowPresent
+        fullscreenWindowPresent
+            || (hideOnMaximized && maximizedWindowPresent)
     property bool revealedForMaximized: false
     readonly property bool dockRequestedVisible: dockAvailable
+        && !fullscreenWindowPresent
         && (!autoHideRequired || revealedForMaximized
-            || baseHovered || overlayHovered
-            || openMenuCount > 0)
+            || baseHovered || overlayHovered || openMenuCount > 0)
     property real dockRevealProgress: dockRequestedVisible ? 1.0 : 0.0
     readonly property bool dockWindowVisible: dockAvailable
         && (dockRequestedVisible || dockRevealProgress > 0.001)
@@ -350,6 +352,19 @@ PlasmoidItem {
 
     function taskRole(index, role) {
         return tasksModel.data(index, role);
+    }
+
+    function updateFullscreenWindowPresent() {
+        var present = false;
+        for (var row = 0; row < fullscreenWindowsModel.count; ++row) {
+            var index = fullscreenWindowsModel.makeModelIndex(row);
+            if (Boolean(fullscreenWindowsModel.data(index,
+                    TaskManager.AbstractTasksModel.IsFullScreen))) {
+                present = true;
+                break;
+            }
+        }
+        fullscreenWindowPresent = present;
     }
 
     function isGroup(row) {
@@ -642,6 +657,14 @@ PlasmoidItem {
         }
     }
 
+    onFullscreenWindowPresentChanged: {
+        if (fullscreenWindowPresent) {
+            closeOpenContextMenu();
+            overlayOpen = false;
+            revealedForMaximized = false;
+        }
+    }
+
     onTaskCountChanged: {
         if (taskCount === 0) {
             overlayOpen = false;
@@ -708,6 +731,48 @@ PlasmoidItem {
         filterMinimized: true
         filterNotMaximized: true
         filterHidden: true
+    }
+
+    TaskManager.TasksModel {
+        id: fullscreenWindowsModel
+
+        groupMode: TaskManager.TasksModel.GroupDisabled
+        filterByCurrentVirtualDesktop: true
+        filterByActivity: true
+        activity: activityInfo.currentActivity
+        filterByScreen: true
+        screenGeometry: baseWindow.screen
+            ? Qt.rect(baseWindow.screen.virtualX,
+                baseWindow.screen.virtualY,
+                baseWindow.screen.width,
+                baseWindow.screen.height)
+            : Qt.rect(0, 0, 0, 0)
+        filterMinimized: true
+        filterHidden: true
+
+        onCountChanged: Qt.callLater(root.updateFullscreenWindowPresent)
+        Component.onCompleted:
+            Qt.callLater(root.updateFullscreenWindowPresent)
+    }
+
+    Connections {
+        target: fullscreenWindowsModel
+
+        function onDataChanged() {
+            Qt.callLater(root.updateFullscreenWindowPresent);
+        }
+
+        function onModelReset() {
+            Qt.callLater(root.updateFullscreenWindowPresent);
+        }
+
+        function onRowsInserted() {
+            Qt.callLater(root.updateFullscreenWindowPresent);
+        }
+
+        function onRowsRemoved() {
+            Qt.callLater(root.updateFullscreenWindowPresent);
+        }
     }
 
     component TaskDelegate: DockItem {
@@ -952,7 +1017,10 @@ PlasmoidItem {
         LayerShell.Window.margins.right: root.panelEdgeMargin
         LayerShell.Window.margins.bottom: root.panelEdgeMargin
         LayerShell.Window.exclusionZone: -1
-        LayerShell.Window.layer: LayerShell.Window.LayerOverlay
+        // A Dock belongs above regular windows, but below true fullscreen
+        // surfaces. LayerOverlay is reserved for OSD-style UI and otherwise
+        // forces the Dock over fullscreen video in mpv and Dragon Player.
+        LayerShell.Window.layer: LayerShell.Window.LayerTop
         LayerShell.Window.keyboardInteractivity:
             LayerShell.Window.KeyboardInteractivityNone
         LayerShell.Window.activateOnShow: false
@@ -1043,7 +1111,7 @@ PlasmoidItem {
         flags: Qt.WindowDoesNotAcceptFocus | Qt.FramelessWindowHint
         color: "transparent"
         visible: root.dockAvailable && root.autoHideRequired
-            && !root.dockWindowVisible
+            && !root.fullscreenWindowPresent && !root.dockWindowVisible
 
         LayerShell.Window.scope: "macosdock-edge"
         LayerShell.Window.anchors: {
@@ -1063,7 +1131,7 @@ PlasmoidItem {
         LayerShell.Window.margins.right: 0
         LayerShell.Window.margins.bottom: 0
         LayerShell.Window.exclusionZone: -1
-        LayerShell.Window.layer: LayerShell.Window.LayerOverlay
+        LayerShell.Window.layer: LayerShell.Window.LayerTop
         LayerShell.Window.keyboardInteractivity:
             LayerShell.Window.KeyboardInteractivityNone
         LayerShell.Window.activateOnShow: false
@@ -1123,7 +1191,7 @@ PlasmoidItem {
         LayerShell.Window.margins.right: root.panelEdgeMargin
         LayerShell.Window.margins.bottom: root.panelEdgeMargin
         LayerShell.Window.exclusionZone: -1
-        LayerShell.Window.layer: LayerShell.Window.LayerOverlay
+        LayerShell.Window.layer: LayerShell.Window.LayerTop
         LayerShell.Window.keyboardInteractivity:
             LayerShell.Window.KeyboardInteractivityNone
         LayerShell.Window.activateOnShow: false

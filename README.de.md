@@ -13,6 +13,8 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
   Wiederherstellen und Schließen einzelner oder gruppierter Fenster
 - sichere KWin-Fensterauswahl zum sofortigen Beenden nicht reagierender Fenster
 - automatisches Ausblenden bei maximierten Fenstern
+- vollbildsichere Ebenen und erzwungenes Ausblenden bei Mediaplayern wie mpv
+  und Dragon Player
 - animiertes Ein- und Ausfahren an allen Bildschirmkanten
 - Hintergrund, Rahmen und Aktivitätsanzeigen aus der Qt-Systempalette
 - Theme- oder eigene Hintergrundfarbe sowie einstellbare Rundung, Rahmen,

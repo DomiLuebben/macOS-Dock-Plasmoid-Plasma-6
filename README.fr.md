@@ -14,6 +14,8 @@ couleurs du thème Qt.
   restaurer ou fermer des fenêtres individuelles ou groupées
 - Sélecteur de fenêtre KWin sécurisé pour forcer l’arrêt d’une fenêtre bloquée
 - Masquage automatique lorsqu’une fenêtre est maximisée
+- Empilement adapté au plein écran et masquage forcé pour les lecteurs comme
+  mpv et Dragon Player
 - Animation d’entrée et de sortie sur chaque bord de l’écran
 - Arrière-plan, bordure et indicateurs d’activité selon la palette Qt du système
 - Couleur d’arrière-plan du thème ou personnalisée, avec arrondi, bordure,
