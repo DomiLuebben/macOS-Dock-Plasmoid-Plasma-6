@@ -8,6 +8,8 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 ## Funktionen
 
 - flüssige macOS-artige Vergrößerung beim Überfahren der Symbole
+- Verschieben und Anordnen der Starter per Drag-and-Drop mit der Maus
+- interaktive Live-Fenstervorschauen mit Aktivieren und Schließen einzelner Fenster
 - Launcher und laufende Anwendungen in einem gemeinsamen Taskmanager
 - Kontextmenü zum Öffnen neuer Fenster sowie zum Minimieren, Maximieren,
   Wiederherstellen und Schließen einzelner oder gruppierter Fenster

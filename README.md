@@ -9,6 +9,8 @@ color scheme.
 ## Features
 
 - Smooth macOS-style icon magnification on hover
+- Drag-and-drop reordering of launchers and starters with mouse interaction
+- Interactive live window previews on hover with per-window activation and close controls
 - Launchers and running applications in a unified task manager
 - Context-menu actions to open new windows and minimize, maximize, restore, or
   close individual and grouped windows

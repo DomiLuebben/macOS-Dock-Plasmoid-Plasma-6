@@ -139,6 +139,9 @@ msgstr "Intégration au panneau :"
 msgid "Preview:"
 msgstr "Aperçu :"
 
+msgid "Preview unavailable"
+msgstr "Aperçu indisponible"
+
 msgid "Restore"
 msgstr "Restaurer"
 

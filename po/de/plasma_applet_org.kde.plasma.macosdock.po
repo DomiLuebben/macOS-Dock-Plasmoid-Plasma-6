@@ -139,6 +139,9 @@ msgstr "Leistenintegration:"
 msgid "Preview:"
 msgstr "Vorschau:"
 
+msgid "Preview unavailable"
+msgstr "Vorschau nicht verfügbar"
+
 msgid "Restore"
 msgstr "Wiederherstellen"
 

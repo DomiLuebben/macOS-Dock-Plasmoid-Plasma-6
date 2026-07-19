@@ -9,6 +9,8 @@ couleurs du thème Qt.
 ## Fonctionnalités
 
 - Agrandissement fluide des icônes au survol
+- Réorganisation par glisser-déposer des lanceurs à la souris
+- Aperçus interactifs des fenêtres avec activation et fermeture individuelles
 - Lanceurs et applications en cours d’exécution dans un gestionnaire commun
 - Menu contextuel pour ouvrir de nouvelles fenêtres et réduire, maximiser,
   restaurer ou fermer des fenêtres individuelles ou groupées

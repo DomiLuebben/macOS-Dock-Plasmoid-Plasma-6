@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
+import org.kde.layershell as LayerShell
 import org.kde.plasma.core as PlasmaCore
 
 Item {
@@ -15,6 +16,7 @@ Item {
     property real crossIconExtent: scaledSize
     property bool isVertical: false
     property int location: PlasmaCore.Types.Floating
+    property real screenEdgeMargin: 0
     property bool isRunning: false
     property bool isActive: false
     property bool isStarting: false
@@ -28,9 +30,38 @@ Item {
         && location === PlasmaCore.Types.TopEdge)
         || (isVertical && location === PlasmaCore.Types.LeftEdge)
 
+    property bool isDragging: false
+    property real dragOffsetX: 0
+    property real dragOffsetY: 0
+    property real dragVisualProgress: isDragging ? 1.0 : 0.0
+
+    Behavior on dragOffsetX {
+        enabled: !root.isDragging
+        NumberAnimation {
+            duration: 220
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    Behavior on dragOffsetY {
+        enabled: !root.isDragging
+        NumberAnimation {
+            duration: 220
+            easing.type: Easing.OutCubic
+        }
+    }
+
+    Behavior on dragVisualProgress {
+        NumberAnimation {
+            duration: root.isDragging ? 110 : 180
+            easing.type: root.isDragging
+                ? Easing.OutCubic : Easing.InOutCubic
+        }
+    }
+
     width: isVertical ? crossExtent : scaledSize
     height: isVertical ? scaledSize : crossExtent
-    z: Math.round(currentScale * 100)
+    z: isDragging ? 9999 : Math.round(currentScale * 100)
 
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
@@ -38,9 +69,168 @@ Item {
     Accessible.description: isRunning ? i18n("Running") : i18n("Launcher")
     Accessible.onPressAction: root.clicked()
 
+    property var windowsList: []
+    property bool previewOpen: false
+    readonly property bool iconHovered: iconHover.hovered
+    readonly property bool previewHovered: previewHover.hovered
+    readonly property bool hasWindowPreviews: root.isRunning
+        && Boolean(root.windowsList && root.windowsList.length > 0)
+
     signal clicked()
     signal newInstanceRequested()
     signal contextMenuRequested()
+    signal dragStarted(real sceneX, real sceneY)
+    signal dragMoved(real sceneX, real sceneY)
+    signal dragEnded()
+    signal windowActivated(var modelIndex)
+    signal windowClosed(var modelIndex)
+    signal previewVisibilityChanged(bool visible)
+
+    onHasWindowPreviewsChanged: {
+        if (root.hasWindowPreviews && root.iconHovered
+                && !root.previewOpen && !root.isDragging) {
+            previewOpenTimer.restart();
+        } else if (!root.hasWindowPreviews) {
+            root.setPreviewOpen(false);
+        }
+    }
+
+    onIconHoveredChanged: {
+        if (root.iconHovered && !root.isDragging) {
+            previewCloseTimer.stop();
+            previewOpenTimer.restart();
+        } else {
+            previewOpenTimer.stop();
+            root.schedulePreviewClose();
+        }
+    }
+
+    onPreviewHoveredChanged: {
+        if (root.previewHovered) {
+            previewCloseTimer.stop();
+        } else {
+            root.schedulePreviewClose();
+        }
+    }
+
+    onIsDraggingChanged: {
+        if (root.isDragging) {
+            previewOpenTimer.stop();
+            previewCloseTimer.stop();
+            root.setPreviewOpen(false);
+        }
+    }
+
+    Timer {
+        id: previewOpenTimer
+
+        interval: Kirigami.Units.toolTipDelay
+        repeat: false
+        onTriggered: {
+            if (root.iconHovered && root.hasWindowPreviews
+                    && !root.isDragging) {
+                root.setPreviewOpen(true);
+            }
+        }
+    }
+
+    Timer {
+        id: previewCloseTimer
+
+        interval: 180
+        repeat: false
+        onTriggered: {
+            if (!root.iconHovered && !root.previewHovered) {
+                root.setPreviewOpen(false);
+            }
+        }
+    }
+
+    Window {
+        id: previewWindow
+
+        property real placementLeft: 0
+        property real placementTop: 0
+        property real placementRight: 0
+        property real placementBottom: 0
+
+        flags: Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus
+        color: "transparent"
+        width: previewContent.implicitWidth
+            + 2 * Kirigami.Units.smallSpacing
+        height: previewContent.implicitHeight
+            + 2 * Kirigami.Units.smallSpacing
+        visible: false
+
+        LayerShell.Window.scope: "macosdock-preview"
+        LayerShell.Window.anchors: {
+            if (root.isVertical) {
+                return (root.location === PlasmaCore.Types.LeftEdge
+                    ? LayerShell.Window.AnchorLeft
+                    : LayerShell.Window.AnchorRight)
+                    | LayerShell.Window.AnchorTop;
+            }
+            return LayerShell.Window.AnchorLeft
+                | (root.location === PlasmaCore.Types.TopEdge
+                    ? LayerShell.Window.AnchorTop
+                    : LayerShell.Window.AnchorBottom);
+        }
+        LayerShell.Window.margins.left: placementLeft
+        LayerShell.Window.margins.top: placementTop
+        LayerShell.Window.margins.right: placementRight
+        LayerShell.Window.margins.bottom: placementBottom
+        LayerShell.Window.exclusionZone: -1
+        LayerShell.Window.layer: LayerShell.Window.LayerTop
+        LayerShell.Window.keyboardInteractivity:
+            LayerShell.Window.KeyboardInteractivityNone
+        LayerShell.Window.activateOnShow: false
+        LayerShell.Window.wantsToBeOnActiveScreen: true
+
+        PlasmaCore.DialogBackground {
+            anchors.fill: parent
+        }
+
+        onVisibleChanged: {
+            if (visible) {
+                Qt.callLater(root.positionPreviewWindow);
+            }
+            if (!visible && root.previewOpen) {
+                root.previewOpen = false;
+                root.previewVisibilityChanged(false);
+            }
+        }
+        onWidthChanged: {
+            if (visible) {
+                Qt.callLater(root.positionPreviewWindow);
+            }
+        }
+        onHeightChanged: {
+            if (visible) {
+                Qt.callLater(root.positionPreviewWindow);
+            }
+        }
+
+        WindowPreviewToolTip {
+            id: previewContent
+
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.smallSpacing
+            windowsList: root.windowsList
+            appIcon: root.appIcon
+            appName: root.appName
+            captureRequested: previewWindow.visible
+
+            HoverHandler {
+                id: previewHover
+            }
+
+            onWindowActivated: (modelIndex) => {
+                root.setPreviewOpen(false);
+                root.windowActivated(modelIndex);
+            }
+            onWindowClosed: (modelIndex) => root.windowClosed(modelIndex)
+        }
+    }
 
     SystemPalette {
         id: qtPalette
@@ -112,6 +302,8 @@ Item {
 
         width: root.scaledSize
         height: root.scaledSize
+        transformOrigin: Item.Center
+        scale: 1.0 + root.dragVisualProgress * 0.08
         x: {
             if (!root.isVertical) {
                 return 0;
@@ -137,24 +329,30 @@ Item {
             return (root.crossIconExtent - height) / 2;
         }
 
+        opacity: 1.0 - root.dragVisualProgress * 0.06
+
         transform: Translate {
             x: {
-                if (!root.isVertical) {
-                    return 0;
+                var base = 0;
+                if (root.isVertical) {
+                    if (root.location === PlasmaCore.Types.RightEdge) {
+                        base = -iconContainer.bounceOffset;
+                    } else {
+                        base = iconContainer.bounceOffset;
+                    }
                 }
-                if (root.location === PlasmaCore.Types.RightEdge) {
-                    return -iconContainer.bounceOffset;
-                }
-                return iconContainer.bounceOffset;
+                return base + root.dragOffsetX;
             }
             y: {
-                if (root.isVertical) {
-                    return 0;
+                var base = 0;
+                if (!root.isVertical) {
+                    if (root.location === PlasmaCore.Types.TopEdge) {
+                        base = iconContainer.bounceOffset;
+                    } else {
+                        base = -iconContainer.bounceOffset;
+                    }
                 }
-                if (root.location === PlasmaCore.Types.TopEdge) {
-                    return iconContainer.bounceOffset;
-                }
-                return -iconContainer.bounceOffset;
+                return base + root.dragOffsetY;
             }
         }
 
@@ -166,6 +364,16 @@ Item {
             border.color: qtPalette.highlight
             border.width: 2
             visible: root.activeFocus
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -3
+            z: -1
+            radius: 9
+            color: qtPalette.highlight
+            opacity: root.dragVisualProgress * 0.18
+            scale: 0.92 + root.dragVisualProgress * 0.08
         }
 
         Kirigami.Icon {
@@ -191,6 +399,33 @@ Item {
             }
         }
 
+        DragHandler {
+            id: dragHandler
+
+            acceptedButtons: Qt.LeftButton
+            target: null
+
+            onActiveChanged: {
+                root.isDragging = active;
+                if (active) {
+                    root.forceActiveFocus();
+                    root.dragStarted(centroid.scenePosition.x,
+                        centroid.scenePosition.y);
+                } else {
+                    root.dragOffsetX = 0;
+                    root.dragOffsetY = 0;
+                    root.dragEnded();
+                }
+            }
+
+            onCentroidChanged: {
+                if (active) {
+                    root.dragMoved(centroid.scenePosition.x,
+                        centroid.scenePosition.y);
+                }
+            }
+        }
+
         TapHandler {
             acceptedButtons: Qt.MiddleButton
             gesturePolicy: TapHandler.ReleaseWithinBounds
@@ -211,9 +446,10 @@ Item {
             }
         }
 
-        QQC2.ToolTip.visible: iconHover.hovered && root.appName.length > 0
+        QQC2.ToolTip.visible: iconHover.hovered && root.appName.length > 0 && !root.isDragging && (!root.isRunning || !root.windowsList || root.windowsList.length === 0)
         QQC2.ToolTip.text: root.appName
         QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+
     }
 
     Rectangle {
@@ -254,6 +490,96 @@ Item {
     function triggerBounce() {
         if (launchAnimation === 1 && !isStarting) {
             clickBounceAnimation.restart();
+        }
+    }
+
+    function setPreviewOpen(open) {
+        var requested = Boolean(open && hasWindowPreviews && !isDragging);
+        if (previewOpen === requested && previewWindow.visible === requested) {
+            return;
+        }
+        previewOpen = requested;
+        if (requested) {
+            positionPreviewWindow();
+            previewWindow.visible = true;
+            Qt.callLater(positionPreviewWindow);
+        } else {
+            previewWindow.visible = false;
+        }
+        previewVisibilityChanged(requested);
+    }
+
+    function positionPreviewWindow() {
+        var spacing = Kirigami.Units.smallSpacing;
+        var targetScreen = previewWindow.screen;
+        if (!targetScreen) {
+            return;
+        }
+
+        var owningWindow = iconContainer.Window.window;
+        if (!owningWindow || !owningWindow.contentItem) {
+            return;
+        }
+        var localIconTopLeft = iconContainer.mapToItem(
+            owningWindow.contentItem, 0, 0);
+        var screenLeft = targetScreen.virtualX;
+        var screenTop = targetScreen.virtualY;
+        var screenRight = screenLeft + targetScreen.width;
+        var screenBottom = screenTop + targetScreen.height;
+        var windowLeft;
+        var windowTop;
+        if (root.isVertical) {
+            windowLeft = root.location === PlasmaCore.Types.LeftEdge
+                ? screenLeft + root.screenEdgeMargin
+                : screenRight - root.screenEdgeMargin - owningWindow.width;
+            windowTop = screenTop
+                + (targetScreen.height - owningWindow.height) / 2;
+        } else {
+            windowLeft = screenLeft
+                + (targetScreen.width - owningWindow.width) / 2;
+            windowTop = root.location === PlasmaCore.Types.TopEdge
+                ? screenTop + root.screenEdgeMargin
+                : screenBottom - root.screenEdgeMargin - owningWindow.height;
+        }
+        var iconTopLeft = Qt.point(
+            windowLeft + localIconTopLeft.x,
+            windowTop + localIconTopLeft.y);
+
+        previewWindow.placementLeft = 0;
+        previewWindow.placementTop = 0;
+        previewWindow.placementRight = 0;
+        previewWindow.placementBottom = 0;
+
+        if (root.isVertical) {
+            previewWindow.placementTop = Math.max(spacing,
+                Math.min(targetScreen.height - previewWindow.height - spacing,
+                    iconTopLeft.y - screenTop
+                        + (iconContainer.height - previewWindow.height) / 2));
+            if (root.location === PlasmaCore.Types.LeftEdge) {
+                previewWindow.placementLeft = iconTopLeft.x - screenLeft
+                    + iconContainer.width + spacing;
+            } else {
+                previewWindow.placementRight = screenRight - iconTopLeft.x
+                    + spacing;
+            }
+        } else {
+            previewWindow.placementLeft = Math.max(spacing,
+                Math.min(targetScreen.width - previewWindow.width - spacing,
+                    iconTopLeft.x - screenLeft
+                        + (iconContainer.width - previewWindow.width) / 2));
+            if (root.location === PlasmaCore.Types.TopEdge) {
+                previewWindow.placementTop = iconTopLeft.y - screenTop
+                    + iconContainer.height + spacing;
+            } else {
+                previewWindow.placementBottom = screenBottom - iconTopLeft.y
+                    + spacing;
+            }
+        }
+    }
+
+    function schedulePreviewClose() {
+        if (previewOpen) {
+            previewCloseTimer.restart();
         }
     }
 }

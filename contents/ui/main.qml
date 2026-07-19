@@ -118,7 +118,8 @@ PlasmoidItem {
     readonly property bool dockRequestedVisible: dockAvailable
         && !fullscreenWindowPresent
         && (!autoHideRequired || revealedForMaximized
-            || baseHovered || overlayHovered || openMenuCount > 0)
+            || baseHovered || overlayHovered || openMenuCount > 0
+            || openPreviewCount > 0)
     property real dockRevealProgress: dockRequestedVisible ? 1.0 : 0.0
     readonly property bool dockWindowVisible: dockAvailable
         && (dockRequestedVisible || dockRevealProgress > 0.001)
@@ -128,6 +129,7 @@ PlasmoidItem {
     property bool overlayHovered: false
     property bool edgeHovered: false
     property int openMenuCount: 0
+    property int openPreviewCount: 0
     property var openContextMenu: null
     property var adjustedContainment: null
     property int previousContainmentBackgroundHints: 0
@@ -291,7 +293,8 @@ PlasmoidItem {
 
     function scheduleDockHide() {
         if (autoHideRequired && !baseHovered && !overlayHovered
-                && !edgeHovered && openMenuCount === 0) {
+                && !edgeHovered && openMenuCount === 0
+                && openPreviewCount === 0) {
             dockHideTimer.restart();
         }
     }
@@ -330,6 +333,20 @@ PlasmoidItem {
         if (openContextMenu) {
             openContextMenu.close();
         }
+    }
+
+    function previewOpened() {
+        ++openPreviewCount;
+        overlayCloseTimer.stop();
+        dockHideTimer.stop();
+        revealDock();
+        overlayOpen = true;
+    }
+
+    function previewClosed() {
+        openPreviewCount = Math.max(0, openPreviewCount - 1);
+        scheduleOverlayClose();
+        scheduleDockHide();
     }
 
     function sameStringList(first, second) {
@@ -398,6 +415,70 @@ PlasmoidItem {
             }
         }
         return preferredIndex;
+    }
+
+    function windowsInfoForTask(row, modelChildCount) {
+        var parentIndex = modelIndex(row);
+        if (!parentIndex || !parentIndex.valid) {
+            return [];
+        }
+        var isGroupParent = isGroup(row);
+        var result = [];
+        if (isGroupParent) {
+            var childCount = tasksModel.rowCount(parentIndex);
+            for (var child = 0; child < childCount; ++child) {
+                var childIndex = tasksModel.makeModelIndex(row, child);
+                var winIdList = taskRole(childIndex, TaskManager.AbstractTasksModel.WinIdList);
+                var winId = (winIdList && winIdList.length > 0) ? winIdList[0] : 0;
+                var name = taskRole(childIndex, Qt.DisplayRole)
+                    || taskRole(childIndex,
+                        TaskManager.AbstractTasksModel.AppName) || "";
+                var isActive = Boolean(taskRole(childIndex, TaskManager.AbstractTasksModel.IsActive));
+                var isMinimized = Boolean(taskRole(childIndex, TaskManager.AbstractTasksModel.IsMinimized));
+                result.push({
+                    winId: winId,
+                    title: String(name),
+                    modelIndex: childIndex,
+                    isActive: isActive,
+                    isMinimized: isMinimized
+                });
+            }
+        } else {
+            var winIdList = taskRole(parentIndex, TaskManager.AbstractTasksModel.WinIdList);
+            var winId = (winIdList && winIdList.length > 0) ? winIdList[0] : 0;
+            var name = taskRole(parentIndex, Qt.DisplayRole)
+                || taskRole(parentIndex,
+                    TaskManager.AbstractTasksModel.AppName) || "";
+            var isActive = Boolean(taskRole(parentIndex, TaskManager.AbstractTasksModel.IsActive));
+            var isMinimized = Boolean(taskRole(parentIndex, TaskManager.AbstractTasksModel.IsMinimized));
+            result.push({
+                winId: winId,
+                title: String(name),
+                modelIndex: parentIndex,
+                isActive: isActive,
+                isMinimized: isMinimized
+            });
+        }
+        return result;
+    }
+
+    function publishDelegateGeometry(row, delegateItem, windowItem) {
+        if (!root.taskModelReady || row < 0 || row >= root.taskCount
+                || !delegateItem || !windowItem || !windowItem.visible) {
+            return;
+        }
+        var parentIndex = modelIndex(row);
+        if (!parentIndex || !parentIndex.valid) {
+            return;
+        }
+
+        var globalPos = delegateItem.mapToGlobal(0, 0);
+        var globalRect = Qt.rect(globalPos.x, globalPos.y,
+            delegateItem.width, delegateItem.height);
+
+        // TasksModel propagates a group parent's geometry to all children.
+        tasksModel.requestPublishDelegateGeometry(parentIndex, globalRect,
+            delegateItem);
     }
 
     function activateTask(row, launcher) {
@@ -603,11 +684,118 @@ PlasmoidItem {
         }
     }
 
-    function moveTask(row, offset) {
-        var target = Math.max(0, Math.min(taskCount - 1, row + offset));
+    property int activeDragIndex: -1
+    property real dragStartSceneMain: 0
+    property real dragStartSlotCenterMain: 0
+    property bool dragInOverlay: false
+    property bool reorderAnimationActive: false
+
+    function moveTaskTo(row, targetRow) {
+        var target = Math.max(0, Math.min(taskCount - 1, targetRow));
         if (target !== row && tasksModel.move(row, target)) {
             tasksModel.syncLaunchers();
+            return true;
         }
+        return false;
+    }
+
+    function moveTask(row, offset) {
+        moveTaskTo(row, row + offset);
+    }
+
+    function baseCenterForIndex(index) {
+        return mainMargin + index * (baseIconSize + itemSpacing) + baseIconSize / 2;
+    }
+
+    function baseIndexAtMainPosition(pos) {
+        var count = taskCount;
+        if (count <= 0) {
+            return -1;
+        }
+        var bestIndex = 0;
+        var minDiff = Math.abs(pos - baseCenterForIndex(0));
+        for (var i = 1; i < count; ++i) {
+            var diff = Math.abs(pos - baseCenterForIndex(i));
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestIndex = i;
+            }
+        }
+        return bestIndex;
+    }
+
+    function handleTaskDragStarted(delegate, sceneX, sceneY) {
+        activeDragIndex = delegate.index;
+        dragInOverlay = delegate.inOverlay;
+
+        overlayCloseTimer.stop();
+        dockHideTimer.stop();
+        if (dragInOverlay) {
+            overlayOpen = true;
+            dragStartSceneMain = isVertical ? sceneY : sceneX;
+            dragStartSlotCenterMain = overlayContent.centerForIndex(delegate.index);
+        } else {
+            dragStartSceneMain = isVertical ? sceneY : sceneX;
+            dragStartSlotCenterMain = baseCenterForIndex(delegate.index);
+        }
+    }
+
+    function handleTaskDragMoved(delegate, sceneX, sceneY) {
+        if (activeDragIndex < 0) {
+            return;
+        }
+
+        overlayCloseTimer.stop();
+        dockHideTimer.stop();
+
+        var currentSceneMain = isVertical ? sceneY : sceneX;
+        var delta = currentSceneMain - dragStartSceneMain;
+        var dragTargetCenter = dragStartSlotCenterMain + delta;
+
+        var targetIndex = dragInOverlay
+            ? overlayContent.indexAtMainPosition(dragTargetCenter)
+            : baseIndexAtMainPosition(dragTargetCenter);
+
+        if (targetIndex >= 0 && targetIndex < taskCount && targetIndex !== activeDragIndex) {
+            var oldIndex = activeDragIndex;
+            if (moveTaskTo(oldIndex, targetIndex)) {
+                activeDragIndex = targetIndex;
+                reorderAnimationActive = true;
+                reorderAnimationTimer.restart();
+            }
+        }
+
+        var currentSlotCenter = dragInOverlay
+            ? overlayContent.centerForIndex(activeDragIndex)
+            : baseCenterForIndex(activeDragIndex);
+
+        var mainOffset = dragTargetCenter - currentSlotCenter;
+        if (isVertical) {
+            delegate.dragOffsetY = mainOffset;
+            delegate.dragOffsetX = 0;
+        } else {
+            delegate.dragOffsetX = mainOffset;
+            delegate.dragOffsetY = 0;
+        }
+    }
+
+    function handleTaskDragEnded(delegate) {
+        if (delegate) {
+            delegate.dragOffsetX = 0;
+            delegate.dragOffsetY = 0;
+        }
+        activeDragIndex = -1;
+        tasksModel.syncLaunchers();
+        scheduleOverlayClose();
+        scheduleDockHide();
+    }
+
+    Timer {
+        id: reorderAnimationTimer
+
+        interval: 210
+        repeat: false
+        onTriggered: root.reorderAnimationActive = false
     }
 
     Timer {
@@ -617,7 +805,8 @@ PlasmoidItem {
         repeat: false
         onTriggered: {
             if (!root.baseHovered && !root.overlayHovered
-                    && root.openMenuCount === 0) {
+                    && root.openMenuCount === 0
+                    && root.openPreviewCount === 0) {
                 root.overlayOpen = false;
             }
         }
@@ -631,7 +820,8 @@ PlasmoidItem {
         onTriggered: {
             if (root.autoHideRequired && !root.baseHovered
                     && !root.overlayHovered && !root.edgeHovered
-                    && root.openMenuCount === 0) {
+                    && root.openMenuCount === 0
+                    && root.openPreviewCount === 0) {
                 root.overlayOpen = false;
                 root.revealedForMaximized = false;
             }
@@ -789,6 +979,7 @@ PlasmoidItem {
                 || Boolean(model.IsStartup)
                 || Boolean(model.IsGroupParent))
         readonly property bool groupParent: Boolean(model.IsGroupParent)
+        readonly property int childCount: Number(model.ChildCount)
         readonly property bool pinned: Boolean(model.HasLauncher)
             || root.launcherExists(model)
         readonly property string launcherTarget: root.launcherUrl(model)
@@ -823,6 +1014,7 @@ PlasmoidItem {
         crossIconExtent: displayCrossExtent
         isVertical: root.isVertical
         location: root.dockLocation
+        screenEdgeMargin: root.panelEdgeMargin
         isRunning: runningTask
         isActive: runningTask && Boolean(model.IsActive)
         isStarting: Boolean(model.IsStartup)
@@ -832,6 +1024,78 @@ PlasmoidItem {
             NumberAnimation {
                 duration: 75
                 easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on x {
+            enabled: root.reorderAnimationActive && !taskDelegate.isDragging
+            NumberAnimation {
+                duration: 190
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Behavior on y {
+            enabled: root.reorderAnimationActive && !taskDelegate.isDragging
+            NumberAnimation {
+                duration: 190
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        property bool inOverlay: false
+        property bool previewCountedAsOpen: false
+
+        windowsList: (runningTask && (iconHovered || previewOpen))
+            ? root.windowsInfoForTask(index, childCount) : []
+
+        function publishGeometry() {
+            var owningWindow = taskDelegate.Window.window;
+            if (runningTask && owningWindow && owningWindow.visible) {
+                root.publishDelegateGeometry(index, taskDelegate, owningWindow);
+            }
+        }
+
+        onXChanged: Qt.callLater(publishGeometry)
+        onYChanged: Qt.callLater(publishGeometry)
+        onWidthChanged: Qt.callLater(publishGeometry)
+        onHeightChanged: Qt.callLater(publishGeometry)
+        onDisplayScaleChanged: Qt.callLater(publishGeometry)
+        onRunningTaskChanged: Qt.callLater(publishGeometry)
+        onChildCountChanged: Qt.callLater(publishGeometry)
+        Component.onCompleted: Qt.callLater(publishGeometry)
+        Component.onDestruction: {
+            if (previewCountedAsOpen) {
+                previewCountedAsOpen = false;
+                root.previewClosed();
+            }
+        }
+
+        Connections {
+            target: taskDelegate.Window.window
+
+            function onVisibleChanged() {
+                Qt.callLater(taskDelegate.publishGeometry);
+            }
+
+            function onXChanged() {
+                Qt.callLater(taskDelegate.publishGeometry);
+            }
+
+            function onYChanged() {
+                Qt.callLater(taskDelegate.publishGeometry);
+            }
+
+            function onScreenChanged() {
+                Qt.callLater(taskDelegate.publishGeometry);
+            }
+        }
+
+        Connections {
+            target: root
+
+            function onDockRevealProgressChanged() {
+                Qt.callLater(taskDelegate.publishGeometry);
             }
         }
 
@@ -846,6 +1110,20 @@ PlasmoidItem {
         }
 
         onContextMenuRequested: taskMenu.popup()
+        onDragStarted: (sx, sy) => root.handleTaskDragStarted(taskDelegate, sx, sy)
+        onDragMoved: (sx, sy) => root.handleTaskDragMoved(taskDelegate, sx, sy)
+        onDragEnded: root.handleTaskDragEnded(taskDelegate)
+        onWindowActivated: (modelIdx) => tasksModel.requestActivate(modelIdx)
+        onWindowClosed: (modelIdx) => tasksModel.requestClose(modelIdx)
+        onPreviewVisibilityChanged: (visible) => {
+            if (visible && !previewCountedAsOpen) {
+                previewCountedAsOpen = true;
+                root.previewOpened();
+            } else if (!visible && previewCountedAsOpen) {
+                previewCountedAsOpen = false;
+                root.previewClosed();
+            }
+        }
 
         QQC2.Menu {
             id: taskMenu
@@ -1247,6 +1525,23 @@ PlasmoidItem {
                 return cursor + root.baseIconSize * scaleAt(index) / 2;
             }
 
+            function indexAtMainPosition(pos) {
+                var count = root.taskCount;
+                if (count <= 0) {
+                    return -1;
+                }
+                var bestIndex = 0;
+                var minDiff = Math.abs(pos - centerForIndex(0));
+                for (var i = 1; i < count; ++i) {
+                    var diff = Math.abs(pos - centerForIndex(i));
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        bestIndex = i;
+                    }
+                }
+                return bestIndex;
+            }
+
             DockBackground {
                 id: overlayBackgroundSurface
 
@@ -1382,6 +1677,7 @@ PlasmoidItem {
                     model: tasksModel
 
                     delegate: TaskDelegate {
+                        inOverlay: true
                         displayScale: root.scaleForIndex(index,
                             root.lastPointerMain, root.overlayOpen,
                             overlayContent.mainLength, root.maxScale,
