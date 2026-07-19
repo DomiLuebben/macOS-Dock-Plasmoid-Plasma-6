@@ -174,3 +174,129 @@ msgstr "Farbe des Plasma-Designs verwenden"
 
 msgid "Window behavior:"
 msgstr "Fensterverhalten:"
+
+msgid "Dock items"
+msgstr "Dock-Elemente"
+
+msgid "Utilities:"
+msgstr "Werkzeuge:"
+
+msgid "Show folder view"
+msgstr "Ordneransicht anzeigen"
+
+msgid "Show Trash"
+msgstr "Papierkorb anzeigen"
+
+msgid "Show desktop switcher"
+msgstr "Desktopumschalter anzeigen"
+
+msgid "Desktop switcher position:"
+msgstr "Position des Desktopumschalters:"
+
+msgid "Left"
+msgstr "Links"
+
+msgid "Right"
+msgstr "Rechts"
+
+msgid "Desktop labels:"
+msgstr "Desktop-Beschriftung:"
+
+msgid "Numbers"
+msgstr "Zahlen"
+
+msgid "Desktop names"
+msgstr "Desktopnamen"
+
+msgid "Desktop names:"
+msgstr "Desktopnamen:"
+
+msgid "The names configured in Plasma, including custom names, are shown."
+msgstr "Die in Plasma festgelegten Namen, einschließlich eigener Namen, werden angezeigt."
+
+msgid "Folder:"
+msgstr "Ordner:"
+
+msgid "Default folder:"
+msgstr "Standardordner:"
+
+msgid "Choose…"
+msgstr "Auswählen …"
+
+msgid "Choose folder"
+msgstr "Ordner auswählen"
+
+msgid "Folder view:"
+msgstr "Ordneransicht:"
+
+msgid "If no folder is selected, the Downloads folder is used."
+msgstr "Wenn kein Ordner ausgewählt ist, wird der Download-Ordner verwendet."
+
+msgid "If no folder is selected, the Downloads folder is used. Drag folders from the file manager onto the Dock to add more stacks."
+msgstr "Wenn kein Ordner ausgewählt ist, wird der Download-Ordner verwendet. Ziehe weitere Ordner aus dem Dateimanager auf das Dock, um zusätzliche Stapel hinzuzufügen."
+
+msgid "Choose Folder for the Dock"
+msgstr "Ordner für das Dock auswählen"
+
+msgid "Folder"
+msgstr "Ordner"
+
+msgid "Trash"
+msgstr "Papierkorb"
+
+msgid "Desktop %1"
+msgstr "Desktop %1"
+
+msgid "Current desktop"
+msgstr "Aktueller Desktop"
+
+msgid "Switch desktop"
+msgstr "Desktop wechseln"
+
+msgid "Add desktop"
+msgstr "Desktop hinzufügen"
+
+msgid "Open Folder"
+msgstr "Ordner öffnen"
+
+msgid "Remove Folder from Dock"
+msgstr "Ordner aus Dock entfernen"
+
+msgid "Open Trash"
+msgstr "Papierkorb öffnen"
+
+msgid "Empty Trash"
+msgstr "Papierkorb leeren"
+
+msgid "Back"
+msgstr "Zurück"
+
+msgid "Open in File Manager"
+msgstr "Im Dateimanager öffnen"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Date"
+msgstr "Datum"
+
+msgid "Size"
+msgstr "Größe"
+
+msgid "Type"
+msgstr "Typ"
+
+msgid "Descending"
+msgstr "Absteigend"
+
+msgid "Ascending"
+msgstr "Aufsteigend"
+
+msgid "Hide hidden files"
+msgstr "Versteckte Dateien ausblenden"
+
+msgid "Show hidden files"
+msgstr "Versteckte Dateien anzeigen"
+
+msgid "This folder is empty"
+msgstr "Dieser Ordner ist leer"

@@ -20,6 +20,7 @@ Item {
     property bool isRunning: false
     property bool isActive: false
     property bool isStarting: false
+    property bool dragEnabled: true
     property int launchAnimation: 1
 
     readonly property real scaledSize: baseSize * currentScale
@@ -31,14 +32,16 @@ Item {
         || (isVertical && location === PlasmaCore.Types.LeftEdge)
 
     property bool isDragging: false
+    property bool dropTarget: false
     property real dragOffsetX: 0
     property real dragOffsetY: 0
-    property real dragVisualProgress: isDragging ? 1.0 : 0.0
+    property real dragVisualProgress:
+        isDragging || dropTarget ? 1.0 : 0.0
 
     Behavior on dragOffsetX {
         enabled: !root.isDragging
         NumberAnimation {
-            duration: 220
+            duration: 165
             easing.type: Easing.OutCubic
         }
     }
@@ -46,7 +49,7 @@ Item {
     Behavior on dragOffsetY {
         enabled: !root.isDragging
         NumberAnimation {
-            duration: 220
+            duration: 165
             easing.type: Easing.OutCubic
         }
     }
@@ -402,19 +405,24 @@ Item {
         DragHandler {
             id: dragHandler
 
+            enabled: root.dragEnabled
             acceptedButtons: Qt.LeftButton
             target: null
 
             onActiveChanged: {
-                root.isDragging = active;
                 if (active) {
+                    root.isDragging = true;
                     root.forceActiveFocus();
                     root.dragStarted(centroid.scenePosition.x,
                         centroid.scenePosition.y);
-                } else {
+                } else if (root.isDragging) {
+                    // Commit the drop while this delegate is still marked as
+                    // dragged. Its visual slot can then settle without a
+                    // one-frame jump caused by the model move.
+                    root.dragEnded();
+                    root.isDragging = false;
                     root.dragOffsetX = 0;
                     root.dragOffsetY = 0;
-                    root.dragEnded();
                 }
             }
 

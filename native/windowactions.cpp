@@ -5,6 +5,7 @@
 #include <QDBusMessage>
 #include <QDBusReply>
 #include <QDBusServiceWatcher>
+#include <QFileInfo>
 
 WindowActions::WindowActions(QObject *parent)
     : QObject(parent)
@@ -42,11 +43,73 @@ bool WindowActions::startInteractiveForceQuit()
         return false;
     }
 
-    const QDBusMessage message = QDBusMessage::createMethodCall(
+    QDBusMessage message = QDBusMessage::createMethodCall(
         QStringLiteral("org.kde.KWin"), QStringLiteral("/KWin"),
         QStringLiteral("org.kde.KWin"), QStringLiteral("killWindow"));
     bus.asyncCall(message);
     return true;
+}
+
+bool WindowActions::activateVirtualDesktop(int desktopNumber)
+{
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (desktopNumber <= 0 || !m_interactiveForceQuitAvailable
+            || !bus.isConnected()) {
+        return false;
+    }
+
+    QDBusMessage message = QDBusMessage::createMethodCall(
+        QStringLiteral("org.kde.KWin"),
+        QStringLiteral("/KWin"),
+        QStringLiteral("org.kde.KWin"),
+        QStringLiteral("setCurrentDesktop"));
+    message.setArguments({desktopNumber});
+    bus.asyncCall(message);
+    return true;
+}
+
+bool WindowActions::createVirtualDesktop(int position)
+{
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (position < 0 || !m_interactiveForceQuitAvailable
+            || !bus.isConnected()) {
+        return false;
+    }
+
+    QDBusMessage message = QDBusMessage::createMethodCall(
+        QStringLiteral("org.kde.KWin"),
+        QStringLiteral("/VirtualDesktopManager"),
+        QStringLiteral("org.kde.KWin.VirtualDesktopManager"),
+        QStringLiteral("createDesktop"));
+    message.setArguments({
+        QVariant::fromValue(static_cast<uint>(position)),
+        QString()
+    });
+    bus.asyncCall(message);
+    return true;
+}
+
+QString WindowActions::canonicalDirectoryUrl(const QUrl &url) const
+{
+    QString localPath;
+    if (url.isLocalFile()) {
+        localPath = url.toLocalFile();
+    } else if (url.scheme().isEmpty()) {
+        localPath = url.toString();
+    } else {
+        return {};
+    }
+
+    const QFileInfo directory(localPath);
+    if (!directory.exists() || !directory.isDir()) {
+        return {};
+    }
+
+    QString path = directory.canonicalFilePath();
+    if (path.isEmpty()) {
+        path = directory.absoluteFilePath();
+    }
+    return QUrl::fromLocalFile(path).toString();
 }
 
 void WindowActions::setInteractiveForceQuitAvailable(bool available)

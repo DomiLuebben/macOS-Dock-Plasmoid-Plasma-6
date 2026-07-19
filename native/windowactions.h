@@ -1,6 +1,8 @@
 #pragma once
 
 #include <QObject>
+#include <QString>
+#include <QUrl>
 
 class QDBusServiceWatcher;
 
@@ -21,6 +23,15 @@ public:
      * which is documented as unsafe for destructive actions on Wayland.
      */
     Q_INVOKABLE bool startInteractiveForceQuit();
+
+    /** Activates a KWin virtual desktop by its one-based position. */
+    Q_INVOKABLE bool activateVirtualDesktop(int desktopNumber);
+
+    /** Creates a virtual desktop at the zero-based position. */
+    Q_INVOKABLE bool createVirtualDesktop(int position);
+
+    /** Returns a canonical file URL for a local directory, or an empty string. */
+    Q_INVOKABLE QString canonicalDirectoryUrl(const QUrl &url) const;
 
 Q_SIGNALS:
     void interactiveForceQuitAvailableChanged();

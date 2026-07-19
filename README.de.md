@@ -9,6 +9,11 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 
 - flüssige macOS-artige Vergrößerung beim Überfahren der Symbole
 - Verschieben und Anordnen der Starter per Drag-and-Drop mit der Maus
+- optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; weitere
+  Ordner lassen sich direkt aus dem Dateimanager auf das Dock ziehen
+- optionaler, designkonformer Papierkorb mit Leer-/Vollstatus und Dateiablage
+- optionaler Desktopumschalter links oder rechts mit Zahlen oder den in Plasma
+  festgelegten Desktopnamen sowie einer dauerhaften Schaltfläche für weitere Desktops
 - interaktive Live-Fenstervorschauen mit Aktivieren und Schließen einzelner Fenster
 - Launcher und laufende Anwendungen in einem gemeinsamen Taskmanager
 - Kontextmenü zum Öffnen neuer Fenster sowie zum Minimieren, Maximieren,

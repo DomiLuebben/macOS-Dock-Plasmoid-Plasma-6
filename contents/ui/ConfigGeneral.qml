@@ -2,7 +2,9 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Dialogs
 import QtQuick.Layouts
+import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
 import org.kde.kquickcontrols as KQuickControls
@@ -26,6 +28,16 @@ KCM.SimpleKCM {
     property alias cfg_enableBlur: enableBlurCheckBox.checked
     property alias cfg_hideOnMaximized: hideOnMaximizedCheckBox.checked
     property alias cfg_launchAnimation: launchAnimationCombo.currentIndex
+    property alias cfg_showFolderView: showFolderViewCheckBox.checked
+    property alias cfg_folderUrl: folderUrlField.text
+    property var cfg_folderUrls: []
+    property alias cfg_showTrash: showTrashCheckBox.checked
+    property alias cfg_showDesktopSwitcher:
+        showDesktopSwitcherCheckBox.checked
+    property alias cfg_desktopSwitcherPosition:
+        desktopSwitcherPositionCombo.currentIndex
+    property alias cfg_desktopSwitcherLabelMode:
+        desktopSwitcherLabelModeCombo.currentIndex
     property var cfg_launchers: []
 
     // Plasma passes default values to configuration pages as initial
@@ -46,6 +58,13 @@ KCM.SimpleKCM {
     property bool cfg_enableBlurDefault: true
     property bool cfg_hideOnMaximizedDefault: true
     property int cfg_launchAnimationDefault: 1
+    property bool cfg_showFolderViewDefault: true
+    property string cfg_folderUrlDefault: ""
+    property var cfg_folderUrlsDefault: []
+    property bool cfg_showTrashDefault: true
+    property bool cfg_showDesktopSwitcherDefault: true
+    property int cfg_desktopSwitcherPositionDefault: 0
+    property int cfg_desktopSwitcherLabelModeDefault: 0
     property var cfg_launchersDefault: []
 
     // Accepted for compatibility with the configuration page instance that
@@ -302,6 +321,101 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Launch animation:")
             Layout.fillWidth: true
             model: [i18n("None"), i18n("Bounce")]
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("Dock items")
+        }
+
+        ColumnLayout {
+            Kirigami.FormData.label: i18n("Utilities:")
+
+            QQC2.CheckBox {
+                id: showFolderViewCheckBox
+                text: i18n("Show folder view")
+            }
+
+            QQC2.CheckBox {
+                id: showTrashCheckBox
+                text: i18n("Show Trash")
+            }
+
+            QQC2.CheckBox {
+                id: showDesktopSwitcherCheckBox
+                text: i18n("Show desktop switcher")
+            }
+        }
+
+        QQC2.ComboBox {
+            id: desktopSwitcherPositionCombo
+
+            Kirigami.FormData.label: i18n("Desktop switcher position:")
+            Layout.fillWidth: true
+            enabled: showDesktopSwitcherCheckBox.checked
+            model: [i18n("Left"), i18n("Right")]
+        }
+
+        QQC2.ComboBox {
+            id: desktopSwitcherLabelModeCombo
+
+            Kirigami.FormData.label: i18n("Desktop labels:")
+            Layout.fillWidth: true
+            enabled: showDesktopSwitcherCheckBox.checked
+            model: [i18n("Numbers"), i18n("Desktop names")]
+        }
+
+        QQC2.Label {
+            Kirigami.FormData.label: i18n("Desktop names:")
+            Layout.fillWidth: true
+            visible: showDesktopSwitcherCheckBox.checked
+                && desktopSwitcherLabelModeCombo.currentIndex === 1
+            wrapMode: Text.WordWrap
+            text: i18n("The names configured in Plasma, including custom names, are shown.")
+            opacity: 0.78
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Default folder:")
+            Layout.fillWidth: true
+            enabled: showFolderViewCheckBox.checked
+
+            QQC2.TextField {
+                id: folderUrlField
+
+                Layout.fillWidth: true
+                placeholderText: StandardPaths.writableLocation(
+                    StandardPaths.DownloadLocation).toString()
+                selectByMouse: true
+            }
+
+            QQC2.Button {
+                icon.name: "document-open-folder"
+                text: i18n("Choose…")
+                onClicked: folderDialog.open()
+
+                QQC2.ToolTip.visible: hovered
+                QQC2.ToolTip.text: i18n("Choose folder")
+            }
+        }
+
+        QQC2.Label {
+            Kirigami.FormData.label: i18n("Folder view:")
+            Layout.fillWidth: true
+            visible: showFolderViewCheckBox.checked
+            wrapMode: Text.WordWrap
+            text: i18n("If no folder is selected, the Downloads folder is used. Drag folders from the file manager onto the Dock to add more stacks.")
+            opacity: 0.78
+        }
+
+        FolderDialog {
+            id: folderDialog
+
+            title: i18n("Choose Folder for the Dock")
+            currentFolder: folderUrlField.text.length > 0
+                ? folderUrlField.text
+                : StandardPaths.writableLocation(StandardPaths.DownloadLocation)
+            onAccepted: folderUrlField.text = selectedFolder.toString()
         }
 
         Item {

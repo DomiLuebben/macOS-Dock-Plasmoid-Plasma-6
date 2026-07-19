@@ -3,11 +3,13 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
+import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.layershell as LayerShell
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
 import org.kde.taskmanager as TaskManager
+import org.kde.private.desktopcontainment.folder as Folder
 import "effects" as DockEffects
 
 PlasmoidItem {
@@ -63,6 +65,26 @@ PlasmoidItem {
             ? true : Boolean(Plasmoid.configuration.hideOnMaximized)
     readonly property int launchAnimation: Math.round(boundedNumber(
         Plasmoid.configuration.launchAnimation, 1, 0, 1))
+    readonly property bool showFolderView:
+        Plasmoid.configuration.showFolderView === undefined
+            ? true : Boolean(Plasmoid.configuration.showFolderView)
+    readonly property bool showTrash:
+        Plasmoid.configuration.showTrash === undefined
+            ? true : Boolean(Plasmoid.configuration.showTrash)
+    readonly property bool showDesktopSwitcher:
+        Plasmoid.configuration.showDesktopSwitcher === undefined
+            ? true : Boolean(Plasmoid.configuration.showDesktopSwitcher)
+    readonly property int desktopSwitcherPosition: Math.round(boundedNumber(
+        Plasmoid.configuration.desktopSwitcherPosition, 0, 0, 1))
+    readonly property int desktopSwitcherLabelMode: Math.round(boundedNumber(
+        Plasmoid.configuration.desktopSwitcherLabelMode, 0, 0, 1))
+    readonly property url defaultFolderUrl: StandardPaths.writableLocation(
+        StandardPaths.DownloadLocation)
+    readonly property url configuredFolderUrl:
+        String(Plasmoid.configuration.folderUrl || "").length > 0
+            ? Plasmoid.configuration.folderUrl : defaultFolderUrl
+    readonly property var additionalFolderUrls:
+        Plasmoid.configuration.folderUrls || []
     readonly property real indicatorSize: 3
     readonly property real indicatorGap: 2
     readonly property real indicatorSpace: indicatorSize + indicatorGap
@@ -72,12 +94,49 @@ PlasmoidItem {
     readonly property real baseSurfaceMainLength: preferredMainLength
     readonly property real maximumIconSize: baseIconSize * maxScale
     readonly property int taskCount: tasksModel.count
-    readonly property real restMainLength: taskCount > 0
-        ? taskCount * baseIconSize + (taskCount - 1) * itemSpacing : 0
-    readonly property real maximumExpansion: maximumWaveExpansion(taskCount)
-    readonly property real preferredMainLength: taskCount > 0
+    readonly property int desktopCount:
+        virtualDesktopInfo.numberOfDesktops
+    readonly property bool desktopSwitcherVisible:
+        showDesktopSwitcher && desktopCount > 0
+    readonly property bool desktopSwitcherOnLeft:
+        desktopSwitcherPosition === 0
+    readonly property bool desktopAddButtonVisible:
+        desktopSwitcherVisible && !desktopCreationPending
+    readonly property real desktopButtonSpacing: 4
+    readonly property real desktopAddButtonMainExtent:
+        Math.max(26, Math.round(baseIconSize * 0.6))
+    readonly property int folderItemCount: showFolderView
+        ? 1 + additionalFolderUrls.length : 0
+    readonly property int utilityItemCount:
+        folderItemCount + (showTrash ? 1 : 0)
+    readonly property int dockItemCount: taskCount + utilityItemCount
+    readonly property int folderDockIndex:
+        folderItemCount > 0 ? taskCount : -1
+    readonly property int trashDockIndex: showTrash
+        ? taskCount + folderItemCount : -1
+    readonly property bool utilitySeparatorVisible:
+        taskCount > 0 && utilityItemCount > 0
+    readonly property real utilitySectionGap:
+        utilitySeparatorVisible ? 12 : 0
+    readonly property real iconRestMainLength: dockItemCount > 0
+        ? dockItemCount * baseIconSize
+            + (dockItemCount - 1) * itemSpacing + utilitySectionGap : 0
+    readonly property real desktopSwitcherMainExtent:
+        desktopSwitcherVisible ? calculateDesktopSwitcherMainExtent() : 0
+    readonly property real desktopSwitcherSectionSpacing:
+        desktopSwitcherVisible && dockItemCount > 0 ? 16 : 0
+    readonly property real desktopSwitcherLeadingExtent:
+        desktopSwitcherVisible && desktopSwitcherOnLeft
+            ? desktopSwitcherMainExtent + desktopSwitcherSectionSpacing : 0
+    readonly property real restMainLength: iconRestMainLength
+        + desktopSwitcherMainExtent + desktopSwitcherSectionSpacing
+    readonly property real maximumExpansion:
+        maximumWaveExpansion(dockItemCount)
+    readonly property bool hasDockContent:
+        dockItemCount > 0 || desktopSwitcherVisible
+    readonly property real preferredMainLength: hasDockContent
         ? restMainLength + 2 * mainMargin : Kirigami.Units.gridUnit
-    readonly property real maximumOverlayMainLength: taskCount > 0
+    readonly property real maximumOverlayMainLength: hasDockContent
         ? restMainLength + maximumExpansion + 2 * mainMargin
         : Kirigami.Units.gridUnit
     readonly property real overlayCrossLength:
@@ -106,7 +165,7 @@ PlasmoidItem {
 
     property bool taskModelReady: false
     property bool overlayOpen: false
-    readonly property bool dockAvailable: taskCount > 0
+    readonly property bool dockAvailable: hasDockContent
         && representationItem !== null
     readonly property bool maximizedWindowPresent:
         maximizedWindowsModel.count > 0
@@ -130,6 +189,11 @@ PlasmoidItem {
     property bool edgeHovered: false
     property int openMenuCount: 0
     property int openPreviewCount: 0
+    property bool folderPopupCountedAsOpen: false
+    property bool folderDropActive: false
+    property url activeFolderUrl: configuredFolderUrl
+    property bool desktopCreationPending: false
+    property int trashItemCount: 0
     property var openContextMenu: null
     property var adjustedContainment: null
     property int previousContainmentBackgroundHints: 0
@@ -144,6 +208,13 @@ PlasmoidItem {
             easing.type: root.dockRequestedVisible
                 ? Easing.OutCubic : Easing.InCubic
         }
+    }
+
+    FontMetrics {
+        id: desktopLabelMetrics
+
+        font.pixelSize: 13
+        font.weight: Font.DemiBold
     }
 
     DockEffects.BlurRegion {
@@ -178,6 +249,228 @@ PlasmoidItem {
             number = fallback;
         }
         return Math.min(maximum, Math.max(minimum, number));
+    }
+
+    function desktopIdAt(index) {
+        var ids = virtualDesktopInfo.desktopIds || [];
+        return index >= 0 && index < ids.length ? String(ids[index]) : "";
+    }
+
+    function desktopNameAt(index) {
+        var names = virtualDesktopInfo.desktopNames || [];
+        if (index >= 0 && index < names.length
+                && String(names[index]).length > 0) {
+            return String(names[index]);
+        }
+        return i18n("Desktop %1").arg(index + 1);
+    }
+
+    function desktopLabelAt(index) {
+        return desktopSwitcherLabelMode === 0
+            ? String(index + 1) : desktopNameAt(index);
+    }
+
+    function desktopButtonMainExtent(index) {
+        if (desktopSwitcherLabelMode === 0) {
+            return Math.max(26, Math.round(baseIconSize * 0.6));
+        }
+        return Math.max(56, Math.min(160,
+            desktopLabelMetrics.advanceWidth(desktopLabelAt(index)) + 24));
+    }
+
+    function desktopButtonMainStart(index) {
+        var result = 0;
+        for (var previous = 0; previous < index; ++previous) {
+            result += desktopButtonMainExtent(previous)
+                + desktopButtonSpacing;
+        }
+        return result;
+    }
+
+    function calculateDesktopSwitcherMainExtent() {
+        var result = 0;
+        for (var index = 0; index < desktopCount; ++index) {
+            result += desktopButtonMainExtent(index);
+            if (index < desktopCount - 1) {
+                result += desktopButtonSpacing;
+            }
+        }
+        if (desktopAddButtonVisible) {
+            if (desktopCount > 0) {
+                result += desktopButtonSpacing;
+            }
+            result += desktopAddButtonMainExtent;
+        }
+        return result;
+    }
+
+    function isDesktopActive(index) {
+        return desktopIdAt(index)
+            === String(virtualDesktopInfo.currentDesktop || "");
+    }
+
+    function activateDesktop(index) {
+        if (index >= 0 && index < desktopCount) {
+            windowActions.activateVirtualDesktop(index + 1);
+        }
+    }
+
+    function createDesktop() {
+        if (desktopCreationPending) {
+            return;
+        }
+        if (windowActions.createVirtualDesktop(desktopCount)) {
+            desktopCreationPending = true;
+            desktopCreationTimer.restart();
+        }
+    }
+
+    function folderUrlAt(index) {
+        if (index === 0) {
+            return configuredFolderUrl;
+        }
+        var additionalIndex = index - 1;
+        return additionalIndex >= 0
+                && additionalIndex < additionalFolderUrls.length
+            ? additionalFolderUrls[additionalIndex] : "";
+    }
+
+    function folderName(folderUrl) {
+        var path = decodeURIComponent(String(folderUrl || ""))
+            .replace(/\/$/, "");
+        var slash = path.lastIndexOf("/");
+        var name = slash >= 0 ? path.substring(slash + 1) : path;
+        return name.length > 0 ? name : i18n("Folder");
+    }
+
+    function folderIconName(folderUrl) {
+        var candidate = comparableFolderUrl(folderUrl);
+        var downloads = comparableFolderUrl(defaultFolderUrl);
+        return candidate.length > 0 && candidate === downloads
+            ? "folder-download" : "folder";
+    }
+
+    function comparableFolderUrl(folderUrl) {
+        var canonical = windowActions.canonicalDirectoryUrl(folderUrl);
+        if (canonical.length > 0) {
+            return canonical;
+        }
+        return String(folderUrl || "").replace(/\/$/, "");
+    }
+
+    function containsFolderUrl(folderUrls, candidate) {
+        var comparableCandidate = comparableFolderUrl(candidate);
+        if (comparableCandidate.length === 0) {
+            return false;
+        }
+        for (var index = 0; index < folderUrls.length; ++index) {
+            if (comparableFolderUrl(folderUrls[index])
+                    === comparableCandidate) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function droppedUrlsContainFolder(urls) {
+        var values = urls || [];
+        for (var index = 0; index < values.length; ++index) {
+            if (windowActions.canonicalDirectoryUrl(values[index]).length > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function addDroppedFolders(urls) {
+        var next = [];
+        for (var existingIndex = 0;
+                existingIndex < additionalFolderUrls.length;
+                ++existingIndex) {
+            next.push(String(additionalFolderUrls[existingIndex]));
+        }
+
+        var changed = false;
+        var values = urls || [];
+        for (var index = 0; index < values.length; ++index) {
+            var folderUrl = windowActions.canonicalDirectoryUrl(values[index]);
+            if (folderUrl.length === 0
+                    || comparableFolderUrl(configuredFolderUrl)
+                        === comparableFolderUrl(folderUrl)
+                    || containsFolderUrl(next, folderUrl)) {
+                continue;
+            }
+            next.push(folderUrl);
+            changed = true;
+        }
+
+        if (changed) {
+            Plasmoid.configuration.folderUrls = next;
+            Plasmoid.configuration.showFolderView = true;
+            revealDock();
+            overlayOpen = true;
+        }
+        return changed;
+    }
+
+    function removeAdditionalFolder(folderUrl) {
+        var target = comparableFolderUrl(folderUrl);
+        var next = [];
+        var changed = false;
+        for (var index = 0; index < additionalFolderUrls.length; ++index) {
+            if (comparableFolderUrl(additionalFolderUrls[index]) === target) {
+                changed = true;
+            } else {
+                next.push(String(additionalFolderUrls[index]));
+            }
+        }
+        if (changed) {
+            if (comparableFolderUrl(activeFolderUrl) === target) {
+                closeFolderPopup();
+            }
+            Plasmoid.configuration.folderUrls = next;
+        }
+    }
+
+    function openFolderExternally(folderUrl) {
+        Folder.AppLauncher.openUrl(folderUrl || configuredFolderUrl);
+    }
+
+    function openTrashExternally() {
+        Folder.AppLauncher.openUrl("trash:/");
+    }
+
+    function emptyTrash() {
+        trashModel.emptyTrashBin();
+    }
+
+    function toggleFolderPopup(folderUrl, visualParent) {
+        var targetUrl = String(folderUrl || configuredFolderUrl);
+        if (folderPopup.visible
+                && comparableFolderUrl(activeFolderUrl)
+                    === comparableFolderUrl(targetUrl)) {
+            folderPopup.close();
+            return;
+        }
+        if (folderPopup.visible) {
+            folderPopup.close();
+        }
+        activeFolderUrl = targetUrl;
+        folderModel.url = targetUrl;
+        revealDock();
+        overlayOpen = true;
+        folderPopup.visualParent = visualParent;
+        Qt.callLater(folderPopup.showPopup);
+    }
+
+    function closeFolderPopup() {
+        if (folderPopup.visible) {
+            folderPopup.close();
+        }
+    }
+
+    function updateTrashCount() {
+        trashItemCount = trashModel.rowCount();
     }
 
     function makePanelTransparent() {
@@ -249,14 +542,13 @@ PlasmoidItem {
     }
 
     function scaleForIndex(index, pointer, active, mainLength, maximum, iconSize) {
-        if (!active || index < 0 || index >= taskCount) {
+        if (!active || index < 0 || index >= dockItemCount) {
             return 1.0;
         }
 
-        var restLength = taskCount * iconSize
-            + Math.max(0, taskCount - 1) * itemSpacing;
-        var firstCenter = (mainLength - restLength) / 2 + iconSize / 2;
-        var center = firstCenter + index * (iconSize + itemSpacing);
+        var firstCenter = (mainLength - restMainLength) / 2
+            + iconSize / 2;
+        var center = firstCenter + dockIndexOffset(index);
         return waveScale(Math.abs(pointer - center), maximum);
     }
 
@@ -265,15 +557,16 @@ PlasmoidItem {
             return 0;
         }
 
-        var slot = baseIconSize + itemSpacing;
         var sampleCount = Math.max(1, (count - 1) * 8);
         var largest = 0;
 
         for (var sample = 0; sample <= sampleCount; ++sample) {
-            var pointer = baseIconSize / 2 + sample * slot / 8;
+            var pointer = baseIconSize / 2
+                + sample * Math.max(baseIconSize, restMainLength - baseIconSize)
+                    / sampleCount;
             var expansion = 0;
             for (var index = 0; index < count; ++index) {
-                var center = baseIconSize / 2 + index * slot;
+                var center = baseIconSize / 2 + dockIndexOffset(index);
                 expansion += baseIconSize
                     * (waveScale(Math.abs(pointer - center), maxScale) - 1.0);
             }
@@ -684,11 +977,13 @@ PlasmoidItem {
         }
     }
 
-    property int activeDragIndex: -1
+    property int dragOriginIndex: -1
+    property int dragTargetIndex: -1
     property real dragStartSceneMain: 0
     property real dragStartSlotCenterMain: 0
     property bool dragInOverlay: false
     property bool reorderAnimationActive: false
+    readonly property bool taskDragActive: dragOriginIndex >= 0
 
     function moveTaskTo(row, targetRow) {
         var target = Math.max(0, Math.min(taskCount - 1, targetRow));
@@ -700,11 +995,94 @@ PlasmoidItem {
     }
 
     function moveTask(row, offset) {
-        moveTaskTo(row, row + offset);
+        if (moveTaskTo(row, row + offset)) {
+            reorderAnimationActive = true;
+            reorderAnimationTimer.restart();
+        }
+    }
+
+    // Keep the model stable for the whole gesture. Only the visual slots are
+    // rearranged while dragging; the actual model move happens on drop. This
+    // keeps the grabbed delegate under the pointer instead of replacing or
+    // reindexing it whenever another icon is crossed.
+    function visualIndexForModelIndex(index) {
+        if (!taskDragActive || dragTargetIndex < 0) {
+            return index;
+        }
+        if (index === dragOriginIndex) {
+            return dragTargetIndex;
+        }
+        if (dragTargetIndex > dragOriginIndex
+                && index > dragOriginIndex
+                && index <= dragTargetIndex) {
+            return index - 1;
+        }
+        if (dragTargetIndex < dragOriginIndex
+                && index >= dragTargetIndex
+                && index < dragOriginIndex) {
+            return index + 1;
+        }
+        return index;
+    }
+
+    function modelIndexForVisualIndex(index) {
+        if (!taskDragActive || dragTargetIndex < 0) {
+            return index;
+        }
+        if (index === dragTargetIndex) {
+            return dragOriginIndex;
+        }
+        if (dragTargetIndex > dragOriginIndex
+                && index >= dragOriginIndex
+                && index < dragTargetIndex) {
+            return index + 1;
+        }
+        if (dragTargetIndex < dragOriginIndex
+                && index > dragTargetIndex
+                && index <= dragOriginIndex) {
+            return index - 1;
+        }
+        return index;
+    }
+
+    function dockIndexOffset(index) {
+        return desktopSwitcherLeadingExtent
+            + index * (baseIconSize + itemSpacing)
+            + (utilitySeparatorVisible && index >= taskCount
+                ? utilitySectionGap : 0);
     }
 
     function baseCenterForIndex(index) {
-        return mainMargin + index * (baseIconSize + itemSpacing) + baseIconSize / 2;
+        return mainMargin + dockIndexOffset(index) + baseIconSize / 2;
+    }
+
+    function baseSeparatorPosition() {
+        if (!utilitySeparatorVisible) {
+            return 0;
+        }
+        return mainMargin + desktopSwitcherLeadingExtent
+            + taskCount * baseIconSize
+            + Math.max(0, taskCount - 1) * itemSpacing
+            + (itemSpacing + utilitySectionGap) / 2;
+    }
+
+    function baseDesktopSwitcherStart() {
+        if (desktopSwitcherOnLeft || dockItemCount === 0) {
+            return mainMargin;
+        }
+        return mainMargin + iconRestMainLength
+            + desktopSwitcherSectionSpacing;
+    }
+
+    function baseDesktopSeparatorPosition() {
+        if (!desktopSwitcherVisible || dockItemCount === 0) {
+            return 0;
+        }
+        return desktopSwitcherOnLeft
+            ? mainMargin + desktopSwitcherMainExtent
+                + desktopSwitcherSectionSpacing / 2
+            : mainMargin + iconRestMainLength
+                + desktopSwitcherSectionSpacing / 2;
     }
 
     function baseIndexAtMainPosition(pos) {
@@ -725,7 +1103,8 @@ PlasmoidItem {
     }
 
     function handleTaskDragStarted(delegate, sceneX, sceneY) {
-        activeDragIndex = delegate.index;
+        dragOriginIndex = delegate.index;
+        dragTargetIndex = delegate.index;
         dragInOverlay = delegate.inOverlay;
 
         overlayCloseTimer.stop();
@@ -733,7 +1112,8 @@ PlasmoidItem {
         if (dragInOverlay) {
             overlayOpen = true;
             dragStartSceneMain = isVertical ? sceneY : sceneX;
-            dragStartSlotCenterMain = overlayContent.centerForIndex(delegate.index);
+            dragStartSlotCenterMain =
+                overlayContent.centerForModelIndex(delegate.index);
         } else {
             dragStartSceneMain = isVertical ? sceneY : sceneX;
             dragStartSlotCenterMain = baseCenterForIndex(delegate.index);
@@ -741,7 +1121,7 @@ PlasmoidItem {
     }
 
     function handleTaskDragMoved(delegate, sceneX, sceneY) {
-        if (activeDragIndex < 0) {
+        if (!taskDragActive) {
             return;
         }
 
@@ -753,21 +1133,19 @@ PlasmoidItem {
         var dragTargetCenter = dragStartSlotCenterMain + delta;
 
         var targetIndex = dragInOverlay
-            ? overlayContent.indexAtMainPosition(dragTargetCenter)
+            ? overlayContent.visualIndexAtMainPosition(dragTargetCenter)
             : baseIndexAtMainPosition(dragTargetCenter);
 
-        if (targetIndex >= 0 && targetIndex < taskCount && targetIndex !== activeDragIndex) {
-            var oldIndex = activeDragIndex;
-            if (moveTaskTo(oldIndex, targetIndex)) {
-                activeDragIndex = targetIndex;
-                reorderAnimationActive = true;
-                reorderAnimationTimer.restart();
-            }
+        if (targetIndex >= 0 && targetIndex < taskCount
+                && targetIndex !== dragTargetIndex) {
+            dragTargetIndex = targetIndex;
+            reorderAnimationActive = true;
+            reorderAnimationTimer.restart();
         }
 
         var currentSlotCenter = dragInOverlay
-            ? overlayContent.centerForIndex(activeDragIndex)
-            : baseCenterForIndex(activeDragIndex);
+            ? overlayContent.centerForModelIndex(delegate.index)
+            : baseCenterForIndex(visualIndexForModelIndex(delegate.index));
 
         var mainOffset = dragTargetCenter - currentSlotCenter;
         if (isVertical) {
@@ -780,12 +1158,22 @@ PlasmoidItem {
     }
 
     function handleTaskDragEnded(delegate) {
-        if (delegate) {
-            delegate.dragOffsetX = 0;
-            delegate.dragOffsetY = 0;
+        if (!taskDragActive) {
+            return;
         }
-        activeDragIndex = -1;
-        tasksModel.syncLaunchers();
+
+        var sourceIndex = dragOriginIndex;
+        var destinationIndex = dragTargetIndex;
+        if (sourceIndex !== destinationIndex) {
+            moveTaskTo(sourceIndex, destinationIndex);
+        } else {
+            tasksModel.syncLaunchers();
+        }
+
+        dragOriginIndex = -1;
+        dragTargetIndex = -1;
+        reorderAnimationActive = true;
+        reorderAnimationTimer.restart();
         scheduleOverlayClose();
         scheduleDockHide();
     }
@@ -796,6 +1184,14 @@ PlasmoidItem {
         interval: 210
         repeat: false
         onTriggered: root.reorderAnimationActive = false
+    }
+
+    Timer {
+        id: desktopCreationTimer
+
+        interval: 2000
+        repeat: false
+        onTriggered: root.desktopCreationPending = false
     }
 
     Timer {
@@ -834,6 +1230,7 @@ PlasmoidItem {
         function onStateChanged(state) {
             if (state !== Qt.ApplicationActive) {
                 root.closeOpenContextMenu();
+                root.closeFolderPopup();
             }
         }
     }
@@ -855,10 +1252,38 @@ PlasmoidItem {
         }
     }
 
-    onTaskCountChanged: {
-        if (taskCount === 0) {
+    onHasDockContentChanged: {
+        if (!hasDockContent) {
             overlayOpen = false;
             revealedForMaximized = false;
+        }
+    }
+
+    onDesktopCountChanged: {
+        desktopCreationPending = false;
+        desktopCreationTimer.stop();
+    }
+
+    onShowFolderViewChanged: {
+        if (!showFolderView) {
+            closeFolderPopup();
+        }
+    }
+
+    onConfiguredFolderUrlChanged: {
+        closeFolderPopup();
+        activeFolderUrl = configuredFolderUrl;
+        folderModel.url = String(configuredFolderUrl);
+    }
+
+    onOverlayHoveredChanged: {
+        if (!folderPopup.visible || folderPopup.hovered) {
+            return;
+        }
+        if (overlayHovered) {
+            folderPopupCloseTimer.stop();
+        } else {
+            folderPopupCloseTimer.restart();
         }
     }
 
@@ -871,6 +1296,19 @@ PlasmoidItem {
                         Plasmoid.configuration.launchers)) {
                 tasksModel.launcherList = Plasmoid.configuration.launchers || [];
             }
+        }
+
+        function onFolderUrlsChanged() {
+            if (root.comparableFolderUrl(root.activeFolderUrl)
+                    === root.comparableFolderUrl(root.configuredFolderUrl)
+                    || root.containsFolderUrl(
+                        Plasmoid.configuration.folderUrls || [],
+                        root.activeFolderUrl)) {
+                return;
+            }
+            root.closeFolderPopup();
+            root.activeFolderUrl = root.configuredFolderUrl;
+            folderModel.url = String(root.configuredFolderUrl);
         }
     }
 
@@ -898,6 +1336,50 @@ PlasmoidItem {
             launcherList = Plasmoid.configuration.launchers || [];
             root.taskModelReady = true;
         }
+    }
+
+    Folder.FolderModel {
+        id: folderModel
+
+        url: String(root.configuredFolderUrl)
+        sortMode: 0
+        sortDesc: false
+        sortDirsFirst: true
+        parseDesktopFiles: true
+        previews: true
+        applet: Plasmoid
+    }
+
+    Folder.FolderModel {
+        id: trashModel
+
+        url: "trash:/"
+        sortMode: 0
+        sortDesc: false
+        sortDirsFirst: true
+        applet: Plasmoid
+
+        onListingCompleted: root.updateTrashCount()
+    }
+
+    Connections {
+        target: trashModel
+
+        function onRowsInserted() {
+            root.updateTrashCount();
+        }
+
+        function onRowsRemoved() {
+            root.updateTrashCount();
+        }
+
+        function onModelReset() {
+            root.updateTrashCount();
+        }
+    }
+
+    TaskManager.VirtualDesktopInfo {
+        id: virtualDesktopInfo
     }
 
     TaskManager.ActivityInfo {
@@ -1028,17 +1510,19 @@ PlasmoidItem {
         }
 
         Behavior on x {
-            enabled: root.reorderAnimationActive && !taskDelegate.isDragging
+            enabled: (root.taskDragActive || root.reorderAnimationActive)
+                && !taskDelegate.isDragging
             NumberAnimation {
-                duration: 190
+                duration: 145
                 easing.type: Easing.OutCubic
             }
         }
 
         Behavior on y {
-            enabled: root.reorderAnimationActive && !taskDelegate.isDragging
+            enabled: (root.taskDragActive || root.reorderAnimationActive)
+                && !taskDelegate.isDragging
             NumberAnimation {
-                duration: 190
+                duration: 145
                 easing.type: Easing.OutCubic
             }
         }
@@ -1251,6 +1735,386 @@ PlasmoidItem {
         }
     }
 
+    component DesktopSwitcher: Item {
+        id: desktopSwitcher
+
+        required property bool inOverlay
+        property real crossExtent: root.baseIconSize
+
+        width: root.isVertical
+            ? crossExtent : root.desktopSwitcherMainExtent
+        height: root.isVertical
+            ? root.desktopSwitcherMainExtent : crossExtent
+
+        Repeater {
+            model: root.desktopCount
+
+            delegate: Item {
+                id: desktopButton
+
+                required property int index
+
+                readonly property bool active:
+                    root.isDesktopActive(index)
+                readonly property string desktopName:
+                    root.desktopNameAt(index)
+                readonly property string label:
+                    root.desktopLabelAt(index)
+                readonly property real mainExtent:
+                    root.desktopButtonMainExtent(index)
+                readonly property real compactCrossExtent:
+                    root.desktopSwitcherLabelMode === 0
+                        ? Math.min(desktopSwitcher.crossExtent, 30)
+                        : Math.min(desktopSwitcher.crossExtent,
+                            root.baseIconSize)
+
+                x: root.isVertical ? 0
+                    : root.desktopButtonMainStart(index)
+                y: root.isVertical
+                    ? root.desktopButtonMainStart(index) : 0
+                width: root.isVertical
+                    ? desktopSwitcher.crossExtent : mainExtent
+                height: root.isVertical
+                    ? mainExtent : desktopSwitcher.crossExtent
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Button
+                Accessible.name: desktopName
+                Accessible.description: active
+                    ? i18n("Current desktop") : i18n("Switch desktop")
+                Accessible.onPressAction: root.activateDesktop(index)
+
+                Rectangle {
+                    id: desktopButtonSurface
+
+                    x: root.isVertical
+                        ? (parent.width - width) / 2 : 0
+                    y: root.isVertical
+                        ? 0 : (parent.height - height) / 2
+                    width: root.isVertical
+                        ? desktopButton.compactCrossExtent : parent.width
+                    height: root.isVertical
+                        ? parent.height : desktopButton.compactCrossExtent
+                    radius: Math.min(9, Math.min(width, height) / 2)
+                    color: {
+                        var reference = desktopButton.active
+                            ? Kirigami.Theme.highlightColor
+                            : Kirigami.Theme.alternateBackgroundColor;
+                        var alpha = desktopButton.active ? 0.9
+                            : (desktopButtonHover.hovered ? 0.72 : 0.48);
+                        return Qt.rgba(reference.r, reference.g,
+                            reference.b, alpha);
+                    }
+                    border.width: desktopButton.active ? 1 : 0
+                    border.color: Kirigami.Theme.highlightedTextColor
+
+                    Behavior on color {
+                        ColorAnimation { duration: 120 }
+                    }
+
+                    QQC2.Label {
+                        readonly property bool rotatedDesktopName:
+                            root.isVertical
+                                && root.desktopSwitcherLabelMode === 1
+
+                        anchors.centerIn: parent
+                        width: rotatedDesktopName
+                            ? Math.max(0, parent.height - 14)
+                            : Math.max(0, parent.width - 14)
+                        height: rotatedDesktopName
+                            ? parent.width : parent.height
+                        rotation: rotatedDesktopName
+                            ? (root.dockLocation
+                                === PlasmaCore.Types.LeftEdge ? -90 : 90)
+                            : 0
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        text: desktopButton.label
+                        color: desktopButton.active
+                            ? Kirigami.Theme.highlightedTextColor
+                            : Kirigami.Theme.textColor
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                    }
+                }
+
+                HoverHandler {
+                    id: desktopButtonHover
+                    cursorShape: Qt.PointingHandCursor
+                }
+
+                TapHandler {
+                    onTapped: root.activateDesktop(desktopButton.index)
+                }
+
+                Keys.onReturnPressed:
+                    root.activateDesktop(desktopButton.index)
+                Keys.onEnterPressed:
+                    root.activateDesktop(desktopButton.index)
+                Keys.onSpacePressed:
+                    root.activateDesktop(desktopButton.index)
+
+                QQC2.ToolTip.visible: desktopButtonHover.hovered
+                QQC2.ToolTip.text: desktopButton.desktopName
+                QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+            }
+        }
+
+        Item {
+            id: addDesktopButton
+
+            visible: root.desktopAddButtonVisible
+            x: root.isVertical ? 0
+                : root.desktopButtonMainStart(root.desktopCount)
+            y: root.isVertical
+                ? root.desktopButtonMainStart(root.desktopCount) : 0
+            width: root.isVertical
+                ? desktopSwitcher.crossExtent
+                : root.desktopAddButtonMainExtent
+            height: root.isVertical
+                ? root.desktopAddButtonMainExtent
+                : desktopSwitcher.crossExtent
+            activeFocusOnTab: true
+            Accessible.role: Accessible.Button
+            Accessible.name: i18n("Add desktop")
+            Accessible.onPressAction: root.createDesktop()
+
+            Rectangle {
+                x: root.isVertical ? (parent.width - width) / 2 : 0
+                y: root.isVertical ? 0 : (parent.height - height) / 2
+                width: root.isVertical
+                    ? Math.min(desktopSwitcher.crossExtent, 30)
+                    : parent.width
+                height: root.isVertical
+                    ? parent.height
+                    : Math.min(desktopSwitcher.crossExtent, 30)
+                radius: Math.min(9, Math.min(width, height) / 2)
+                color: {
+                    var reference = Kirigami.Theme.alternateBackgroundColor;
+                    var alpha = addDesktopHover.hovered ? 0.72 : 0.48;
+                    return Qt.rgba(reference.r, reference.g,
+                        reference.b, alpha);
+                }
+
+                Behavior on color {
+                    ColorAnimation { duration: 120 }
+                }
+
+                QQC2.Label {
+                    anchors.fill: parent
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: "+"
+                    color: Kirigami.Theme.textColor
+                    font.pixelSize: 20
+                    font.weight: Font.Medium
+                }
+            }
+
+            HoverHandler {
+                id: addDesktopHover
+                cursorShape: Qt.PointingHandCursor
+            }
+
+            TapHandler {
+                onTapped: root.createDesktop()
+            }
+
+            Keys.onReturnPressed: root.createDesktop()
+            Keys.onEnterPressed: root.createDesktop()
+            Keys.onSpacePressed: root.createDesktop()
+
+            QQC2.ToolTip.visible: addDesktopHover.hovered
+            QQC2.ToolTip.text: i18n("Add desktop")
+            QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
+        }
+    }
+
+    component FolderDropTarget: DropArea {
+        id: folderDropTarget
+
+        property Item excludedItem: null
+
+        function overExcludedItem(x, y) {
+            if (!excludedItem || !excludedItem.visible) {
+                return false;
+            }
+            var topLeft = excludedItem.mapToItem(folderDropTarget, 0, 0);
+            return x >= topLeft.x && x <= topLeft.x + excludedItem.width
+                && y >= topLeft.y && y <= topLeft.y + excludedItem.height;
+        }
+
+        onEntered: (drag) => {
+            var accepted = !overExcludedItem(drag.x, drag.y)
+                && root.droppedUrlsContainFolder(drag.urls);
+            drag.accepted = accepted;
+            root.folderDropActive = accepted;
+            if (accepted) {
+                root.revealDock();
+                root.overlayOpen = true;
+                dockHideTimer.stop();
+            }
+        }
+        onPositionChanged: (drag) => {
+            var accepted = !overExcludedItem(drag.x, drag.y)
+                && root.droppedUrlsContainFolder(drag.urls);
+            drag.accepted = accepted;
+            root.folderDropActive = accepted;
+            if (accepted) {
+                root.revealDock();
+                dockHideTimer.stop();
+            }
+        }
+        onExited: {
+            root.folderDropActive = false;
+            root.scheduleOverlayClose();
+            root.scheduleDockHide();
+        }
+        onDropped: (drop) => {
+            var accepted = !overExcludedItem(drop.x, drop.y)
+                && root.addDroppedFolders(drop.urls);
+            root.folderDropActive = false;
+            if (accepted) {
+                drop.acceptProposedAction();
+            } else {
+                drop.accepted = false;
+            }
+        }
+    }
+
+    component UtilityDelegate: DockItem {
+        id: utilityDelegate
+
+        required property int dockIndex
+        required property string utilityType
+        property int folderIndex: -1
+        property url folderUrl: ""
+        property bool inOverlay: false
+        property real displayScale: 1.0
+        property real displayCrossExtent: root.baseIconSize
+
+        readonly property bool isFolder: utilityType === "folder"
+
+        appName: isFolder
+            ? root.folderName(folderUrl) : i18n("Trash")
+        appIcon: {
+            if (isFolder) {
+                return root.folderIconName(folderUrl);
+            }
+            // KIO exposes trash:/ as a folder on some Plasma versions.
+            // Resolve the canonical trash icon names through the active icon
+            // theme instead, while still reflecting the empty/full state.
+            return root.trashItemCount > 0
+                ? "user-trash-full" : "user-trash";
+        }
+        baseSize: root.baseIconSize
+        currentScale: displayScale
+        crossIconExtent: displayCrossExtent
+        isVertical: root.isVertical
+        location: root.dockLocation
+        screenEdgeMargin: root.panelEdgeMargin
+        launchAnimation: root.launchAnimation
+        dragEnabled: false
+
+        Behavior on currentScale {
+            NumberAnimation {
+                duration: 75
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        onClicked: {
+            if (isFolder) {
+                var popupParent = utilityDelegate;
+                if (!inOverlay) {
+                    var overlayFolder = folderOverlayRepeater.itemAt(folderIndex);
+                    if (overlayFolder) {
+                        popupParent = overlayFolder;
+                    }
+                }
+                root.toggleFolderPopup(folderUrl, popupParent);
+            } else {
+                triggerBounce();
+                root.openTrashExternally();
+            }
+        }
+        onContextMenuRequested: utilityMenu.popup()
+
+        DropArea {
+            anchors.fill: parent
+            enabled: !utilityDelegate.isFolder
+
+            onEntered: utilityDelegate.dropTarget = true
+            onExited: utilityDelegate.dropTarget = false
+            onDropped: (drop) => {
+                utilityDelegate.dropTarget = false;
+                trashModel.drop(utilityDelegate, drop, -1, false);
+            }
+        }
+
+        QQC2.Menu {
+            id: utilityMenu
+
+            property bool countedAsOpen: false
+            closePolicy: QQC2.Popup.CloseOnEscape
+                | QQC2.Popup.CloseOnPressOutside
+                | QQC2.Popup.CloseOnReleaseOutside
+                | QQC2.Popup.CloseOnPressOutsideParent
+                | QQC2.Popup.CloseOnReleaseOutsideParent
+
+            Component.onCompleted: root.configureContextMenu(utilityMenu)
+
+            onOpened: {
+                if (!countedAsOpen) {
+                    countedAsOpen = true;
+                    root.menuOpened(utilityMenu);
+                }
+            }
+            onClosed: {
+                if (countedAsOpen) {
+                    countedAsOpen = false;
+                    root.menuClosed(utilityMenu);
+                }
+            }
+            Component.onDestruction: {
+                if (countedAsOpen) {
+                    root.menuClosed(utilityMenu);
+                }
+            }
+
+            QQC2.MenuItem {
+                text: utilityDelegate.isFolder
+                    ? i18n("Open Folder") : i18n("Open Trash")
+                icon.name: utilityDelegate.isFolder
+                    ? "document-open-folder" : "user-trash"
+                onTriggered: {
+                    if (utilityDelegate.isFolder) {
+                        root.openFolderExternally(utilityDelegate.folderUrl);
+                    } else {
+                        root.openTrashExternally();
+                    }
+                }
+            }
+
+            QQC2.MenuItem {
+                visible: utilityDelegate.isFolder
+                    && utilityDelegate.folderIndex > 0
+                text: i18n("Remove Folder from Dock")
+                icon.name: "list-remove"
+                onTriggered: root.removeAdditionalFolder(
+                    utilityDelegate.folderUrl)
+            }
+
+            QQC2.MenuItem {
+                visible: !utilityDelegate.isFolder
+                text: i18n("Empty Trash")
+                icon.name: "trash-empty"
+                enabled: root.trashItemCount > 0
+                onTriggered: root.emptyTrash()
+            }
+        }
+    }
+
     fullRepresentation: Item {
         id: hostAnchor
 
@@ -1262,6 +2126,58 @@ PlasmoidItem {
         Component.onDestruction: {
             if (root.representationItem === hostAnchor) {
                 root.representationItem = null;
+            }
+        }
+    }
+
+    FolderPopup {
+        id: folderPopup
+
+        folderModel: folderModel
+        rootFolderUrl: root.activeFolderUrl
+        location: root.dockLocation
+        screenEdgeMargin: root.panelEdgeMargin
+        surfaceOpacity: Math.min(0.94, root.backgroundOpacity + 0.18)
+        useThemeColor: root.useThemeBackground
+        customColor: root.customBackgroundColor
+        requestedRadius: Math.max(16, root.cornerRadius)
+        borderOpacity: root.borderOpacity
+        shadowOpacity: root.shadowOpacity
+        showHighlight: root.showHighlight
+        blurEnabled: root.enableBlur
+
+        onOpenFolderRequested: (folderUrl) =>
+            Folder.AppLauncher.openUrl(folderUrl)
+
+        onVisibleChanged: {
+            if (visible && !root.folderPopupCountedAsOpen) {
+                root.folderPopupCountedAsOpen = true;
+                root.previewOpened();
+            } else if (!visible && root.folderPopupCountedAsOpen) {
+                root.folderPopupCountedAsOpen = false;
+                root.previewClosed();
+                folderModel.url = String(root.activeFolderUrl);
+            }
+        }
+
+        onHoveredChanged: {
+            if (hovered) {
+                folderPopupCloseTimer.stop();
+            } else {
+                folderPopupCloseTimer.restart();
+            }
+        }
+    }
+
+    Timer {
+        id: folderPopupCloseTimer
+
+        interval: 380
+        repeat: false
+        onTriggered: {
+            if (folderPopup.visible && !folderPopup.hovered
+                    && !root.overlayHovered) {
+                folderPopup.close();
             }
         }
     }
@@ -1332,6 +2248,22 @@ PlasmoidItem {
                 showHighlight: root.showHighlight
             }
 
+            FolderDropTarget {
+                anchors.fill: parent
+                z: 1
+                excludedItem: trashBaseItem
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                z: 9998
+                visible: root.folderDropActive
+                color: "transparent"
+                radius: root.cornerRadius
+                border.width: 2
+                border.color: Kirigami.Theme.highlightColor
+            }
+
             HoverHandler {
                 cursorShape: Qt.PointingHandCursor
 
@@ -1361,6 +2293,57 @@ PlasmoidItem {
                 }
             }
 
+            Rectangle {
+                visible: root.utilitySeparatorVisible
+                color: Kirigami.Theme.textColor
+                opacity: 0.24
+                radius: 1
+                width: root.isVertical
+                    ? root.baseIconSize * 0.62 : 1
+                height: root.isVertical
+                    ? 1 : root.baseIconSize * 0.62
+                x: root.isVertical
+                    ? root.crossMargin
+                        + (root.baseIconSize - width) / 2
+                    : root.baseSeparatorPosition() - width / 2
+                y: root.isVertical
+                    ? root.baseSeparatorPosition() - height / 2
+                    : root.crossMargin
+                        + (root.baseIconSize - height) / 2
+            }
+
+            Rectangle {
+                visible: root.desktopSwitcherVisible
+                    && root.dockItemCount > 0
+                color: Kirigami.Theme.textColor
+                opacity: 0.24
+                radius: 1
+                width: root.isVertical
+                    ? root.baseIconSize * 0.62 : 1
+                height: root.isVertical
+                    ? 1 : root.baseIconSize * 0.62
+                x: root.isVertical
+                    ? root.crossMargin
+                        + (root.baseIconSize - width) / 2
+                    : root.baseDesktopSeparatorPosition() - width / 2
+                y: root.isVertical
+                    ? root.baseDesktopSeparatorPosition() - height / 2
+                    : root.crossMargin
+                        + (root.baseIconSize - height) / 2
+            }
+
+            DesktopSwitcher {
+                id: desktopBaseSwitcher
+
+                visible: root.desktopSwitcherVisible
+                inOverlay: false
+                crossExtent: root.baseIconSize
+                x: root.isVertical ? root.crossMargin
+                    : root.baseDesktopSwitcherStart()
+                y: root.isVertical
+                    ? root.baseDesktopSwitcherStart() : root.crossMargin
+            }
+
             Repeater {
                 model: tasksModel
 
@@ -1368,13 +2351,50 @@ PlasmoidItem {
                     displayScale: 1.0
                     displayCrossExtent: root.baseIconSize
                     x: root.isVertical ? root.crossMargin
-                        : root.mainMargin
-                            + index * (root.baseIconSize + root.itemSpacing)
+                        : root.baseCenterForIndex(
+                            root.visualIndexForModelIndex(index))
+                            - scaledSize / 2
                     y: root.isVertical
-                        ? root.mainMargin
-                            + index * (root.baseIconSize + root.itemSpacing)
+                        ? root.baseCenterForIndex(
+                            root.visualIndexForModelIndex(index))
+                            - scaledSize / 2
                         : root.crossMargin
                 }
+            }
+
+            Repeater {
+                id: folderBaseRepeater
+
+                model: root.folderItemCount
+
+                delegate: UtilityDelegate {
+                    required property int index
+
+                    folderIndex: index
+                    folderUrl: root.folderUrlAt(index)
+                    dockIndex: root.taskCount + index
+                    utilityType: "folder"
+                    x: root.isVertical ? root.crossMargin
+                        : root.baseCenterForIndex(dockIndex)
+                            - scaledSize / 2
+                    y: root.isVertical
+                        ? root.baseCenterForIndex(dockIndex)
+                            - scaledSize / 2
+                        : root.crossMargin
+                }
+            }
+
+            UtilityDelegate {
+                id: trashBaseItem
+
+                visible: root.showTrash
+                dockIndex: root.trashDockIndex
+                utilityType: "trash"
+                x: root.isVertical ? root.crossMargin
+                    : root.baseCenterForIndex(dockIndex) - scaledSize / 2
+                y: root.isVertical
+                    ? root.baseCenterForIndex(dockIndex) - scaledSize / 2
+                    : root.crossMargin
             }
         }
     }
@@ -1424,6 +2444,11 @@ PlasmoidItem {
 
         Item {
             anchors.fill: parent
+
+            FolderDropTarget {
+                anchors.fill: parent
+                z: 1
+            }
 
             HoverHandler {
                 cursorShape: Qt.PointingHandCursor
@@ -1491,49 +2516,123 @@ PlasmoidItem {
             }
 
             readonly property real mainLength: root.isVertical ? height : width
-            readonly property real currentMainLength: calculateCurrentMainLength()
+            readonly property real currentIconMainLength:
+                calculateCurrentIconMainLength()
+            readonly property real currentMainLength: currentIconMainLength
+                + root.desktopSwitcherMainExtent
+                + root.desktopSwitcherSectionSpacing
 
-            function scaleAt(index) {
-                var item = overlayRepeater.itemAt(index);
+            function scaleAtDockIndex(index) {
+                var item = null;
+                if (index < root.taskCount) {
+                    item = overlayRepeater.itemAt(index);
+                } else if (index >= root.folderDockIndex
+                        && index < root.folderDockIndex
+                            + root.folderItemCount) {
+                    item = folderOverlayRepeater.itemAt(
+                        index - root.folderDockIndex);
+                } else if (index === root.trashDockIndex) {
+                    item = trashOverlayItem;
+                }
                 // Repeater.itemAt() is statically typed as Item, while every
-                // delegate is a TaskDelegate/DockItem with currentScale.
+                // Dock item has currentScale.
                 // qmllint disable missing-property
                 var scale = item ? Number(item["currentScale"]) : 1.0;
                 // qmllint enable missing-property
                 return Number.isFinite(scale) ? scale : 1.0;
             }
 
-            function calculateCurrentMainLength() {
-                var count = root.taskCount;
+            function dockIndexAtVisualIndex(index) {
+                return index < root.taskCount
+                    ? root.modelIndexForVisualIndex(index) : index;
+            }
+
+            function calculateCurrentIconMainLength() {
+                var count = root.dockItemCount;
                 if (count <= 0) {
                     return 0;
                 }
 
-                var result = Math.max(0, count - 1) * root.itemSpacing;
+                var result = Math.max(0, count - 1) * root.itemSpacing
+                    + root.utilitySectionGap;
                 for (var index = 0; index < count; ++index) {
-                    result += root.baseIconSize * scaleAt(index);
+                    result += root.baseIconSize * scaleAtDockIndex(index);
                 }
                 return result;
             }
 
-            function centerForIndex(index) {
-                var cursor = (mainLength - currentMainLength) / 2;
+            function centerForVisualIndex(index) {
+                var cursor = (mainLength - currentMainLength) / 2
+                    + root.desktopSwitcherLeadingExtent;
                 for (var previous = 0; previous < index; ++previous) {
-                    cursor += root.baseIconSize * scaleAt(previous)
+                    cursor += root.baseIconSize
+                        * scaleAtDockIndex(
+                            dockIndexAtVisualIndex(previous))
                         + root.itemSpacing;
+                    if (root.utilitySeparatorVisible
+                            && previous === root.taskCount - 1) {
+                        cursor += root.utilitySectionGap;
+                    }
                 }
-                return cursor + root.baseIconSize * scaleAt(index) / 2;
+                return cursor + root.baseIconSize
+                    * scaleAtDockIndex(dockIndexAtVisualIndex(index)) / 2;
             }
 
-            function indexAtMainPosition(pos) {
+            function centerForModelIndex(index) {
+                return centerForVisualIndex(
+                    root.visualIndexForModelIndex(index));
+            }
+
+            function separatorPosition() {
+                if (!root.utilitySeparatorVisible) {
+                    return 0;
+                }
+                var cursor = (mainLength - currentMainLength) / 2
+                    + root.desktopSwitcherLeadingExtent;
+                for (var index = 0; index < root.taskCount; ++index) {
+                    cursor += root.baseIconSize
+                        * scaleAtDockIndex(
+                            root.modelIndexForVisualIndex(index));
+                    if (index < root.taskCount - 1) {
+                        cursor += root.itemSpacing;
+                    }
+                }
+                return cursor
+                    + (root.itemSpacing + root.utilitySectionGap) / 2;
+            }
+
+            function desktopSwitcherStart() {
+                var start = (mainLength - currentMainLength) / 2;
+                if (root.desktopSwitcherOnLeft
+                        || root.dockItemCount === 0) {
+                    return start;
+                }
+                return start + currentIconMainLength
+                    + root.desktopSwitcherSectionSpacing;
+            }
+
+            function desktopSeparatorPosition() {
+                if (!root.desktopSwitcherVisible
+                        || root.dockItemCount === 0) {
+                    return 0;
+                }
+                var start = (mainLength - currentMainLength) / 2;
+                return root.desktopSwitcherOnLeft
+                    ? start + root.desktopSwitcherMainExtent
+                        + root.desktopSwitcherSectionSpacing / 2
+                    : start + currentIconMainLength
+                        + root.desktopSwitcherSectionSpacing / 2;
+            }
+
+            function visualIndexAtMainPosition(pos) {
                 var count = root.taskCount;
                 if (count <= 0) {
                     return -1;
                 }
                 var bestIndex = 0;
-                var minDiff = Math.abs(pos - centerForIndex(0));
+                var minDiff = Math.abs(pos - centerForVisualIndex(0));
                 for (var i = 1; i < count; ++i) {
-                    var diff = Math.abs(pos - centerForIndex(i));
+                    var diff = Math.abs(pos - centerForVisualIndex(i));
                     if (diff < minDiff) {
                         minDiff = diff;
                         bestIndex = i;
@@ -1565,6 +2664,28 @@ PlasmoidItem {
                 height: root.isVertical
                     ? overlayContent.currentMainLength + 2 * root.mainMargin
                     : root.baseSurfaceCrossLength
+            }
+
+            FolderDropTarget {
+                x: overlayBackgroundSurface.x
+                y: overlayBackgroundSurface.y
+                width: overlayBackgroundSurface.width
+                height: overlayBackgroundSurface.height
+                z: 1
+                excludedItem: trashOverlayItem
+            }
+
+            Rectangle {
+                x: overlayBackgroundSurface.x
+                y: overlayBackgroundSurface.y
+                width: overlayBackgroundSurface.width
+                height: overlayBackgroundSurface.height
+                z: 9998
+                visible: root.folderDropActive
+                color: "transparent"
+                radius: root.cornerRadius
+                border.width: 2
+                border.color: Kirigami.Theme.highlightColor
             }
 
             function surfaceCrossStart(surfaceCrossLength) {
@@ -1671,6 +2792,55 @@ PlasmoidItem {
                     ? overlayContent.height
                     : root.maximumIconSize + root.indicatorSpace
 
+                Rectangle {
+                    visible: root.utilitySeparatorVisible
+                    color: Kirigami.Theme.textColor
+                    opacity: 0.24
+                    radius: 1
+                    width: root.isVertical
+                        ? root.baseIconSize * 0.62 : 1
+                    height: root.isVertical
+                        ? 1 : root.baseIconSize * 0.62
+                    x: root.isVertical
+                        ? (root.maximumIconSize - width) / 2
+                        : overlayContent.separatorPosition() - width / 2
+                    y: root.isVertical
+                        ? overlayContent.separatorPosition() - height / 2
+                        : (root.maximumIconSize - height) / 2
+                }
+
+                Rectangle {
+                    visible: root.desktopSwitcherVisible
+                        && root.dockItemCount > 0
+                    color: Kirigami.Theme.textColor
+                    opacity: 0.24
+                    radius: 1
+                    width: root.isVertical
+                        ? root.baseIconSize * 0.62 : 1
+                    height: root.isVertical
+                        ? 1 : root.baseIconSize * 0.62
+                    x: root.isVertical
+                        ? (root.maximumIconSize - width) / 2
+                        : overlayContent.desktopSeparatorPosition()
+                            - width / 2
+                    y: root.isVertical
+                        ? overlayContent.desktopSeparatorPosition()
+                            - height / 2
+                        : (root.maximumIconSize - height) / 2
+                }
+
+                DesktopSwitcher {
+                    id: desktopOverlaySwitcher
+
+                    visible: root.desktopSwitcherVisible
+                    inOverlay: true
+                    crossExtent: root.maximumIconSize
+                    x: root.isVertical ? 0
+                        : overlayContent.desktopSwitcherStart()
+                    y: root.isVertical
+                        ? overlayContent.desktopSwitcherStart() : 0
+                }
+
                 Repeater {
                     id: overlayRepeater
 
@@ -1678,16 +2848,66 @@ PlasmoidItem {
 
                     delegate: TaskDelegate {
                         inOverlay: true
-                        displayScale: root.scaleForIndex(index,
+                        displayScale: root.scaleForIndex(
+                            root.visualIndexForModelIndex(index),
                             root.lastPointerMain, root.overlayOpen,
                             overlayContent.mainLength, root.maxScale,
                             root.baseIconSize)
                         displayCrossExtent: root.maximumIconSize
                         x: root.isVertical ? 0
-                            : overlayContent.centerForIndex(index) - scaledSize / 2
+                            : overlayContent.centerForModelIndex(index)
+                                - scaledSize / 2
                         y: root.isVertical
-                            ? overlayContent.centerForIndex(index) - scaledSize / 2 : 0
+                            ? overlayContent.centerForModelIndex(index)
+                                - scaledSize / 2 : 0
                     }
+                }
+
+                Repeater {
+                    id: folderOverlayRepeater
+
+                    model: root.folderItemCount
+
+                    delegate: UtilityDelegate {
+                        required property int index
+
+                        inOverlay: true
+                        folderIndex: index
+                        folderUrl: root.folderUrlAt(index)
+                        dockIndex: root.taskCount + index
+                        utilityType: "folder"
+                        displayScale: root.scaleForIndex(dockIndex,
+                            root.lastPointerMain, root.overlayOpen,
+                            overlayContent.mainLength, root.maxScale,
+                            root.baseIconSize)
+                        displayCrossExtent: root.maximumIconSize
+                        x: root.isVertical ? 0
+                            : overlayContent.centerForVisualIndex(dockIndex)
+                                - scaledSize / 2
+                        y: root.isVertical
+                            ? overlayContent.centerForVisualIndex(dockIndex)
+                                - scaledSize / 2 : 0
+                    }
+                }
+
+                UtilityDelegate {
+                    id: trashOverlayItem
+
+                    visible: root.showTrash
+                    inOverlay: true
+                    dockIndex: root.trashDockIndex
+                    utilityType: "trash"
+                    displayScale: root.scaleForIndex(dockIndex,
+                        root.lastPointerMain, root.overlayOpen,
+                        overlayContent.mainLength, root.maxScale,
+                        root.baseIconSize)
+                    displayCrossExtent: root.maximumIconSize
+                    x: root.isVertical ? 0
+                        : overlayContent.centerForVisualIndex(dockIndex)
+                            - scaledSize / 2
+                    y: root.isVertical
+                        ? overlayContent.centerForVisualIndex(dockIndex)
+                            - scaledSize / 2 : 0
                 }
             }
         }

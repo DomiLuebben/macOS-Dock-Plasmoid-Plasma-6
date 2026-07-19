@@ -174,3 +174,129 @@ msgstr "Utiliser la couleur du thème Plasma"
 
 msgid "Window behavior:"
 msgstr "Comportement des fenêtres :"
+
+msgid "Dock items"
+msgstr "Éléments du Dock"
+
+msgid "Utilities:"
+msgstr "Utilitaires :"
+
+msgid "Show folder view"
+msgstr "Afficher la vue du dossier"
+
+msgid "Show Trash"
+msgstr "Afficher la corbeille"
+
+msgid "Show desktop switcher"
+msgstr "Afficher le sélecteur de bureaux"
+
+msgid "Desktop switcher position:"
+msgstr "Position du sélecteur de bureaux :"
+
+msgid "Left"
+msgstr "Gauche"
+
+msgid "Right"
+msgstr "Droite"
+
+msgid "Desktop labels:"
+msgstr "Libellés des bureaux :"
+
+msgid "Numbers"
+msgstr "Numéros"
+
+msgid "Desktop names"
+msgstr "Noms des bureaux"
+
+msgid "Desktop names:"
+msgstr "Noms des bureaux :"
+
+msgid "The names configured in Plasma, including custom names, are shown."
+msgstr "Les noms configurés dans Plasma, y compris les noms personnalisés, sont affichés."
+
+msgid "Folder:"
+msgstr "Dossier :"
+
+msgid "Default folder:"
+msgstr "Dossier par défaut :"
+
+msgid "Choose…"
+msgstr "Choisir…"
+
+msgid "Choose folder"
+msgstr "Choisir un dossier"
+
+msgid "Folder view:"
+msgstr "Vue du dossier :"
+
+msgid "If no folder is selected, the Downloads folder is used."
+msgstr "Si aucun dossier n’est sélectionné, le dossier Téléchargements est utilisé."
+
+msgid "If no folder is selected, the Downloads folder is used. Drag folders from the file manager onto the Dock to add more stacks."
+msgstr "Si aucun dossier n’est sélectionné, le dossier Téléchargements est utilisé. Faites glisser d’autres dossiers depuis le gestionnaire de fichiers sur le Dock pour ajouter des piles."
+
+msgid "Choose Folder for the Dock"
+msgstr "Choisir le dossier du Dock"
+
+msgid "Folder"
+msgstr "Dossier"
+
+msgid "Trash"
+msgstr "Corbeille"
+
+msgid "Desktop %1"
+msgstr "Bureau %1"
+
+msgid "Current desktop"
+msgstr "Bureau actuel"
+
+msgid "Switch desktop"
+msgstr "Changer de bureau"
+
+msgid "Add desktop"
+msgstr "Ajouter un bureau"
+
+msgid "Open Folder"
+msgstr "Ouvrir le dossier"
+
+msgid "Remove Folder from Dock"
+msgstr "Retirer le dossier du Dock"
+
+msgid "Open Trash"
+msgstr "Ouvrir la corbeille"
+
+msgid "Empty Trash"
+msgstr "Vider la corbeille"
+
+msgid "Back"
+msgstr "Retour"
+
+msgid "Open in File Manager"
+msgstr "Ouvrir dans le gestionnaire de fichiers"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Size"
+msgstr "Taille"
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Descending"
+msgstr "Décroissant"
+
+msgid "Ascending"
+msgstr "Croissant"
+
+msgid "Hide hidden files"
+msgstr "Masquer les fichiers cachés"
+
+msgid "Show hidden files"
+msgstr "Afficher les fichiers cachés"
+
+msgid "This folder is empty"
+msgstr "Ce dossier est vide"

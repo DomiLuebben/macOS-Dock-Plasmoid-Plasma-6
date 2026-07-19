@@ -10,6 +10,11 @@ couleurs du thème Qt.
 
 - Agrandissement fluide des icônes au survol
 - Réorganisation par glisser-déposer des lanceurs à la souris
+- Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
+  macOS ; d’autres dossiers peuvent être glissés directement depuis le gestionnaire de fichiers
+- Corbeille facultative adaptée au thème avec état vide/plein et dépôt de fichiers
+- Sélecteur facultatif de bureaux à gauche ou à droite, avec numéros ou noms
+  de bureaux définis dans Plasma et un bouton permanent pour en créer d’autres
 - Aperçus interactifs des fenêtres avec activation et fermeture individuelles
 - Lanceurs et applications en cours d’exécution dans un gestionnaire commun
 - Menu contextuel pour ouvrir de nouvelles fenêtres et réduire, maximiser,

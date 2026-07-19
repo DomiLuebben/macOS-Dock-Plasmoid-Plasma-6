@@ -10,6 +10,11 @@ color scheme.
 
 - Smooth macOS-style icon magnification on hover
 - Drag-and-drop reordering of launchers and starters with mouse interaction
+- Optional Downloads/folder stacks with a macOS-style file popover; drag
+  folders from the file manager onto the Dock to add more
+- Optional theme-aware Trash with empty/full state and file drop support
+- Optional virtual desktop switcher on the left or right, with numbers or
+  Plasma's desktop names and a persistent button for creating more desktops
 - Interactive live window previews on hover with per-window activation and close controls
 - Launchers and running applications in a unified task manager
 - Context-menu actions to open new windows and minimize, maximize, restore, or

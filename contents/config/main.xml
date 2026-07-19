@@ -52,6 +52,25 @@
     <entry name="launchAnimation" type="Int">
       <default>1</default>
     </entry>
+    <entry name="showFolderView" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="folderUrl" type="String">
+      <default></default>
+    </entry>
+    <entry name="folderUrls" type="StringList"/>
+    <entry name="showTrash" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showDesktopSwitcher" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="desktopSwitcherPosition" type="Int">
+      <default>0</default>
+    </entry>
+    <entry name="desktopSwitcherLabelMode" type="Int">
+      <default>0</default>
+    </entry>
     <entry name="launchers" type="StringList"/>
   </group>
 </kcfg>
