@@ -170,6 +170,7 @@ PlasmoidItem {
     readonly property bool maximizedWindowPresent:
         maximizedWindowsModel.count > 0
     property bool fullscreenWindowPresent: false
+    property bool fullscreenUpdatePending: false
     readonly property bool autoHideRequired:
         fullscreenWindowPresent
             || (hideOnMaximized && maximizedWindowPresent)
@@ -262,7 +263,7 @@ PlasmoidItem {
                 && String(names[index]).length > 0) {
             return String(names[index]);
         }
-        return i18n("Desktop %1").arg(index + 1);
+        return i18n("Desktop %1", index + 1);
     }
 
     function desktopLabelAt(index) {
@@ -336,8 +337,12 @@ PlasmoidItem {
     }
 
     function folderName(folderUrl) {
-        var path = decodeURIComponent(String(folderUrl || ""))
-            .replace(/\/$/, "");
+        var path = String(folderUrl || "").replace(/\/$/, "");
+        try {
+            path = decodeURIComponent(path);
+        } catch (error) {
+            // A malformed escape sequence must not break Dock delegates.
+        }
         var slash = path.lastIndexOf("/");
         var name = slash >= 0 ? path.substring(slash + 1) : path;
         return name.length > 0 ? name : i18n("Folder");
@@ -665,6 +670,7 @@ PlasmoidItem {
     }
 
     function updateFullscreenWindowPresent() {
+        fullscreenUpdatePending = false;
         var present = false;
         for (var row = 0; row < fullscreenWindowsModel.count; ++row) {
             var index = fullscreenWindowsModel.makeModelIndex(row);
@@ -675,6 +681,14 @@ PlasmoidItem {
             }
         }
         fullscreenWindowPresent = present;
+    }
+
+    function scheduleFullscreenWindowUpdate() {
+        if (fullscreenUpdatePending) {
+            return;
+        }
+        fullscreenUpdatePending = true;
+        Qt.callLater(updateFullscreenWindowPresent);
     }
 
     function isGroup(row) {
@@ -1346,7 +1360,9 @@ PlasmoidItem {
         sortDesc: false
         sortDirsFirst: true
         parseDesktopFiles: true
-        previews: true
+        // File thumbnails trigger asynchronous I/O and decoding for every
+        // visited directory. Theme icons keep this transient view responsive.
+        previews: false
         applet: Plasmoid
     }
 
@@ -1422,28 +1438,28 @@ PlasmoidItem {
         filterMinimized: true
         filterHidden: true
 
-        onCountChanged: Qt.callLater(root.updateFullscreenWindowPresent)
+        onCountChanged: root.scheduleFullscreenWindowUpdate()
         Component.onCompleted:
-            Qt.callLater(root.updateFullscreenWindowPresent)
+            root.scheduleFullscreenWindowUpdate()
     }
 
     Connections {
         target: fullscreenWindowsModel
 
         function onDataChanged() {
-            Qt.callLater(root.updateFullscreenWindowPresent);
+            root.scheduleFullscreenWindowUpdate();
         }
 
         function onModelReset() {
-            Qt.callLater(root.updateFullscreenWindowPresent);
+            root.scheduleFullscreenWindowUpdate();
         }
 
         function onRowsInserted() {
-            Qt.callLater(root.updateFullscreenWindowPresent);
+            root.scheduleFullscreenWindowUpdate();
         }
 
         function onRowsRemoved() {
-            Qt.callLater(root.updateFullscreenWindowPresent);
+            root.scheduleFullscreenWindowUpdate();
         }
     }
 
@@ -1529,25 +1545,36 @@ PlasmoidItem {
 
         property bool inOverlay: false
         property bool previewCountedAsOpen: false
+        property bool geometryPublishPending: false
 
-        windowsList: (runningTask && (iconHovered || previewOpen))
+        previewAvailable: runningTask
+        windowsList: (runningTask && (previewDataRequested || previewOpen))
             ? root.windowsInfoForTask(index, childCount) : []
 
         function publishGeometry() {
+            geometryPublishPending = false;
             var owningWindow = taskDelegate.Window.window;
             if (runningTask && owningWindow && owningWindow.visible) {
                 root.publishDelegateGeometry(index, taskDelegate, owningWindow);
             }
         }
 
-        onXChanged: Qt.callLater(publishGeometry)
-        onYChanged: Qt.callLater(publishGeometry)
-        onWidthChanged: Qt.callLater(publishGeometry)
-        onHeightChanged: Qt.callLater(publishGeometry)
-        onDisplayScaleChanged: Qt.callLater(publishGeometry)
-        onRunningTaskChanged: Qt.callLater(publishGeometry)
-        onChildCountChanged: Qt.callLater(publishGeometry)
-        Component.onCompleted: Qt.callLater(publishGeometry)
+        function scheduleGeometryPublish() {
+            if (geometryPublishPending) {
+                return;
+            }
+            geometryPublishPending = true;
+            Qt.callLater(publishGeometry);
+        }
+
+        onXChanged: scheduleGeometryPublish()
+        onYChanged: scheduleGeometryPublish()
+        onWidthChanged: scheduleGeometryPublish()
+        onHeightChanged: scheduleGeometryPublish()
+        onDisplayScaleChanged: scheduleGeometryPublish()
+        onRunningTaskChanged: scheduleGeometryPublish()
+        onChildCountChanged: scheduleGeometryPublish()
+        Component.onCompleted: scheduleGeometryPublish()
         Component.onDestruction: {
             if (previewCountedAsOpen) {
                 previewCountedAsOpen = false;
@@ -1559,19 +1586,19 @@ PlasmoidItem {
             target: taskDelegate.Window.window
 
             function onVisibleChanged() {
-                Qt.callLater(taskDelegate.publishGeometry);
+                taskDelegate.scheduleGeometryPublish();
             }
 
             function onXChanged() {
-                Qt.callLater(taskDelegate.publishGeometry);
+                taskDelegate.scheduleGeometryPublish();
             }
 
             function onYChanged() {
-                Qt.callLater(taskDelegate.publishGeometry);
+                taskDelegate.scheduleGeometryPublish();
             }
 
             function onScreenChanged() {
-                Qt.callLater(taskDelegate.publishGeometry);
+                taskDelegate.scheduleGeometryPublish();
             }
         }
 
@@ -1579,7 +1606,7 @@ PlasmoidItem {
             target: root
 
             function onDockRevealProgressChanged() {
-                Qt.callLater(taskDelegate.publishGeometry);
+                taskDelegate.scheduleGeometryPublish();
             }
         }
 
@@ -1934,6 +1961,7 @@ PlasmoidItem {
         id: folderDropTarget
 
         property Item excludedItem: null
+        property bool dragContainsFolder: false
 
         function overExcludedItem(x, y) {
             if (!excludedItem || !excludedItem.visible) {
@@ -1945,8 +1973,9 @@ PlasmoidItem {
         }
 
         onEntered: (drag) => {
+            dragContainsFolder = root.droppedUrlsContainFolder(drag.urls);
             var accepted = !overExcludedItem(drag.x, drag.y)
-                && root.droppedUrlsContainFolder(drag.urls);
+                && dragContainsFolder;
             drag.accepted = accepted;
             root.folderDropActive = accepted;
             if (accepted) {
@@ -1957,7 +1986,7 @@ PlasmoidItem {
         }
         onPositionChanged: (drag) => {
             var accepted = !overExcludedItem(drag.x, drag.y)
-                && root.droppedUrlsContainFolder(drag.urls);
+                && dragContainsFolder;
             drag.accepted = accepted;
             root.folderDropActive = accepted;
             if (accepted) {
@@ -1966,6 +1995,7 @@ PlasmoidItem {
             }
         }
         onExited: {
+            dragContainsFolder = false;
             root.folderDropActive = false;
             root.scheduleOverlayClose();
             root.scheduleDockHide();
@@ -1974,6 +2004,7 @@ PlasmoidItem {
             var accepted = !overExcludedItem(drop.x, drop.y)
                 && root.addDroppedFolders(drop.urls);
             root.folderDropActive = false;
+            dragContainsFolder = false;
             if (accepted) {
                 drop.acceptProposedAction();
             } else {

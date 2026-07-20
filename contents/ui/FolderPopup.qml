@@ -39,13 +39,15 @@ Window {
     property real placementTop: 0
     property real placementRight: 0
     property real placementBottom: 0
+    property bool positionPending: false
 
     signal openFolderRequested(url folderUrl)
 
-    width: 440
-    height: Math.min(560, screen ? screen.height - 32 : 560)
-    minimumWidth: 340
-    minimumHeight: 360
+    width: 356
+    height: screen
+        ? Math.max(minimumHeight, Math.min(410, screen.height - 48)) : 410
+    minimumWidth: 290
+    minimumHeight: 280
     flags: Qt.FramelessWindowHint
     color: "transparent"
     visible: false
@@ -90,7 +92,13 @@ Window {
     }
 
     function folderName(value) {
-        var path = decodeURIComponent(normalizedUrl(value));
+        var path = normalizedUrl(value);
+        try {
+            path = decodeURIComponent(path);
+        } catch (error) {
+            // Keep malformed or partially escaped URLs readable instead of
+            // breaking the title binding.
+        }
         var slash = path.lastIndexOf("/");
         var name = slash >= 0 ? path.substring(slash + 1) : path;
         return name.length > 0 ? name : i18n("Folder");
@@ -100,7 +108,22 @@ Window {
         positionPopup();
         visible = true;
         requestActivate();
-        Qt.callLater(positionPopup);
+        schedulePositionPopup();
+    }
+
+    function schedulePositionPopup() {
+        if (!visible || positionPending) {
+            return;
+        }
+        positionPending = true;
+        Qt.callLater(runScheduledPositionPopup);
+    }
+
+    function runScheduledPositionPopup() {
+        positionPending = false;
+        if (visible) {
+            positionPopup();
+        }
     }
 
     function positionPopup() {
@@ -173,17 +196,17 @@ Window {
 
     onVisualParentChanged: {
         if (visible) {
-            Qt.callLater(positionPopup);
+            schedulePositionPopup();
         }
     }
     onWidthChanged: {
         if (visible) {
-            Qt.callLater(positionPopup);
+            schedulePositionPopup();
         }
     }
     onHeightChanged: {
         if (visible) {
-            Qt.callLater(positionPopup);
+            schedulePositionPopup();
         }
     }
 
@@ -212,15 +235,17 @@ Window {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Kirigami.Units.largeSpacing
-        spacing: Kirigami.Units.largeSpacing
+        anchors.margins: Kirigami.Units.smallSpacing
+        spacing: Kirigami.Units.smallSpacing
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Kirigami.Units.largeSpacing
+            spacing: Kirigami.Units.smallSpacing
 
             QQC2.ToolButton {
                 visible: !root.atRootFolder
+                Layout.preferredWidth: 36
+                Layout.preferredHeight: 36
                 icon.name: "go-previous"
                 onClicked: root.folderModel.up()
 
@@ -229,8 +254,8 @@ Window {
             }
 
             Kirigami.Icon {
-                Layout.preferredWidth: 44
-                Layout.preferredHeight: 44
+                Layout.preferredWidth: 30
+                Layout.preferredHeight: 30
                 source: root.folderModel
                     ? (root.folderModel.iconName || "folder") : "folder"
             }
@@ -242,18 +267,15 @@ Window {
                 QQC2.Label {
                     Layout.fillWidth: true
                     text: root.currentFolderName
-                    font.pixelSize: 20
+                    font.pixelSize: 15
                     font.weight: Font.DemiBold
                     elide: Text.ElideMiddle
-                }
-
-                QQC2.Label {
-                    text: i18n("Folder")
-                    opacity: 0.68
                 }
             }
 
             QQC2.ToolButton {
+                Layout.preferredWidth: 36
+                Layout.preferredHeight: 36
                 icon.name: "document-open-folder"
                 onClicked: root.openFolderRequested(
                     root.folderModel.resolvedUrl || root.rootFolderUrl)
@@ -265,15 +287,15 @@ Window {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 52
-            radius: 11
+            Layout.preferredHeight: 40
+            radius: 8
             color: Kirigami.Theme.alternateBackgroundColor
             opacity: 0.86
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: Kirigami.Units.smallSpacing
-                anchors.rightMargin: Kirigami.Units.smallSpacing
+                anchors.leftMargin: Math.max(2, Kirigami.Units.smallSpacing / 2)
+                anchors.rightMargin: Math.max(2, Kirigami.Units.smallSpacing / 2)
                 spacing: Kirigami.Units.smallSpacing
 
                 QQC2.ComboBox {
@@ -322,9 +344,11 @@ Window {
 
                 anchors.fill: parent
                 clip: true
-                spacing: Kirigami.Units.smallSpacing
+                spacing: Math.max(2, Kirigami.Units.smallSpacing / 2)
                 model: root.folderModel
                 boundsBehavior: Flickable.StopAtBounds
+                reuseItems: true
+                cacheBuffer: 104
 
                 delegate: Item {
                     id: fileDelegate
@@ -337,11 +361,11 @@ Window {
                     required property var decoration
 
                     width: ListView.view.width
-                    height: 64
+                    height: 48
 
                     Rectangle {
                         anchors.fill: parent
-                        radius: 11
+                        radius: 8
                         color: fileHover.hovered
                             ? Kirigami.Theme.highlightColor
                             : Kirigami.Theme.alternateBackgroundColor
@@ -354,18 +378,18 @@ Window {
 
                     Kirigami.Icon {
                         anchors.left: parent.left
-                        anchors.leftMargin: Kirigami.Units.largeSpacing
+                        anchors.leftMargin: Kirigami.Units.smallSpacing
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 36
-                        height: 36
+                        width: 28
+                        height: 28
                         source: fileDelegate.decoration
                     }
 
                     Column {
                         anchors.left: parent.left
-                        anchors.leftMargin: Kirigami.Units.largeSpacing + 48
+                        anchors.leftMargin: Kirigami.Units.smallSpacing + 36
                         anchors.right: parent.right
-                        anchors.rightMargin: Kirigami.Units.largeSpacing
+                        anchors.rightMargin: Kirigami.Units.smallSpacing
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 1
 

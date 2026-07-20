@@ -22,6 +22,7 @@ Item {
     property bool isStarting: false
     property bool dragEnabled: true
     property int launchAnimation: 1
+    property bool previewAvailable: isRunning
 
     readonly property real scaledSize: baseSize * currentScale
     readonly property real indicatorSize: 3
@@ -74,6 +75,8 @@ Item {
 
     property var windowsList: []
     property bool previewOpen: false
+    property bool previewDataRequested: false
+    property bool previewPositionPending: false
     readonly property bool iconHovered: iconHover.hovered
     readonly property bool previewHovered: previewHover.hovered
     readonly property bool hasWindowPreviews: root.isRunning
@@ -91,17 +94,21 @@ Item {
 
     onHasWindowPreviewsChanged: {
         if (root.hasWindowPreviews && root.iconHovered
-                && !root.previewOpen && !root.isDragging) {
-            previewOpenTimer.restart();
+                && root.previewDataRequested && !root.previewOpen
+                && !root.isDragging) {
+            root.setPreviewOpen(true);
         } else if (!root.hasWindowPreviews) {
             root.setPreviewOpen(false);
         }
     }
 
     onIconHoveredChanged: {
-        if (root.iconHovered && !root.isDragging) {
+        if (root.iconHovered && root.previewAvailable
+                && !root.isDragging) {
             previewCloseTimer.stop();
-            previewOpenTimer.restart();
+            if (!root.previewOpen && !root.previewDataRequested) {
+                previewOpenTimer.restart();
+            }
         } else {
             previewOpenTimer.stop();
             root.schedulePreviewClose();
@@ -124,15 +131,30 @@ Item {
         }
     }
 
+    onPreviewAvailableChanged: {
+        if (!root.previewAvailable) {
+            previewOpenTimer.stop();
+            previewCloseTimer.stop();
+            root.setPreviewOpen(false);
+        } else if (root.iconHovered && !root.isDragging) {
+            previewOpenTimer.restart();
+        }
+    }
+
     Timer {
         id: previewOpenTimer
 
         interval: Kirigami.Units.toolTipDelay
         repeat: false
         onTriggered: {
-            if (root.iconHovered && root.hasWindowPreviews
+            if (root.iconHovered && root.previewAvailable
                     && !root.isDragging) {
-                root.setPreviewOpen(true);
+                root.previewDataRequested = true;
+                if (root.hasWindowPreviews) {
+                    root.setPreviewOpen(true);
+                } else {
+                    root.previewDataRequested = false;
+                }
             }
         }
     }
@@ -195,21 +217,22 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
-                Qt.callLater(root.positionPreviewWindow);
+                root.schedulePreviewPosition();
             }
             if (!visible && root.previewOpen) {
                 root.previewOpen = false;
+                root.previewDataRequested = false;
                 root.previewVisibilityChanged(false);
             }
         }
         onWidthChanged: {
             if (visible) {
-                Qt.callLater(root.positionPreviewWindow);
+                root.schedulePreviewPosition();
             }
         }
         onHeightChanged: {
             if (visible) {
-                Qt.callLater(root.positionPreviewWindow);
+                root.schedulePreviewPosition();
             }
         }
 
@@ -502,19 +525,40 @@ Item {
     }
 
     function setPreviewOpen(open) {
-        var requested = Boolean(open && hasWindowPreviews && !isDragging);
+        var requested = Boolean(open && previewAvailable
+            && hasWindowPreviews && !isDragging);
         if (previewOpen === requested && previewWindow.visible === requested) {
+            if (!requested) {
+                previewDataRequested = false;
+            }
             return;
         }
         previewOpen = requested;
         if (requested) {
+            previewDataRequested = true;
             positionPreviewWindow();
             previewWindow.visible = true;
-            Qt.callLater(positionPreviewWindow);
+            schedulePreviewPosition();
         } else {
             previewWindow.visible = false;
+            previewDataRequested = false;
         }
         previewVisibilityChanged(requested);
+    }
+
+    function schedulePreviewPosition() {
+        if (!previewWindow.visible || previewPositionPending) {
+            return;
+        }
+        previewPositionPending = true;
+        Qt.callLater(runScheduledPreviewPosition);
+    }
+
+    function runScheduledPreviewPosition() {
+        previewPositionPending = false;
+        if (previewWindow.visible) {
+            positionPreviewWindow();
+        }
     }
 
     function positionPreviewWindow() {
@@ -588,6 +632,8 @@ Item {
     function schedulePreviewClose() {
         if (previewOpen) {
             previewCloseTimer.restart();
+        } else {
+            previewDataRequested = false;
         }
     }
 }
