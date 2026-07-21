@@ -209,6 +209,49 @@ Window {
             schedulePositionPopup();
         }
     }
+    onScreenChanged: {
+        if (visible) {
+            schedulePositionPopup();
+        }
+    }
+
+    Connections {
+        target: root.visualParent
+        enabled: root.visible
+
+        function onXChanged() {
+            root.schedulePositionPopup();
+        }
+
+        function onYChanged() {
+            root.schedulePositionPopup();
+        }
+
+        function onWidthChanged() {
+            root.schedulePositionPopup();
+        }
+
+        function onHeightChanged() {
+            root.schedulePositionPopup();
+        }
+    }
+
+    Connections {
+        target: root.visualParent ? root.visualParent.Window.window : null
+        enabled: root.visible
+
+        function onWidthChanged() {
+            root.schedulePositionPopup();
+        }
+
+        function onHeightChanged() {
+            root.schedulePositionPopup();
+        }
+
+        function onScreenChanged() {
+            root.schedulePositionPopup();
+        }
+    }
 
     Shortcut {
         sequences: [StandardKey.Cancel]

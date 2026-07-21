@@ -235,6 +235,11 @@ Item {
                 root.schedulePreviewPosition();
             }
         }
+        onScreenChanged: {
+            if (visible) {
+                root.schedulePreviewPosition();
+            }
+        }
 
         WindowPreviewToolTip {
             id: previewContent
@@ -255,6 +260,65 @@ Item {
                 root.windowActivated(modelIndex);
             }
             onWindowClosed: (modelIndex) => root.windowClosed(modelIndex)
+        }
+    }
+
+    Connections {
+        target: root
+        enabled: previewWindow.visible
+
+        function onXChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onYChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onLocationChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onScreenEdgeMarginChanged() {
+            root.schedulePreviewPosition();
+        }
+    }
+
+    Connections {
+        target: iconContainer
+        enabled: previewWindow.visible
+
+        function onXChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onYChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onWidthChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onHeightChanged() {
+            root.schedulePreviewPosition();
+        }
+    }
+
+    Connections {
+        target: iconContainer.Window.window
+        enabled: previewWindow.visible
+
+        function onWidthChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onHeightChanged() {
+            root.schedulePreviewPosition();
+        }
+
+        function onScreenChanged() {
+            root.schedulePreviewPosition();
         }
     }
 

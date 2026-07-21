@@ -191,6 +191,7 @@ PlasmoidItem {
     property int openMenuCount: 0
     property int openPreviewCount: 0
     property bool folderPopupCountedAsOpen: false
+    property bool folderPopupOpenPending: false
     property bool folderDropActive: false
     property url activeFolderUrl: configuredFolderUrl
     property bool desktopCreationPending: false
@@ -451,10 +452,10 @@ PlasmoidItem {
 
     function toggleFolderPopup(folderUrl, visualParent) {
         var targetUrl = String(folderUrl || configuredFolderUrl);
-        if (folderPopup.visible
-                && comparableFolderUrl(activeFolderUrl)
-                    === comparableFolderUrl(targetUrl)) {
-            folderPopup.close();
+        var sameTarget = comparableFolderUrl(activeFolderUrl)
+            === comparableFolderUrl(targetUrl);
+        if ((folderPopup.visible || folderPopupOpenPending) && sameTarget) {
+            closeFolderPopup();
             return;
         }
         if (folderPopup.visible) {
@@ -465,10 +466,24 @@ PlasmoidItem {
         revealDock();
         overlayOpen = true;
         folderPopup.visualParent = visualParent;
-        Qt.callLater(folderPopup.showPopup);
+        if (!folderPopupOpenPending) {
+            folderPopupOpenPending = true;
+            Qt.callLater(runScheduledFolderPopupOpen);
+        }
+    }
+
+    function runScheduledFolderPopupOpen() {
+        if (!folderPopupOpenPending) {
+            return;
+        }
+        folderPopupOpenPending = false;
+        if (showFolderView && folderPopup.visualParent) {
+            folderPopup.showPopup();
+        }
     }
 
     function closeFolderPopup() {
+        folderPopupOpenPending = false;
         if (folderPopup.visible) {
             folderPopup.close();
         }
@@ -735,6 +750,8 @@ PlasmoidItem {
             var childCount = tasksModel.rowCount(parentIndex);
             for (var child = 0; child < childCount; ++child) {
                 var childIndex = tasksModel.makeModelIndex(row, child);
+                var persistentChildIndex =
+                    tasksModel.makePersistentModelIndex(row, child);
                 var winIdList = taskRole(childIndex, TaskManager.AbstractTasksModel.WinIdList);
                 var winId = (winIdList && winIdList.length > 0) ? winIdList[0] : 0;
                 var name = taskRole(childIndex, Qt.DisplayRole)
@@ -745,7 +762,7 @@ PlasmoidItem {
                 result.push({
                     winId: winId,
                     title: String(name),
-                    modelIndex: childIndex,
+                    modelIndex: persistentChildIndex,
                     isActive: isActive,
                     isMinimized: isMinimized
                 });
@@ -761,7 +778,7 @@ PlasmoidItem {
             result.push({
                 winId: winId,
                 title: String(name),
-                modelIndex: parentIndex,
+                modelIndex: tasksModel.makePersistentModelIndex(row),
                 isActive: isActive,
                 isMinimized: isMinimized
             });
@@ -1624,8 +1641,16 @@ PlasmoidItem {
         onDragStarted: (sx, sy) => root.handleTaskDragStarted(taskDelegate, sx, sy)
         onDragMoved: (sx, sy) => root.handleTaskDragMoved(taskDelegate, sx, sy)
         onDragEnded: root.handleTaskDragEnded(taskDelegate)
-        onWindowActivated: (modelIdx) => tasksModel.requestActivate(modelIdx)
-        onWindowClosed: (modelIdx) => tasksModel.requestClose(modelIdx)
+        onWindowActivated: (modelIdx) => {
+            if (modelIdx && modelIdx.valid) {
+                tasksModel.requestActivate(modelIdx);
+            }
+        }
+        onWindowClosed: (modelIdx) => {
+            if (modelIdx && modelIdx.valid) {
+                tasksModel.requestClose(modelIdx);
+            }
+        }
         onPreviewVisibilityChanged: (visible) => {
             if (visible && !previewCountedAsOpen) {
                 previewCountedAsOpen = true;
@@ -2547,11 +2572,10 @@ PlasmoidItem {
             }
 
             readonly property real mainLength: root.isVertical ? height : width
+            readonly property var itemGeometry: calculateItemGeometry()
             readonly property real currentIconMainLength:
-                calculateCurrentIconMainLength()
-            readonly property real currentMainLength: currentIconMainLength
-                + root.desktopSwitcherMainExtent
-                + root.desktopSwitcherSectionSpacing
+                itemGeometry.iconMainLength
+            readonly property real currentMainLength: itemGeometry.mainLength
 
             function scaleAtDockIndex(index) {
                 var item = null;
@@ -2578,35 +2602,53 @@ PlasmoidItem {
                     ? root.modelIndexForVisualIndex(index) : index;
             }
 
-            function calculateCurrentIconMainLength() {
+            function calculateItemGeometry() {
                 var count = root.dockItemCount;
                 if (count <= 0) {
-                    return 0;
+                    return {
+                        iconMainLength: 0,
+                        mainLength: root.desktopSwitcherMainExtent,
+                        centers: [],
+                        extents: []
+                    };
                 }
 
-                var result = Math.max(0, count - 1) * root.itemSpacing
+                var iconMainLength = Math.max(0, count - 1) * root.itemSpacing
                     + root.utilitySectionGap;
+                var extents = [];
                 for (var index = 0; index < count; ++index) {
-                    result += root.baseIconSize * scaleAtDockIndex(index);
+                    var extent = root.baseIconSize * scaleAtDockIndex(
+                        dockIndexAtVisualIndex(index));
+                    extents.push(extent);
+                    iconMainLength += extent;
                 }
-                return result;
-            }
 
-            function centerForVisualIndex(index) {
+                var currentMainLength = iconMainLength
+                    + root.desktopSwitcherMainExtent
+                    + root.desktopSwitcherSectionSpacing;
                 var cursor = (mainLength - currentMainLength) / 2
                     + root.desktopSwitcherLeadingExtent;
-                for (var previous = 0; previous < index; ++previous) {
-                    cursor += root.baseIconSize
-                        * scaleAtDockIndex(
-                            dockIndexAtVisualIndex(previous))
-                        + root.itemSpacing;
+                var centers = [];
+                for (var visualIndex = 0; visualIndex < count;
+                        ++visualIndex) {
+                    centers.push(cursor + extents[visualIndex] / 2);
+                    cursor += extents[visualIndex] + root.itemSpacing;
                     if (root.utilitySeparatorVisible
-                            && previous === root.taskCount - 1) {
+                            && visualIndex === root.taskCount - 1) {
                         cursor += root.utilitySectionGap;
                     }
                 }
-                return cursor + root.baseIconSize
-                    * scaleAtDockIndex(dockIndexAtVisualIndex(index)) / 2;
+                return {
+                    iconMainLength: iconMainLength,
+                    mainLength: currentMainLength,
+                    centers: centers,
+                    extents: extents
+                };
+            }
+
+            function centerForVisualIndex(index) {
+                return index >= 0 && index < itemGeometry.centers.length
+                    ? itemGeometry.centers[index] : 0;
             }
 
             function centerForModelIndex(index) {
@@ -2615,20 +2657,12 @@ PlasmoidItem {
             }
 
             function separatorPosition() {
-                if (!root.utilitySeparatorVisible) {
+                if (!root.utilitySeparatorVisible || root.taskCount <= 0) {
                     return 0;
                 }
-                var cursor = (mainLength - currentMainLength) / 2
-                    + root.desktopSwitcherLeadingExtent;
-                for (var index = 0; index < root.taskCount; ++index) {
-                    cursor += root.baseIconSize
-                        * scaleAtDockIndex(
-                            root.modelIndexForVisualIndex(index));
-                    if (index < root.taskCount - 1) {
-                        cursor += root.itemSpacing;
-                    }
-                }
-                return cursor
+                var lastTask = root.taskCount - 1;
+                return itemGeometry.centers[lastTask]
+                    + itemGeometry.extents[lastTask] / 2
                     + (root.itemSpacing + root.utilitySectionGap) / 2;
             }
 
