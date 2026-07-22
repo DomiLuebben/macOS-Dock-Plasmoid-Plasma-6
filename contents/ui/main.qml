@@ -1765,15 +1765,7 @@ PlasmoidItem {
         id: desktopSwitcher
 
         required property bool inOverlay
-        property real displayScale: 1.0
-        property real crossExtent: root.baseIconSize * displayScale
-
-        Behavior on displayScale {
-            NumberAnimation {
-                duration: 75
-                easing.type: Easing.OutCubic
-            }
-        }
+        property real crossExtent: root.baseIconSize
 
         width: root.isVertical
             ? crossExtent : root.desktopSwitcherMainExtent
@@ -1798,10 +1790,9 @@ PlasmoidItem {
                     root.desktopButtonMainExtent(index)
                 readonly property real compactCrossExtent:
                     root.desktopSwitcherLabelMode === 0
-                        ? Math.min(desktopSwitcher.crossExtent,
-                            30 * desktopSwitcher.displayScale)
+                        ? Math.min(desktopSwitcher.crossExtent, 30)
                         : Math.min(desktopSwitcher.crossExtent,
-                            root.baseIconSize * desktopSwitcher.displayScale)
+                            root.baseIconSize)
 
                 x: root.isVertical ? 0
                     : root.desktopButtonMainStart(index)
@@ -1918,13 +1909,11 @@ PlasmoidItem {
                 x: root.isVertical ? (parent.width - width) / 2 : 0
                 y: root.isVertical ? 0 : (parent.height - height) / 2
                 width: root.isVertical
-                    ? Math.min(desktopSwitcher.crossExtent,
-                        30 * desktopSwitcher.displayScale)
+                    ? Math.min(desktopSwitcher.crossExtent, 30)
                     : parent.width
                 height: root.isVertical
                     ? parent.height
-                    : Math.min(desktopSwitcher.crossExtent,
-                        30 * desktopSwitcher.displayScale)
+                    : Math.min(desktopSwitcher.crossExtent, 30)
                 radius: Math.min(9, Math.min(width, height) / 2)
                 color: {
                     var reference = Kirigami.Theme.alternateBackgroundColor;
@@ -2685,22 +2674,14 @@ PlasmoidItem {
                         + root.desktopSwitcherSectionSpacing / 2;
             }
 
-            function desktopSwitcherScale() {
+            function isPointerOverDesktopSwitcher() {
                 if (!root.overlayOpen || !root.desktopSwitcherVisible) {
-                    return 1.0;
+                    return false;
                 }
                 var start = desktopSwitcherStart();
                 var end = start + root.desktopSwitcherMainExtent;
                 var pointer = root.lastPointerMain;
-                var dist = 0;
-                if (pointer < start) {
-                    dist = start - pointer;
-                } else if (pointer > end) {
-                    dist = pointer - end;
-                } else {
-                    dist = 0;
-                }
-                return root.waveScale(dist, root.maxScale);
+                return (pointer >= start && pointer <= end);
             }
 
             function desktopSwitcherCrossStart(crossExtent) {
@@ -2930,12 +2911,14 @@ PlasmoidItem {
                 DesktopSwitcher {
                     id: desktopOverlaySwitcher
 
-                    readonly property real currentScale:
-                        overlayContent.desktopSwitcherScale()
+                    readonly property bool isHovered:
+                        overlayContent.isPointerOverDesktopSwitcher()
 
                     visible: root.desktopSwitcherVisible
                     inOverlay: true
-                    displayScale: currentScale
+                    crossExtent: isHovered
+                        ? root.maximumIconSize
+                        : root.baseIconSize
                     x: root.isVertical
                         ? overlayContent.desktopSwitcherCrossStart(crossExtent)
                         : overlayContent.desktopSwitcherStart()
