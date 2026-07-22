@@ -19,6 +19,12 @@ msgstr "Aktivieren"
 msgid "Appearance"
 msgstr "Erscheinungsbild"
 
+msgid "Dock position:"
+msgstr "Dock-Position:"
+
+msgid "Bottom"
+msgstr "Unten"
+
 msgid "Application"
 msgstr "Anwendung"
 
@@ -133,8 +139,8 @@ msgstr "Öffnen"
 msgid "Open New Window"
 msgstr "Neues Fenster öffnen"
 
-msgid "Panel integration:"
-msgstr "Leistenintegration:"
+msgid "Standalone placement:"
+msgstr "Eigenständige Platzierung:"
 
 msgid "Preview:"
 msgstr "Vorschau:"
@@ -160,8 +166,8 @@ msgstr "Glas-Glanzlicht anzeigen"
 msgid "Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers."
 msgstr "Laufende Anwendungen erscheinen automatisch. Mit einem Rechtsklick auf ein Icon kannst du es im Dock behalten, wieder lösen oder verschieben. Das Plasmoid bringt keine festen Starter mit."
 
-msgid "The Dock runs in its own transparent window at the screen edge. BetterBlur can blur this window directly. The invisible desktop widget only persists settings and launchers."
-msgstr "Das Dock läuft als eigenes transparentes Fenster am Bildschirmrand. BetterBlur kann dieses Fenster direkt blurren. Das unsichtbare Desktop-Miniprogramm dient nur dazu, Einstellungen und Starter dauerhaft zu speichern."
+msgid "Place this widget directly on the Plasma desktop, not inside a panel. The invisible desktop widget only stores settings; the Dock itself uses a separate transparent window anchored to the selected screen edge and centered along it. BetterBlur can blur that window directly."
+msgstr "Füge dieses Miniprogramm direkt zur Plasma-Arbeitsfläche hinzu, nicht zu einer Leiste. Das unsichtbare Desktop-Miniprogramm speichert nur die Einstellungen; das Dock selbst nutzt ein eigenes transparentes Fenster, das am ausgewählten Bildschirmrand verankert und dort mittig ausgerichtet ist. BetterBlur kann dieses Fenster direkt blurren."
 
 msgid "Top/bottom margin:"
 msgstr "Rand oben/unten:"

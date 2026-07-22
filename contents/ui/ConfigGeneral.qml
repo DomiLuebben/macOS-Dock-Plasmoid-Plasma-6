@@ -12,6 +12,7 @@ import org.kde.kquickcontrols as KQuickControls
 KCM.SimpleKCM {
     id: configPage
 
+    property alias cfg_dockPosition: dockPositionCombo.currentIndex
     property alias cfg_maxScale: maxScaleSlider.value
     property alias cfg_zoomRadius: zoomRadiusSlider.value
     property alias cfg_iconSize: iconSizeSlider.value
@@ -42,6 +43,7 @@ KCM.SimpleKCM {
 
     // Plasma passes default values to configuration pages as initial
     // properties. Keeping them explicit also makes reset-to-default reliable.
+    property int cfg_dockPositionDefault: 0
     property real cfg_maxScaleDefault: 1.45
     property int cfg_zoomRadiusDefault: 70
     property int cfg_iconSizeDefault: 44
@@ -81,6 +83,13 @@ KCM.SimpleKCM {
         Item {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("Appearance")
+        }
+
+        QQC2.ComboBox {
+            id: dockPositionCombo
+
+            Kirigami.FormData.label: i18n("Dock position:")
+            model: [i18n("Bottom"), i18n("Left"), i18n("Right")]
         }
 
         RowLayout {
@@ -432,10 +441,10 @@ KCM.SimpleKCM {
         }
 
         QQC2.Label {
-            Kirigami.FormData.label: i18n("Panel integration:")
+            Kirigami.FormData.label: i18n("Standalone placement:")
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
-            text: i18n("The Dock runs in its own transparent window at the screen edge. BetterBlur can blur this window directly. The invisible desktop widget only persists settings and launchers.")
+            text: i18n("Place this widget directly on the Plasma desktop, not inside a panel. The invisible desktop widget only stores settings; the Dock itself uses a separate transparent window anchored to the selected screen edge and centered along it. BetterBlur can blur that window directly.")
             opacity: 0.78
         }
     }

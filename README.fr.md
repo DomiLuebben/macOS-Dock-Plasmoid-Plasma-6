@@ -23,7 +23,8 @@ couleurs du thème Qt.
 - Masquage automatique lorsqu’une fenêtre est maximisée
 - Empilement adapté au plein écran et masquage forcé pour les lecteurs comme
   mpv et Dragon Player
-- Animation d’entrée et de sortie sur chaque bord de l’écran
+- Placement configurable en bas, à gauche ou à droite, toujours centré sur le bord
+- Animation d’entrée et de sortie sur chaque bord d’écran pris en charge
 - Arrière-plan, bordure et indicateurs d’activité selon la palette Qt du système
 - Couleur d’arrière-plan du thème ou personnalisée, avec arrondi, bordure,
   ombre, reflet et flou configurables
@@ -60,8 +61,16 @@ composant graphique.
 Après « Forcer à quitter l’application… », le pointeur devient un sélecteur de
 fenêtre. Sélectionnez la fenêtre bloquée ou appuyez sur `Échap` pour annuler.
 
-Ajoutez ensuite **Gestionnaire de tâches macOS Dock** à un panneau Plasma depuis
-le sélecteur de composants graphiques.
+Ajoutez ensuite **Gestionnaire de tâches macOS Dock** directement au bureau
+depuis le sélecteur de composants graphiques. Ne l’ajoutez pas à un panneau
+Plasma : le composant graphique de bureau, minimal et invisible, conserve
+uniquement les réglages, tandis que le Dock s’exécute dans sa propre fenêtre
+transparente. Choisissez le bas, la gauche ou la droite dans les réglages ; le
+Dock reste toujours centré sur le bord d’écran sélectionné.
+
+Lors d’une mise à niveau depuis une ancienne version, retirez d’abord le Dock
+de son ancien panneau Plasma. Si ce panneau a été créé uniquement pour le Dock,
+supprimez le panneau entier. Ajoutez ensuite le composant directement au bureau.
 
 ## Licence
 

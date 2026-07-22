@@ -23,7 +23,8 @@ color scheme.
 - Automatic hiding when a window is maximized
 - Fullscreen-safe stacking and forced hiding for media players such as mpv and
   Dragon Player
-- Animated slide-in and slide-out at every screen edge
+- Configurable bottom, left, or right placement, always centered on the edge
+- Animated slide-in and slide-out at every supported screen edge
 - Background, border, and activity indicators based on the Qt system palette
 - Theme or custom background color with configurable rounding, border, shadow,
   highlight, and blur
@@ -59,8 +60,15 @@ blur region and KWin window actions, then installs or updates the plasmoid.
 After choosing “Force Quit Application…”, the pointer becomes a window picker.
 Select the unresponsive window or press `Esc` to cancel.
 
-After installation, add **macOS Dock Task Manager** to a Plasma panel through
-the widget picker.
+After installation, add **macOS Dock Task Manager** directly to the desktop
+through the widget picker. Do not put it in a Plasma panel: the minimal,
+invisible desktop widget only stores settings, while the Dock runs in its own
+transparent window. Choose bottom, left, or right in the widget settings; the
+Dock stays centered along the selected screen edge.
+
+When upgrading from an older version, first remove the Dock from its previous
+Plasma panel. If that panel was created only for the Dock, remove the entire
+panel. Then add the widget directly to the desktop.
 
 ## License
 

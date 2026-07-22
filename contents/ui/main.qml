@@ -16,10 +16,13 @@ PlasmoidItem {
     id: root
 
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
-    Plasmoid.constraintHints: Plasmoid.CanFillArea
+    Plasmoid.userBackgroundHints: PlasmaCore.Types.NoBackground
+    Plasmoid.constraintHints: Plasmoid.NoHint
 
     preferredRepresentation: fullRepresentation
     activationTogglesExpanded: false
+    switchWidth: 1
+    switchHeight: 1
 
     readonly property real maxScale: boundedNumber(
         Plasmoid.configuration.maxScale, 1.45, 1.0, 2.0)
@@ -27,9 +30,15 @@ PlasmoidItem {
         Plasmoid.configuration.zoomRadius, 70, 30, 200)
     readonly property real configuredIconSize: boundedNumber(
         Plasmoid.configuration.iconSize, 44, 24, 96)
+    readonly property int configuredDockPosition: Math.round(boundedNumber(
+        Plasmoid.configuration.dockPosition, 0, 0, 2))
+    readonly property int configuredDockLocation:
+        configuredDockPosition === 1 ? PlasmaCore.Types.LeftEdge
+        : configuredDockPosition === 2 ? PlasmaCore.Types.RightEdge
+        : PlasmaCore.Types.BottomEdge
     readonly property int dockLocation: Plasmoid.formFactor
         === PlasmaCore.Types.Planar
-        ? PlasmaCore.Types.BottomEdge : Plasmoid.location
+        ? configuredDockLocation : Plasmoid.location
     readonly property bool isVertical:
         dockLocation === PlasmaCore.Types.LeftEdge
         || dockLocation === PlasmaCore.Types.RightEdge
@@ -159,7 +168,13 @@ PlasmoidItem {
     Layout.minimumHeight: 1
     Layout.preferredWidth: 1
     Layout.preferredHeight: 1
+    Layout.maximumWidth: 1
+    Layout.maximumHeight: 1
+    Layout.fillWidth: false
+    Layout.fillHeight: false
 
+    width: 1
+    height: 1
     implicitWidth: 1
     implicitHeight: 1
 
@@ -197,10 +212,6 @@ PlasmoidItem {
     property bool desktopCreationPending: false
     property int trashItemCount: 0
     property var openContextMenu: null
-    property var adjustedContainment: null
-    property int previousContainmentBackgroundHints: 0
-    property int previousContainmentUserBackgroundHints: 0
-    property bool containmentBackgroundAdjusted: false
     property real lastPointerMain: isVertical
         ? overlayWindowHeight / 2 : overlayWindowWidth / 2
 
@@ -492,43 +503,6 @@ PlasmoidItem {
     function updateTrashCount() {
         trashItemCount = trashModel.rowCount();
     }
-
-    function makePanelTransparent() {
-        var containment = Plasmoid.containment;
-        if (containment
-                && Plasmoid.formFactor !== PlasmaCore.Types.Planar) {
-            if (!containmentBackgroundAdjusted) {
-                adjustedContainment = containment;
-                previousContainmentBackgroundHints = containment.backgroundHints;
-                previousContainmentUserBackgroundHints =
-                    containment.userBackgroundHints;
-                containmentBackgroundAdjusted = true;
-            }
-            containment.backgroundHints = PlasmaCore.Types.NoBackground;
-            containment.userBackgroundHints = PlasmaCore.Types.NoBackground;
-        }
-    }
-
-    function restorePanelBackground() {
-        if (!containmentBackgroundAdjusted || !adjustedContainment) {
-            return;
-        }
-        if (adjustedContainment.backgroundHints
-                === PlasmaCore.Types.NoBackground) {
-            adjustedContainment.backgroundHints =
-                previousContainmentBackgroundHints;
-        }
-        if (adjustedContainment.userBackgroundHints
-                === PlasmaCore.Types.NoBackground) {
-            adjustedContainment.userBackgroundHints =
-                previousContainmentUserBackgroundHints;
-        }
-        adjustedContainment = null;
-        containmentBackgroundAdjusted = false;
-    }
-
-    Component.onCompleted: makePanelTransparent()
-    Component.onDestruction: restorePanelBackground()
 
     function dockSlideX(windowWidth) {
         var hiddenFraction = 1.0 - dockRevealProgress;
@@ -2174,6 +2148,17 @@ PlasmoidItem {
     fullRepresentation: Item {
         id: hostAnchor
 
+        Layout.minimumWidth: 1
+        Layout.minimumHeight: 1
+        Layout.preferredWidth: 1
+        Layout.preferredHeight: 1
+        Layout.maximumWidth: 1
+        Layout.maximumHeight: 1
+        Layout.fillWidth: false
+        Layout.fillHeight: false
+
+        width: 1
+        height: 1
         implicitWidth: 1
         implicitHeight: 1
         visible: false

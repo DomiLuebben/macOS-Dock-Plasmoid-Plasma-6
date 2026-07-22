@@ -22,7 +22,8 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 - automatisches Ausblenden bei maximierten Fenstern
 - vollbildsichere Ebenen und erzwungenes Ausblenden bei Mediaplayern wie mpv
   und Dragon Player
-- animiertes Ein- und Ausfahren an allen Bildschirmkanten
+- einstellbare Platzierung unten, links oder rechts, immer mittig am Rand
+- animiertes Ein- und Ausfahren an allen unterstützten Bildschirmkanten
 - Hintergrund, Rahmen und Aktivitätsanzeigen aus der Qt-Systempalette
 - Theme- oder eigene Hintergrundfarbe sowie einstellbare Rundung, Rahmen,
   Schatten, Glanzlicht und Blur
@@ -60,8 +61,17 @@ anschließend das Plasmoid.
 Bei „Anwendung sofort beenden …“ wird der Mauszeiger zur Zielauswahl. Klicke das
 nicht reagierende Fenster an oder brich mit `Esc` ab.
 
-Danach kann **macOS Dock Task Manager** über „Miniprogramme hinzufügen“ zu
-einer Plasma-Leiste hinzugefügt werden.
+Füge **macOS Dock Task Manager** über „Miniprogramme hinzufügen“ direkt zur
+Arbeitsfläche hinzu. Er gehört nicht in eine Plasma-Leiste: Das unsichtbare,
+minimale Desktop-Plasmoid speichert nur die Einstellungen, während das Dock in
+einem eigenen transparenten Fenster läuft. In den Einstellungen kannst du
+unten, links oder rechts wählen; am ausgewählten Bildschirmrand bleibt das
+Dock immer mittig ausgerichtet.
+
+Wenn du von einer älteren Version aktualisierst, entferne das Dock zuerst aus
+der bisherigen Plasma-Leiste. Falls diese Leiste ausschließlich für das Dock
+angelegt wurde, entferne die ganze Leiste. Füge das Miniprogramm anschließend
+direkt zur Arbeitsfläche hinzu.
 
 ## Lizenz
 

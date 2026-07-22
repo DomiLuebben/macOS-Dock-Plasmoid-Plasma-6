@@ -4,6 +4,9 @@
       xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
   <kcfgfile/>
   <group name="General">
+    <entry name="dockPosition" type="Int">
+      <default>0</default>
+    </entry>
     <entry name="maxScale" type="Double">
       <default>1.45</default>
     </entry>

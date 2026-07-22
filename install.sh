@@ -15,7 +15,7 @@ case "$LOCALE_NAME" in
         MSG_BUILD='==> Baue natives Dock-Modul ...'
         MSG_INSTALL="==> Installiere/Aktualisiere Plasmoid '$PLASMOID_ID' für KDE Plasma 6 ..."
         MSG_SUCCESS='==> Plasmoid erfolgreich installiert.'
-        MSG_ADD="    Über 'Miniprogramme hinzufügen' kann es einer Plasma-Leiste hinzugefügt werden."
+        MSG_ADD="    Füge es über 'Miniprogramme hinzufügen' direkt zur Arbeitsfläche hinzu, nicht zu einer Plasma-Leiste."
         MSG_NO_VIEWER='FEHLER: plasmoidviewer wurde nicht gefunden (Paket plasma-sdk).'
         MSG_PREVIEW='==> Starte Vorschau in plasmoidviewer ...'
         ;;
@@ -27,7 +27,7 @@ case "$LOCALE_NAME" in
         MSG_BUILD='==> Compilation du module natif du Dock...'
         MSG_INSTALL="==> Installation/mise à jour du composant graphique '$PLASMOID_ID' pour KDE Plasma 6..."
         MSG_SUCCESS='==> Composant graphique installé avec succès.'
-        MSG_ADD="    Ajoutez-le à un panneau Plasma depuis 'Ajouter des composants graphiques'."
+        MSG_ADD="    Ajoutez-le directement au bureau via « Ajouter des composants graphiques », pas à un panneau Plasma."
         MSG_NO_VIEWER='ERREUR : plasmoidviewer est introuvable (paquet plasma-sdk).'
         MSG_PREVIEW='==> Lancement de l’aperçu dans plasmoidviewer...'
         ;;
@@ -39,7 +39,7 @@ case "$LOCALE_NAME" in
         MSG_BUILD='==> Building the native Dock module...'
         MSG_INSTALL="==> Installing/updating plasmoid '$PLASMOID_ID' for KDE Plasma 6..."
         MSG_SUCCESS='==> Plasmoid installed successfully.'
-        MSG_ADD="    Add it to a Plasma panel through 'Add Widgets'."
+        MSG_ADD="    Add it directly to the desktop through 'Add Widgets', not to a Plasma panel."
         MSG_NO_VIEWER='ERROR: plasmoidviewer was not found (plasma-sdk package).'
         MSG_PREVIEW='==> Starting preview in plasmoidviewer...'
         ;;
@@ -96,6 +96,6 @@ case "${1:-}" in
             exit 1
         fi
         printf '%s\n' "$MSG_PREVIEW"
-        exec plasmoidviewer -a "$PLASMOID_ID" -l bottomedge -f horizontal
+        exec plasmoidviewer -a "$PLASMOID_ID" -l desktop -f planar
         ;;
 esac

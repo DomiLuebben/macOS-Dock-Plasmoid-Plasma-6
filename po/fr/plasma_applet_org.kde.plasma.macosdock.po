@@ -19,6 +19,12 @@ msgstr "Activer"
 msgid "Appearance"
 msgstr "Apparence"
 
+msgid "Dock position:"
+msgstr "Position du Dock :"
+
+msgid "Bottom"
+msgstr "Bas"
+
 msgid "Application"
 msgstr "Application"
 
@@ -133,8 +139,8 @@ msgstr "Ouvrir"
 msgid "Open New Window"
 msgstr "Ouvrir une nouvelle fenêtre"
 
-msgid "Panel integration:"
-msgstr "Intégration au panneau :"
+msgid "Standalone placement:"
+msgstr "Placement autonome :"
 
 msgid "Preview:"
 msgstr "Aperçu :"
@@ -160,8 +166,8 @@ msgstr "Afficher le reflet vitré"
 msgid "Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers."
 msgstr "Les applications en cours d’exécution apparaissent automatiquement. Faites un clic droit sur une icône pour la conserver dans le Dock, la détacher ou la déplacer. Le composant graphique ne contient aucun lanceur prédéfini."
 
-msgid "The Dock runs in its own transparent window at the screen edge. BetterBlur can blur this window directly. The invisible desktop widget only persists settings and launchers."
-msgstr "Le Dock s’exécute dans sa propre fenêtre transparente au bord de l’écran. BetterBlur peut flouter directement cette fenêtre. Le composant graphique invisible du bureau sert uniquement à conserver les réglages et les lanceurs."
+msgid "Place this widget directly on the Plasma desktop, not inside a panel. The invisible desktop widget only stores settings; the Dock itself uses a separate transparent window anchored to the selected screen edge and centered along it. BetterBlur can blur that window directly."
+msgstr "Placez ce composant directement sur le bureau Plasma, et non dans un panneau. Le composant de bureau invisible conserve uniquement les réglages ; le Dock utilise sa propre fenêtre transparente ancrée au bord d’écran sélectionné et centrée le long de celui-ci. BetterBlur peut flouter directement cette fenêtre."
 
 msgid "Top/bottom margin:"
 msgstr "Marge supérieure/inférieure :"
