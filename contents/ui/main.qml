@@ -1656,9 +1656,10 @@ PlasmoidItem {
         }
 
         function scheduleGeometryPublish() {
-            var owningWindow = taskDelegate.Window.window;
-            if (geometryPublishPending || !runningTask || !owningWindow
-                    || !owningWindow.visible) {
+            // Layer-shell visibility and delegate geometry can settle later in
+            // the same event cycle. Queue first, then let publishGeometry()
+            // select the delegate that is actually visible.
+            if (geometryPublishPending) {
                 return;
             }
             geometryPublishPending = true;
@@ -1669,6 +1670,7 @@ PlasmoidItem {
         onYChanged: scheduleGeometryPublish()
         onWidthChanged: scheduleGeometryPublish()
         onHeightChanged: scheduleGeometryPublish()
+        onDisplayScaleChanged: scheduleGeometryPublish()
         onRunningTaskChanged: scheduleGeometryPublish()
         onChildCountChanged: scheduleGeometryPublish()
         Component.onCompleted: scheduleGeometryPublish()
