@@ -112,6 +112,72 @@ QString WindowActions::canonicalDirectoryUrl(const QUrl &url) const
     return QUrl::fromLocalFile(path).toString();
 }
 
+void WindowActions::shutdown()
+{
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (bus.isConnected()) {
+        QDBusMessage message = QDBusMessage::createMethodCall(
+            QStringLiteral("org.kde.Shutdown"),
+            QStringLiteral("/Shutdown"),
+            QStringLiteral("org.kde.Shutdown"),
+            QStringLiteral("logoutAndShutdown"));
+        bus.asyncCall(message);
+    }
+}
+
+void WindowActions::reboot()
+{
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (bus.isConnected()) {
+        QDBusMessage message = QDBusMessage::createMethodCall(
+            QStringLiteral("org.kde.Shutdown"),
+            QStringLiteral("/Shutdown"),
+            QStringLiteral("org.kde.Shutdown"),
+            QStringLiteral("logoutAndReboot"));
+        bus.asyncCall(message);
+    }
+}
+
+void WindowActions::logout()
+{
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (bus.isConnected()) {
+        QDBusMessage message = QDBusMessage::createMethodCall(
+            QStringLiteral("org.kde.Shutdown"),
+            QStringLiteral("/Shutdown"),
+            QStringLiteral("org.kde.Shutdown"),
+            QStringLiteral("logout"));
+        bus.asyncCall(message);
+    }
+}
+
+void WindowActions::suspend()
+{
+    const QDBusConnection bus = QDBusConnection::systemBus();
+    if (bus.isConnected()) {
+        QDBusMessage message = QDBusMessage::createMethodCall(
+            QStringLiteral("org.freedesktop.login1"),
+            QStringLiteral("/org/freedesktop/login1"),
+            QStringLiteral("org.freedesktop.login1.Manager"),
+            QStringLiteral("Suspend"));
+        message.setArguments({true});
+        bus.asyncCall(message);
+    }
+}
+
+void WindowActions::lockSession()
+{
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (bus.isConnected()) {
+        QDBusMessage message = QDBusMessage::createMethodCall(
+            QStringLiteral("org.freedesktop.ScreenSaver"),
+            QStringLiteral("/ScreenSaver"),
+            QStringLiteral("org.freedesktop.ScreenSaver"),
+            QStringLiteral("Lock"));
+        bus.asyncCall(message);
+    }
+}
+
 void WindowActions::setInteractiveForceQuitAvailable(bool available)
 {
     if (m_interactiveForceQuitAvailable == available) {

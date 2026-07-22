@@ -33,6 +33,21 @@ public:
     /** Returns a canonical file URL for a local directory, or an empty string. */
     Q_INVOKABLE QString canonicalDirectoryUrl(const QUrl &url) const;
 
+    /** Initiates session shutdown via DBus. */
+    Q_INVOKABLE void shutdown();
+
+    /** Initiates session reboot via DBus. */
+    Q_INVOKABLE void reboot();
+
+    /** Initiates session logout via DBus. */
+    Q_INVOKABLE void logout();
+
+    /** Suspends / puts system to sleep via logind DBus. */
+    Q_INVOKABLE void suspend();
+
+    /** Locks the current screen session via ScreenSaver DBus. */
+    Q_INVOKABLE void lockSession();
+
 Q_SIGNALS:
     void interactiveForceQuitAvailableChanged();
 

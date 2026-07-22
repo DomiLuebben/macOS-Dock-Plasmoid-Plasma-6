@@ -74,6 +74,12 @@
     <entry name="desktopSwitcherLabelMode" type="Int">
       <default>0</default>
     </entry>
+    <entry name="showPowerButton" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="powerButtonPosition" type="Int">
+      <default>1</default>
+    </entry>
     <entry name="launchers" type="StringList"/>
   </group>
 </kcfg>

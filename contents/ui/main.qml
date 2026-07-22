@@ -80,6 +80,11 @@ PlasmoidItem {
     readonly property bool showTrash:
         Plasmoid.configuration.showTrash === undefined
             ? true : Boolean(Plasmoid.configuration.showTrash)
+    readonly property bool showPowerButton:
+        Plasmoid.configuration.showPowerButton === undefined
+            ? true : Boolean(Plasmoid.configuration.showPowerButton)
+    readonly property int powerButtonPosition: Math.round(boundedNumber(
+        Plasmoid.configuration.powerButtonPosition, 1, 0, 1))
     readonly property bool showDesktopSwitcher:
         Plasmoid.configuration.showDesktopSwitcher === undefined
             ? true : Boolean(Plasmoid.configuration.showDesktopSwitcher)
@@ -116,13 +121,16 @@ PlasmoidItem {
         Math.max(26, Math.round(baseIconSize * 0.6))
     readonly property int folderItemCount: showFolderView
         ? 1 + additionalFolderUrls.length : 0
+    readonly property int powerButtonItemCount: showPowerButton ? 1 : 0
     readonly property int utilityItemCount:
-        folderItemCount + (showTrash ? 1 : 0)
+        folderItemCount + (showTrash ? 1 : 0) + powerButtonItemCount
     readonly property int dockItemCount: taskCount + utilityItemCount
     readonly property int folderDockIndex:
         folderItemCount > 0 ? taskCount : -1
     readonly property int trashDockIndex: showTrash
         ? taskCount + folderItemCount : -1
+    readonly property int powerButtonDockIndex: showPowerButton
+        ? taskCount + folderItemCount + (showTrash ? 1 : 0) : -1
     readonly property bool utilitySeparatorVisible:
         taskCount > 0 && utilityItemCount > 0
     readonly property real utilitySectionGap:
@@ -2024,12 +2032,18 @@ PlasmoidItem {
         property real displayCrossExtent: root.baseIconSize
 
         readonly property bool isFolder: utilityType === "folder"
+        readonly property bool isTrash: utilityType === "trash"
+        readonly property bool isPower: utilityType === "power"
 
         appName: isFolder
-            ? root.folderName(folderUrl) : i18n("Trash")
+            ? root.folderName(folderUrl)
+            : (isPower ? i18n("Power / Session") : i18n("Trash"))
         appIcon: {
             if (isFolder) {
                 return root.folderIconName(folderUrl);
+            }
+            if (isPower) {
+                return "system-shutdown";
             }
             // KIO exposes trash:/ as a folder on some Plasma versions.
             // Resolve the canonical trash icon names through the active icon
@@ -2063,12 +2077,83 @@ PlasmoidItem {
                     }
                 }
                 root.toggleFolderPopup(folderUrl, popupParent);
+            } else if (isPower) {
+                powerMenu.popup();
             } else {
                 triggerBounce();
                 root.openTrashExternally();
             }
         }
-        onContextMenuRequested: utilityMenu.popup()
+        onContextMenuRequested: {
+            if (isPower) {
+                powerMenu.popup();
+            } else {
+                utilityMenu.popup();
+            }
+        }
+
+        QQC2.Menu {
+            id: powerMenu
+
+            property bool countedAsOpen: false
+            closePolicy: QQC2.Popup.CloseOnEscape
+                | QQC2.Popup.CloseOnPressOutside
+                | QQC2.Popup.CloseOnReleaseOutside
+                | QQC2.Popup.CloseOnPressOutsideParent
+                | QQC2.Popup.CloseOnReleaseOutsideParent
+
+            Component.onCompleted: root.configureContextMenu(powerMenu)
+
+            onOpened: {
+                if (!countedAsOpen) {
+                    countedAsOpen = true;
+                    root.menuOpened(powerMenu);
+                }
+            }
+            onClosed: {
+                if (countedAsOpen) {
+                    countedAsOpen = false;
+                    root.menuClosed(powerMenu);
+                }
+            }
+            Component.onDestruction: {
+                if (countedAsOpen) {
+                    root.menuClosed(powerMenu);
+                }
+            }
+
+            QQC2.MenuItem {
+                text: i18n("Sleep / Standby")
+                icon.name: "system-suspend"
+                onTriggered: windowActions.suspend()
+            }
+
+            QQC2.MenuItem {
+                text: i18n("Restart…")
+                icon.name: "system-reboot"
+                onTriggered: windowActions.reboot()
+            }
+
+            QQC2.MenuItem {
+                text: i18n("Shut Down…")
+                icon.name: "system-shutdown"
+                onTriggered: windowActions.shutdown()
+            }
+
+            QQC2.MenuSeparator {}
+
+            QQC2.MenuItem {
+                text: i18n("Lock Screen")
+                icon.name: "system-lock-screen"
+                onTriggered: windowActions.lockSession()
+            }
+
+            QQC2.MenuItem {
+                text: i18n("Log Out…")
+                icon.name: "system-log-out"
+                onTriggered: windowActions.logout()
+            }
+        }
 
         DropArea {
             anchors.fill: parent
@@ -2437,6 +2522,19 @@ PlasmoidItem {
                     ? root.baseCenterForIndex(dockIndex) - scaledSize / 2
                     : root.crossMargin
             }
+
+            UtilityDelegate {
+                id: powerBaseItem
+
+                visible: root.showPowerButton
+                dockIndex: root.powerButtonDockIndex
+                utilityType: "power"
+                x: root.isVertical ? root.crossMargin
+                    : root.baseCenterForIndex(dockIndex) - scaledSize / 2
+                y: root.isVertical
+                    ? root.baseCenterForIndex(dockIndex) - scaledSize / 2
+                    : root.crossMargin
+            }
         }
     }
 
@@ -2573,6 +2671,8 @@ PlasmoidItem {
                         index - root.folderDockIndex);
                 } else if (index === root.trashDockIndex) {
                     item = trashOverlayItem;
+                } else if (index === root.powerButtonDockIndex) {
+                    item = powerOverlayItem;
                 }
                 // Repeater.itemAt() is statically typed as Item, while every
                 // Dock item has currentScale.
@@ -2983,6 +3083,26 @@ PlasmoidItem {
                     inOverlay: true
                     dockIndex: root.trashDockIndex
                     utilityType: "trash"
+                    displayScale: root.scaleForIndex(dockIndex,
+                        root.lastPointerMain, root.overlayOpen,
+                        overlayContent.mainLength, root.maxScale,
+                        root.baseIconSize)
+                    displayCrossExtent: root.maximumIconSize
+                    x: root.isVertical ? 0
+                        : overlayContent.centerForVisualIndex(dockIndex)
+                            - scaledSize / 2
+                    y: root.isVertical
+                        ? overlayContent.centerForVisualIndex(dockIndex)
+                            - scaledSize / 2 : 0
+                }
+
+                UtilityDelegate {
+                    id: powerOverlayItem
+
+                    visible: root.showPowerButton
+                    inOverlay: true
+                    dockIndex: root.powerButtonDockIndex
+                    utilityType: "power"
                     displayScale: root.scaleForIndex(dockIndex,
                         root.lastPointerMain, root.overlayOpen,
                         overlayContent.mainLength, root.maxScale,

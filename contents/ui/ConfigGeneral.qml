@@ -39,6 +39,10 @@ KCM.SimpleKCM {
         desktopSwitcherPositionCombo.currentIndex
     property alias cfg_desktopSwitcherLabelMode:
         desktopSwitcherLabelModeCombo.currentIndex
+    property alias cfg_showPowerButton:
+        showPowerButtonCheckBox.checked
+    property alias cfg_powerButtonPosition:
+        powerButtonPositionCombo.currentIndex
     property var cfg_launchers: []
 
     // Plasma passes default values to configuration pages as initial
@@ -354,6 +358,20 @@ KCM.SimpleKCM {
                 id: showDesktopSwitcherCheckBox
                 text: i18n("Show desktop switcher")
             }
+
+            QQC2.CheckBox {
+                id: showPowerButtonCheckBox
+                text: i18n("Show power button")
+            }
+        }
+
+        QQC2.ComboBox {
+            id: powerButtonPositionCombo
+
+            Kirigami.FormData.label: i18n("Power button position:")
+            Layout.fillWidth: true
+            enabled: showPowerButtonCheckBox.checked
+            model: [i18n("Left"), i18n("Right")]
         }
 
         QQC2.ComboBox {
