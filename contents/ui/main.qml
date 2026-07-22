@@ -1843,31 +1843,12 @@ PlasmoidItem {
     component DesktopSwitcher: Item {
         id: desktopSwitcher
 
-        required property bool inOverlay
-        property real crossExtent: inOverlay && desktopSwitcherHover.hovered
-            ? root.maximumIconSize : root.baseIconSize
-        readonly property real hoverScale:
-            crossExtent / Math.max(1, root.baseIconSize)
+        readonly property real crossExtent: root.baseIconSize
 
         width: root.isVertical
             ? crossExtent : root.desktopSwitcherMainExtent
         height: root.isVertical
             ? root.desktopSwitcherMainExtent : crossExtent
-
-        Behavior on crossExtent {
-            enabled: desktopSwitcher.inOverlay
-            NumberAnimation {
-                duration: 100
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        HoverHandler {
-            id: desktopSwitcherHover
-
-            enabled: desktopSwitcher.inOverlay
-            cursorShape: Qt.PointingHandCursor
-        }
 
         Repeater {
             model: root.desktopCount
@@ -1887,8 +1868,7 @@ PlasmoidItem {
                     root.desktopButtonMainExtent(index)
                 readonly property real compactCrossExtent:
                     root.desktopSwitcherLabelMode === 0
-                        ? Math.min(desktopSwitcher.crossExtent,
-                            30 * desktopSwitcher.hoverScale)
+                        ? Math.min(desktopSwitcher.crossExtent, 30)
                         : desktopSwitcher.crossExtent
 
                 x: root.isVertical ? 0
@@ -2006,13 +1986,11 @@ PlasmoidItem {
                 x: root.isVertical ? (parent.width - width) / 2 : 0
                 y: root.isVertical ? 0 : (parent.height - height) / 2
                 width: root.isVertical
-                    ? Math.min(desktopSwitcher.crossExtent,
-                        30 * desktopSwitcher.hoverScale)
+                    ? Math.min(desktopSwitcher.crossExtent, 30)
                     : parent.width
                 height: root.isVertical
                     ? parent.height
-                    : Math.min(desktopSwitcher.crossExtent,
-                        30 * desktopSwitcher.hoverScale)
+                    : Math.min(desktopSwitcher.crossExtent, 30)
                 radius: Math.min(9, Math.min(width, height) / 2)
                 color: {
                     var reference = Kirigami.Theme.alternateBackgroundColor;
@@ -2522,7 +2500,6 @@ PlasmoidItem {
 
             DesktopSwitcher {
                 visible: root.desktopSwitcherVisible
-                inOverlay: false
                 x: root.isVertical ? root.crossMargin
                     : root.baseDesktopSwitcherStart()
                 y: root.isVertical
@@ -3049,7 +3026,6 @@ PlasmoidItem {
 
                 DesktopSwitcher {
                     visible: root.desktopSwitcherVisible
-                    inOverlay: true
                     x: root.isVertical
                         ? overlayContent.desktopSwitcherCrossStart(crossExtent)
                         : overlayContent.desktopSwitcherStart()
