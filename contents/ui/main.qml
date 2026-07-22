@@ -2684,21 +2684,20 @@ PlasmoidItem {
                 return (pointer >= start && pointer <= end);
             }
 
-            function desktopSwitcherCrossStart(crossExtent, isHovered) {
-                var offset = isHovered ? 0 : root.windowPadding;
+            function desktopSwitcherCrossStart(crossExtent) {
                 if (!root.isVertical) {
                     if (root.dockLocation === PlasmaCore.Types.TopEdge) {
-                        return offset;
+                        return 0;
                     }
                     if (root.dockLocation === PlasmaCore.Types.BottomEdge) {
-                        return root.maximumIconSize - crossExtent - offset;
+                        return root.maximumIconSize - crossExtent;
                     }
                 } else {
                     if (root.dockLocation === PlasmaCore.Types.LeftEdge) {
-                        return offset;
+                        return 0;
                     }
                     if (root.dockLocation === PlasmaCore.Types.RightEdge) {
-                        return root.maximumIconSize - crossExtent - offset;
+                        return root.maximumIconSize - crossExtent;
                     }
                 }
                 return (root.maximumIconSize - crossExtent) / 2;
@@ -2921,11 +2920,11 @@ PlasmoidItem {
                         ? root.maximumIconSize
                         : root.baseIconSize
                     x: root.isVertical
-                        ? overlayContent.desktopSwitcherCrossStart(crossExtent, isHovered)
+                        ? overlayContent.desktopSwitcherCrossStart(crossExtent)
                         : overlayContent.desktopSwitcherStart()
                     y: root.isVertical
                         ? overlayContent.desktopSwitcherStart()
-                        : overlayContent.desktopSwitcherCrossStart(crossExtent, isHovered)
+                        : overlayContent.desktopSwitcherCrossStart(crossExtent)
                 }
 
                 Repeater {
