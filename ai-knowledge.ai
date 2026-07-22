@@ -1,0 +1,27 @@
+# AI Knowledge – macOS Dock Plasmoid
+
+Diese Datei ist die verbindliche Arbeitsanweisung für alle KIs, die an diesem
+Repository arbeiten. Sie muss vor jeder Analyse, Änderung oder Veröffentlichung
+vollständig gelesen werden.
+
+## Git- und Abschlussprozedur
+
+1. Vor jeder Arbeit Branch, Arbeitsverzeichnis, lokale Commits, Tags und den
+   Remote-Stand prüfen. Vorhandene oder fremde Änderungen nicht überschreiben.
+2. Angeforderte Änderungen vollständig umsetzen und passend zum Risiko prüfen.
+   Für QML- und Übersetzungsänderungen mindestens `git diff --check`, `qmllint`,
+   `msgfmt --check` und einen lokalen Installations- beziehungsweise Laufzeittest
+   ausführen.
+3. Nach jeder abgeschlossenen und erfolgreich geprüften Dock-Aufgabe alle zu
+   dieser Aufgabe gehörenden Änderungen in einem aussagekräftigen Git-Commit
+   sichern. Nicht auf eine zusätzliche Erinnerung zum Commit warten.
+4. Wenn der User „hochladen“, „aufs Git“, „pushen“ oder sinngleich verlangt,
+   den fertigen Commit zusätzlich zum konfigurierten Remote pushen. Commit und
+   Push sind getrennt zu prüfen; ein lokaler Commit ist noch kein Upload.
+5. Gewünschte Release-Bezeichnungen exakt verwenden, zum Beispiel
+   `20260720-nightly` oder `20260720`. Vorher prüfen, ob Commit oder Tag bereits
+   existiert. Vorhandene Tags niemals stillschweigend verschieben.
+6. Abschließend mit `git status`, `git log` und bei einem Push dem Remote-Stand
+   verifizieren. Dem User Commit-Hash, Tag, Push-Ziel und eventuell verbleibende
+   Änderungen eindeutig nennen. Nie behaupten, etwas sei committed oder
+   gepusht, bevor dieser Zustand tatsächlich geprüft wurde.
