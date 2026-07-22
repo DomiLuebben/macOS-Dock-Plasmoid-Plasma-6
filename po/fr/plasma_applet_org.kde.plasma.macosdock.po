@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.9.0\n"
-"PO-Revision-Date: 2026-07-17 00:00+0200\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.9.5\n"
+"PO-Revision-Date: 2026-07-22 00:00+0200\n"
 "Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
 "Language-Team: French\n"
 "Language: fr\n"
@@ -196,6 +196,30 @@ msgstr "Afficher la corbeille"
 msgid "Show desktop switcher"
 msgstr "Afficher le sélecteur de bureaux"
 
+msgid "Show power button"
+msgstr "Afficher le bouton d’alimentation"
+
+msgid "Power button position:"
+msgstr "Position du bouton d’alimentation :"
+
+msgid "Power / Session"
+msgstr "Alimentation / Session"
+
+msgid "Sleep / Standby"
+msgstr "Mise en veille"
+
+msgid "Restart…"
+msgstr "Redémarrer…"
+
+msgid "Shut Down…"
+msgstr "Éteindre…"
+
+msgid "Lock Screen"
+msgstr "Verrouiller l’écran"
+
+msgid "Log Out…"
+msgstr "Se déconnecter…"
+
 msgid "Desktop switcher position:"
 msgstr "Position du sélecteur de bureaux :"
 
@@ -220,9 +244,6 @@ msgstr "Noms des bureaux :"
 msgid "The names configured in Plasma, including custom names, are shown."
 msgstr "Les noms configurés dans Plasma, y compris les noms personnalisés, sont affichés."
 
-msgid "Folder:"
-msgstr "Dossier :"
-
 msgid "Default folder:"
 msgstr "Dossier par défaut :"
 
@@ -234,9 +255,6 @@ msgstr "Choisir un dossier"
 
 msgid "Folder view:"
 msgstr "Vue du dossier :"
-
-msgid "If no folder is selected, the Downloads folder is used."
-msgstr "Si aucun dossier n’est sélectionné, le dossier Téléchargements est utilisé."
 
 msgid "If no folder is selected, the Downloads folder is used. Drag folders from the file manager onto the Dock to add more stacks."
 msgstr "Si aucun dossier n’est sélectionné, le dossier Téléchargements est utilisé. Faites glisser d’autres dossiers depuis le gestionnaire de fichiers sur le Dock pour ajouter des piles."

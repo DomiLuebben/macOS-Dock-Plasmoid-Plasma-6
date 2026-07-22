@@ -13,6 +13,8 @@ couleurs du thème Qt.
 - Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
   macOS ; d’autres dossiers peuvent être glissés directement depuis le gestionnaire de fichiers
 - Corbeille facultative adaptée au thème avec état vide/plein et dépôt de fichiers
+- Menu alimentation/session facultatif avec mise en veille, redémarrage, arrêt,
+  verrouillage et déconnexion selon les capacités du système
 - Sélecteur facultatif de bureaux à gauche ou à droite, avec numéros ou noms
   de bureaux définis dans Plasma et un bouton permanent pour en créer d’autres
 - Aperçus interactifs des fenêtres avec activation et fermeture individuelles

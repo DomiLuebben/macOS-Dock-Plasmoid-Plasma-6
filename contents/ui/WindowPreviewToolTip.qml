@@ -25,13 +25,23 @@ Item {
         + (previewColumns - 1) * Kirigami.Units.smallSpacing
     readonly property real previewGridHeight: previewRows * 136
         + (previewRows - 1) * Kirigami.Units.smallSpacing
+    readonly property real maximumPreviewWidth:
+        Math.max(192, Screen.desktopAvailableWidth
+            - Kirigami.Units.gridUnit * 2)
+    readonly property real maximumPreviewHeight:
+        Math.max(136, Screen.desktopAvailableHeight * 0.7)
+    readonly property real previewViewportWidth:
+        Math.min(previewGridWidth, maximumPreviewWidth)
+    readonly property real previewViewportHeight:
+        Math.min(previewGridHeight, maximumPreviewHeight)
 
     signal windowActivated(var modelIndex)
     signal windowClosed(var modelIndex)
 
-    implicitWidth: Math.max(previewGridWidth,
-        appTitle.visible ? appTitle.implicitWidth : 0)
-    implicitHeight: previewGridHeight + (appTitle.visible
+    implicitWidth: Math.max(previewViewportWidth,
+        appTitle.visible
+            ? Math.min(appTitle.implicitWidth, maximumPreviewWidth) : 0)
+    implicitHeight: previewViewportHeight + (appTitle.visible
         ? appTitle.implicitHeight + contentLayout.spacing : 0)
 
     Kirigami.Theme.colorSet: Kirigami.Theme.Tooltip
@@ -65,22 +75,16 @@ Item {
             text: root.appName
             font.bold: true
             visible: root.appName.length > 0
+            elide: Text.ElideRight
+            Layout.maximumWidth: root.maximumPreviewWidth
             Layout.alignment: Qt.AlignHCenter
         }
 
         QQC2.ScrollView {
             id: previewScrollView
 
-            readonly property real maximumWidth:
-                Math.max(192, Screen.desktopAvailableWidth
-                    - Kirigami.Units.gridUnit * 2)
-            readonly property real maximumHeight:
-                Math.max(136, Screen.desktopAvailableHeight * 0.7)
-
-            Layout.preferredWidth: Math.min(root.previewGridWidth,
-                maximumWidth)
-            Layout.preferredHeight: Math.min(root.previewGridHeight,
-                maximumHeight)
+            Layout.preferredWidth: root.previewViewportWidth
+            Layout.preferredHeight: root.previewViewportHeight
             contentWidth: previewGrid.implicitWidth
             contentHeight: previewGrid.implicitHeight
             clip: true

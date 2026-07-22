@@ -6,7 +6,6 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.layershell as LayerShell
 import org.kde.plasma.core as PlasmaCore
-import org.kde.private.desktopcontainment.folder as Folder
 import "effects" as DockEffects
 
 Window {
@@ -210,6 +209,16 @@ Window {
         }
     }
     onScreenChanged: {
+        if (visible) {
+            schedulePositionPopup();
+        }
+    }
+    onLocationChanged: {
+        if (visible) {
+            schedulePositionPopup();
+        }
+    }
+    onScreenEdgeMarginChanged: {
         if (visible) {
             schedulePositionPopup();
         }

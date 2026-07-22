@@ -3,9 +3,18 @@
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
 #include <QDBusReply>
 #include <QDBusServiceWatcher>
+#include <QDebug>
 #include <QFileInfo>
+#include <QVariant>
+
+namespace
+{
+constexpr int virtualDesktopRequestTimeoutMs = 5000;
+}
 
 WindowActions::WindowActions(QObject *parent)
     : QObject(parent)
@@ -18,28 +27,28 @@ WindowActions::WindowActions(QObject *parent)
         this);
 
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceRegistered,
-            this, [this]() { setInteractiveForceQuitAvailable(true); });
+            this, [this]() { setKWinAvailable(true); });
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceUnregistered,
-            this, [this]() { setInteractiveForceQuitAvailable(false); });
+            this, [this]() { setKWinAvailable(false); });
 
     if (bus.isConnected() && bus.interface()) {
         const QDBusReply<bool> registered =
             bus.interface()->isServiceRegistered(QStringLiteral("org.kde.KWin"));
         if (registered.isValid()) {
-            m_interactiveForceQuitAvailable = registered.value();
+            m_kwinAvailable = registered.value();
         }
     }
 }
 
 bool WindowActions::interactiveForceQuitAvailable() const
 {
-    return m_interactiveForceQuitAvailable;
+    return m_kwinAvailable;
 }
 
 bool WindowActions::startInteractiveForceQuit()
 {
     const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (!m_interactiveForceQuitAvailable || !bus.isConnected()) {
+    if (!m_kwinAvailable || !bus.isConnected()) {
         return false;
     }
 
@@ -50,12 +59,12 @@ bool WindowActions::startInteractiveForceQuit()
     return true;
 }
 
-bool WindowActions::activateVirtualDesktop(int desktopNumber)
+void WindowActions::requestVirtualDesktopActivation(int desktopNumber)
 {
     const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (desktopNumber <= 0 || !m_interactiveForceQuitAvailable
+    if (desktopNumber <= 0 || !m_kwinAvailable
             || !bus.isConnected()) {
-        return false;
+        return;
     }
 
     QDBusMessage message = QDBusMessage::createMethodCall(
@@ -64,14 +73,25 @@ bool WindowActions::activateVirtualDesktop(int desktopNumber)
         QStringLiteral("org.kde.KWin"),
         QStringLiteral("setCurrentDesktop"));
     message.setArguments({desktopNumber});
-    bus.asyncCall(message);
-    return true;
+    auto *watcher = new QDBusPendingCallWatcher(
+        bus.asyncCall(message, virtualDesktopRequestTimeoutMs), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [watcher]() {
+                const QDBusPendingReply<bool> reply = *watcher;
+                if (reply.isError()) {
+                    qWarning() << "Failed to activate virtual desktop:"
+                               << reply.error().message();
+                } else if (!reply.value()) {
+                    qWarning() << "KWin rejected virtual desktop activation";
+                }
+                watcher->deleteLater();
+            });
 }
 
 bool WindowActions::createVirtualDesktop(int position)
 {
     const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (position < 0 || !m_interactiveForceQuitAvailable
+    if (position < 0 || m_desktopCreationPending || !m_kwinAvailable
             || !bus.isConnected()) {
         return false;
     }
@@ -85,7 +105,21 @@ bool WindowActions::createVirtualDesktop(int position)
         QVariant::fromValue(static_cast<uint>(position)),
         QString()
     });
-    bus.asyncCall(message);
+    m_desktopCreationPending = true;
+    auto *watcher = new QDBusPendingCallWatcher(
+        bus.asyncCall(message, virtualDesktopRequestTimeoutMs), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this,
+            [this, watcher]() {
+                const QDBusPendingReply<> reply = *watcher;
+                const bool succeeded = !reply.isError();
+                if (!succeeded) {
+                    qWarning() << "Failed to create virtual desktop:"
+                               << reply.error().message();
+                }
+                m_desktopCreationPending = false;
+                watcher->deleteLater();
+                Q_EMIT virtualDesktopCreationFinished(succeeded);
+            });
     return true;
 }
 
@@ -112,78 +146,12 @@ QString WindowActions::canonicalDirectoryUrl(const QUrl &url) const
     return QUrl::fromLocalFile(path).toString();
 }
 
-void WindowActions::shutdown()
+void WindowActions::setKWinAvailable(bool available)
 {
-    const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (bus.isConnected()) {
-        QDBusMessage message = QDBusMessage::createMethodCall(
-            QStringLiteral("org.kde.Shutdown"),
-            QStringLiteral("/Shutdown"),
-            QStringLiteral("org.kde.Shutdown"),
-            QStringLiteral("logoutAndShutdown"));
-        bus.asyncCall(message);
-    }
-}
-
-void WindowActions::reboot()
-{
-    const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (bus.isConnected()) {
-        QDBusMessage message = QDBusMessage::createMethodCall(
-            QStringLiteral("org.kde.Shutdown"),
-            QStringLiteral("/Shutdown"),
-            QStringLiteral("org.kde.Shutdown"),
-            QStringLiteral("logoutAndReboot"));
-        bus.asyncCall(message);
-    }
-}
-
-void WindowActions::logout()
-{
-    const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (bus.isConnected()) {
-        QDBusMessage message = QDBusMessage::createMethodCall(
-            QStringLiteral("org.kde.Shutdown"),
-            QStringLiteral("/Shutdown"),
-            QStringLiteral("org.kde.Shutdown"),
-            QStringLiteral("logout"));
-        bus.asyncCall(message);
-    }
-}
-
-void WindowActions::suspend()
-{
-    const QDBusConnection bus = QDBusConnection::systemBus();
-    if (bus.isConnected()) {
-        QDBusMessage message = QDBusMessage::createMethodCall(
-            QStringLiteral("org.freedesktop.login1"),
-            QStringLiteral("/org/freedesktop/login1"),
-            QStringLiteral("org.freedesktop.login1.Manager"),
-            QStringLiteral("Suspend"));
-        message.setArguments({true});
-        bus.asyncCall(message);
-    }
-}
-
-void WindowActions::lockSession()
-{
-    const QDBusConnection bus = QDBusConnection::sessionBus();
-    if (bus.isConnected()) {
-        QDBusMessage message = QDBusMessage::createMethodCall(
-            QStringLiteral("org.freedesktop.ScreenSaver"),
-            QStringLiteral("/ScreenSaver"),
-            QStringLiteral("org.freedesktop.ScreenSaver"),
-            QStringLiteral("Lock"));
-        bus.asyncCall(message);
-    }
-}
-
-void WindowActions::setInteractiveForceQuitAvailable(bool available)
-{
-    if (m_interactiveForceQuitAvailable == available) {
+    if (m_kwinAvailable == available) {
         return;
     }
 
-    m_interactiveForceQuitAvailable = available;
+    m_kwinAvailable = available;
     Q_EMIT interactiveForceQuitAvailableChanged();
 }

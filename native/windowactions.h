@@ -24,36 +24,23 @@ public:
      */
     Q_INVOKABLE bool startInteractiveForceQuit();
 
-    /** Activates a KWin virtual desktop by its one-based position. */
-    Q_INVOKABLE bool activateVirtualDesktop(int desktopNumber);
+    /** Requests activation of a KWin virtual desktop by one-based position. */
+    Q_INVOKABLE void requestVirtualDesktopActivation(int desktopNumber);
 
-    /** Creates a virtual desktop at the zero-based position. */
+    /** Queues creation at a zero-based position; false means no request began. */
     Q_INVOKABLE bool createVirtualDesktop(int position);
 
     /** Returns a canonical file URL for a local directory, or an empty string. */
     Q_INVOKABLE QString canonicalDirectoryUrl(const QUrl &url) const;
 
-    /** Initiates session shutdown via DBus. */
-    Q_INVOKABLE void shutdown();
-
-    /** Initiates session reboot via DBus. */
-    Q_INVOKABLE void reboot();
-
-    /** Initiates session logout via DBus. */
-    Q_INVOKABLE void logout();
-
-    /** Suspends / puts system to sleep via logind DBus. */
-    Q_INVOKABLE void suspend();
-
-    /** Locks the current screen session via ScreenSaver DBus. */
-    Q_INVOKABLE void lockSession();
-
 Q_SIGNALS:
     void interactiveForceQuitAvailableChanged();
+    void virtualDesktopCreationFinished(bool succeeded);
 
 private:
-    void setInteractiveForceQuitAvailable(bool available);
+    void setKWinAvailable(bool available);
 
     QDBusServiceWatcher *m_serviceWatcher = nullptr;
-    bool m_interactiveForceQuitAvailable = false;
+    bool m_kwinAvailable = false;
+    bool m_desktopCreationPending = false;
 };

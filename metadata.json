@@ -5,17 +5,17 @@
                 "Name": "Dominik Lübben"
             }
         ],
-        "Category": "Application Launchers",
+        "Category": "Windows and Tasks",
         "Description": "A macOS-style Plasma task manager with magnification and window controls",
         "Description[de]": "Ein macOS-artiger Plasma-Taskmanager mit Vergrößerung und Fenstersteuerung",
         "Description[fr]": "Un gestionnaire de tâches Plasma de style macOS avec agrandissement et contrôle des fenêtres",
         "Icon": "preferences-desktop-icons",
         "Id": "org.kde.plasma.macosdock",
-        "License": "GPL-2.0+",
+        "License": "GPL-2.0-or-later",
         "Name": "macOS Dock Task Manager",
         "Name[de]": "macOS Dock Taskmanager",
         "Name[fr]": "Gestionnaire de tâches macOS Dock",
-        "Version": "1.9.4"
+        "Version": "1.9.5"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0"

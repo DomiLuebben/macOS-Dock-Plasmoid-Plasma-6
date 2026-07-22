@@ -45,38 +45,9 @@ KCM.SimpleKCM {
         powerButtonPositionCombo.currentIndex
     property var cfg_launchers: []
 
-    // Plasma passes default values to configuration pages as initial
-    // properties. Keeping them explicit also makes reset-to-default reliable.
-    property int cfg_dockPositionDefault: 0
-    property real cfg_maxScaleDefault: 1.45
-    property int cfg_zoomRadiusDefault: 70
-    property int cfg_iconSizeDefault: 44
-    property int cfg_dockMarginDefault: 16
-    property int cfg_dockCrossMarginDefault: 5
-    property int cfg_screenEdgeMarginDefault: 8
-    property real cfg_backgroundOpacityDefault: 0.55
-    property bool cfg_useThemeBackgroundDefault: true
-    property color cfg_customBackgroundColorDefault: "#20242b"
-    property int cfg_cornerRadiusDefault: 12
-    property real cfg_borderOpacityDefault: 0.22
-    property real cfg_shadowOpacityDefault: 0.42
-    property bool cfg_showHighlightDefault: true
-    property bool cfg_enableBlurDefault: true
-    property bool cfg_hideOnMaximizedDefault: true
-    property int cfg_launchAnimationDefault: 1
-    property bool cfg_showFolderViewDefault: true
-    property string cfg_folderUrlDefault: ""
-    property var cfg_folderUrlsDefault: []
-    property bool cfg_showTrashDefault: true
-    property bool cfg_showDesktopSwitcherDefault: true
-    property int cfg_desktopSwitcherPositionDefault: 0
-    property int cfg_desktopSwitcherLabelModeDefault: 0
-    property var cfg_launchersDefault: []
-
     // Accepted for compatibility with the configuration page instance that
     // existed before 1.3 and with Plasma's standard applet page properties.
     property bool cfg_showDockBackground: false
-    property bool cfg_showDockBackgroundDefault: false
     property bool cfg_expanding: false
     property int cfg_length: 0
 

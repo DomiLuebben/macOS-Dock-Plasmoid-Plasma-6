@@ -78,7 +78,11 @@ Item {
     property bool previewDataRequested: false
     property bool previewPositionPending: false
     readonly property bool iconHovered: iconHover.hovered
-    readonly property bool previewHovered: previewHover.hovered
+    readonly property var previewWindowObject: previewWindowLoader.item
+    readonly property bool previewWindowVisible:
+        previewWindowObject !== null && previewWindowObject.visible
+    readonly property bool previewHovered: previewWindowObject !== null
+        && Boolean(previewWindowObject["previewHovered"])
     readonly property bool hasWindowPreviews: root.isRunning
         && Boolean(root.windowsList && root.windowsList.length > 0)
 
@@ -171,101 +175,114 @@ Item {
         }
     }
 
-    Window {
-        id: previewWindow
+    Loader {
+        id: previewWindowLoader
 
-        property real placementLeft: 0
-        property real placementTop: 0
-        property real placementRight: 0
-        property real placementBottom: 0
+        active: root.previewDataRequested || root.previewOpen
+        asynchronous: false
+        sourceComponent: previewWindowComponent
+    }
 
-        flags: Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus
-        color: "transparent"
-        width: previewContent.implicitWidth
-            + 2 * Kirigami.Units.smallSpacing
-        height: previewContent.implicitHeight
-            + 2 * Kirigami.Units.smallSpacing
-        visible: false
+    Component {
+        id: previewWindowComponent
 
-        LayerShell.Window.scope: "macosdock-preview"
-        LayerShell.Window.anchors: {
-            if (root.isVertical) {
-                return (root.location === PlasmaCore.Types.LeftEdge
-                    ? LayerShell.Window.AnchorLeft
-                    : LayerShell.Window.AnchorRight)
-                    | LayerShell.Window.AnchorTop;
+        Window {
+            id: previewWindow
+
+            property real placementLeft: 0
+            property real placementTop: 0
+            property real placementRight: 0
+            property real placementBottom: 0
+            readonly property bool previewHovered: previewHover.hovered
+
+            flags: Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus
+            color: "transparent"
+            width: previewContent.implicitWidth
+                + 2 * Kirigami.Units.smallSpacing
+            height: previewContent.implicitHeight
+                + 2 * Kirigami.Units.smallSpacing
+            visible: false
+
+            LayerShell.Window.scope: "macosdock-preview"
+            LayerShell.Window.anchors: {
+                if (root.isVertical) {
+                    return (root.location === PlasmaCore.Types.LeftEdge
+                        ? LayerShell.Window.AnchorLeft
+                        : LayerShell.Window.AnchorRight)
+                        | LayerShell.Window.AnchorTop;
+                }
+                return LayerShell.Window.AnchorLeft
+                    | (root.location === PlasmaCore.Types.TopEdge
+                        ? LayerShell.Window.AnchorTop
+                        : LayerShell.Window.AnchorBottom);
             }
-            return LayerShell.Window.AnchorLeft
-                | (root.location === PlasmaCore.Types.TopEdge
-                    ? LayerShell.Window.AnchorTop
-                    : LayerShell.Window.AnchorBottom);
-        }
-        LayerShell.Window.margins.left: placementLeft
-        LayerShell.Window.margins.top: placementTop
-        LayerShell.Window.margins.right: placementRight
-        LayerShell.Window.margins.bottom: placementBottom
-        LayerShell.Window.exclusionZone: -1
-        LayerShell.Window.layer: LayerShell.Window.LayerTop
-        LayerShell.Window.keyboardInteractivity:
-            LayerShell.Window.KeyboardInteractivityNone
-        LayerShell.Window.activateOnShow: false
-        LayerShell.Window.wantsToBeOnActiveScreen: true
+            LayerShell.Window.margins.left: placementLeft
+            LayerShell.Window.margins.top: placementTop
+            LayerShell.Window.margins.right: placementRight
+            LayerShell.Window.margins.bottom: placementBottom
+            LayerShell.Window.exclusionZone: -1
+            LayerShell.Window.layer: LayerShell.Window.LayerTop
+            LayerShell.Window.keyboardInteractivity:
+                LayerShell.Window.KeyboardInteractivityNone
+            LayerShell.Window.activateOnShow: false
+            LayerShell.Window.wantsToBeOnActiveScreen: true
 
-        PlasmaCore.DialogBackground {
-            anchors.fill: parent
-        }
-
-        onVisibleChanged: {
-            if (visible) {
-                root.schedulePreviewPosition();
-            }
-            if (!visible && root.previewOpen) {
-                root.previewOpen = false;
-                root.previewDataRequested = false;
-                root.previewVisibilityChanged(false);
-            }
-        }
-        onWidthChanged: {
-            if (visible) {
-                root.schedulePreviewPosition();
-            }
-        }
-        onHeightChanged: {
-            if (visible) {
-                root.schedulePreviewPosition();
-            }
-        }
-        onScreenChanged: {
-            if (visible) {
-                root.schedulePreviewPosition();
-            }
-        }
-
-        WindowPreviewToolTip {
-            id: previewContent
-
-            anchors.fill: parent
-            anchors.margins: Kirigami.Units.smallSpacing
-            windowsList: root.windowsList
-            appIcon: root.appIcon
-            appName: root.appName
-            captureRequested: previewWindow.visible
-
-            HoverHandler {
-                id: previewHover
+            PlasmaCore.DialogBackground {
+                anchors.fill: parent
             }
 
-            onWindowActivated: (modelIndex) => {
-                root.setPreviewOpen(false);
-                root.windowActivated(modelIndex);
+            onVisibleChanged: {
+                if (visible) {
+                    root.schedulePreviewPosition();
+                }
+                if (!visible && root.previewOpen) {
+                    root.previewOpen = false;
+                    root.previewVisibilityChanged(false);
+                    root.previewDataRequested = false;
+                }
             }
-            onWindowClosed: (modelIndex) => root.windowClosed(modelIndex)
+            onWidthChanged: {
+                if (visible) {
+                    root.schedulePreviewPosition();
+                }
+            }
+            onHeightChanged: {
+                if (visible) {
+                    root.schedulePreviewPosition();
+                }
+            }
+            onScreenChanged: {
+                if (visible) {
+                    root.schedulePreviewPosition();
+                }
+            }
+
+            WindowPreviewToolTip {
+                id: previewContent
+
+                anchors.fill: parent
+                anchors.margins: Kirigami.Units.smallSpacing
+                windowsList: root.windowsList
+                appIcon: root.appIcon
+                appName: root.appName
+                captureRequested: previewWindow.visible
+
+                HoverHandler {
+                    id: previewHover
+                }
+
+                onWindowActivated: (modelIndex) => {
+                    root.setPreviewOpen(false);
+                    root.windowActivated(modelIndex);
+                }
+                onWindowClosed: (modelIndex) => root.windowClosed(modelIndex)
+            }
         }
     }
 
     Connections {
         target: root
-        enabled: previewWindow.visible
+        enabled: root.previewWindowVisible
 
         function onXChanged() {
             root.schedulePreviewPosition();
@@ -286,7 +303,7 @@ Item {
 
     Connections {
         target: iconContainer
-        enabled: previewWindow.visible
+        enabled: root.previewWindowVisible
 
         function onXChanged() {
             root.schedulePreviewPosition();
@@ -307,7 +324,7 @@ Item {
 
     Connections {
         target: iconContainer.Window.window
-        enabled: previewWindow.visible
+        enabled: root.previewWindowVisible
 
         function onWidthChanged() {
             root.schedulePreviewPosition();
@@ -591,7 +608,9 @@ Item {
     function setPreviewOpen(open) {
         var requested = Boolean(open && previewAvailable
             && hasWindowPreviews && !isDragging);
-        if (previewOpen === requested && previewWindow.visible === requested) {
+        var previewWindow = previewWindowObject;
+        var windowVisible = previewWindow !== null && previewWindow.visible;
+        if (previewOpen === requested && windowVisible === requested) {
             if (!requested) {
                 previewDataRequested = false;
             }
@@ -600,18 +619,26 @@ Item {
         previewOpen = requested;
         if (requested) {
             previewDataRequested = true;
+            previewWindow = previewWindowObject;
+            if (previewWindow === null) {
+                previewOpen = false;
+                previewDataRequested = false;
+                return;
+            }
             positionPreviewWindow();
             previewWindow.visible = true;
             schedulePreviewPosition();
         } else {
-            previewWindow.visible = false;
+            if (previewWindow !== null) {
+                previewWindow.visible = false;
+            }
             previewDataRequested = false;
         }
         previewVisibilityChanged(requested);
     }
 
     function schedulePreviewPosition() {
-        if (!previewWindow.visible || previewPositionPending) {
+        if (!previewWindowVisible || previewPositionPending) {
             return;
         }
         previewPositionPending = true;
@@ -620,12 +647,16 @@ Item {
 
     function runScheduledPreviewPosition() {
         previewPositionPending = false;
-        if (previewWindow.visible) {
+        if (previewWindowVisible) {
             positionPreviewWindow();
         }
     }
 
     function positionPreviewWindow() {
+        var previewWindow = previewWindowObject;
+        if (previewWindow === null) {
+            return;
+        }
         var spacing = Kirigami.Units.smallSpacing;
         var targetScreen = previewWindow.screen;
         if (!targetScreen) {

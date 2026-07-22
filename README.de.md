@@ -12,6 +12,8 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 - optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; weitere
   Ordner lassen sich direkt aus dem Dateimanager auf das Dock ziehen
 - optionaler, designkonformer Papierkorb mit Leer-/Vollstatus und Dateiablage
+- optionales Energie-/Sitzungsmenü mit systemabhängig verfügbaren Aktionen für
+  Energiesparmodus, Neustart, Herunterfahren, Bildschirmsperre und Abmeldung
 - optionaler Desktopumschalter links oder rechts mit Zahlen oder den in Plasma
   festgelegten Desktopnamen sowie einer dauerhaften Schaltfläche für weitere Desktops
 - interaktive Live-Fenstervorschauen mit Aktivieren und Schließen einzelner Fenster
