@@ -26,6 +26,12 @@ Window {
     property bool blurEnabled: true
     property int viewMode: 0 // 0: List, 1: Grid, 2: Fan / Stack
 
+    onViewModeChanged: {
+        if (viewMode < 0 || viewMode > 2) {
+            viewMode = 0;
+        }
+    }
+
     readonly property bool isVertical:
         location === PlasmaCore.Types.LeftEdge
         || location === PlasmaCore.Types.RightEdge
@@ -618,7 +624,7 @@ Window {
                                 : Kirigami.Theme.alternateBackgroundColor
                             opacity: fanHover.hovered ? 0.32 : 0.68
                             border.color: fanHover.hovered
-                                ? Kirigami.Theme.hoverColor
+                                ? Kirigami.Theme.highlightColor
                                 : Qt.rgba(255, 255, 255, 0.1)
                             border.width: 1
 
