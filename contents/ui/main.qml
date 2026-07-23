@@ -2308,6 +2308,13 @@ PlasmoidItem {
         shadowOpacity: root.shadowOpacity
         showHighlight: root.showHighlight
         blurEnabled: root.enableBlur
+        viewMode: plasmoid.configuration.folderViewMode || 0
+
+        onViewModeChanged: {
+            if (plasmoid.configuration.folderViewMode !== viewMode) {
+                plasmoid.configuration.folderViewMode = viewMode;
+            }
+        }
 
         onOpenFolderRequested: (folderUrl) =>
             Folder.AppLauncher.openUrl(folderUrl)

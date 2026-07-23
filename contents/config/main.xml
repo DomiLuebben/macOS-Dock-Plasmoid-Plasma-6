@@ -61,6 +61,9 @@
     <entry name="folderUrl" type="String">
       <default></default>
     </entry>
+    <entry name="folderViewMode" type="Int">
+      <default>0</default>
+    </entry>
     <entry name="folderUrls" type="StringList"/>
     <entry name="showTrash" type="Bool">
       <default>true</default>

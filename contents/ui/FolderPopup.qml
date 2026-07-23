@@ -24,6 +24,8 @@ Window {
     property real shadowOpacity: 0.42
     property bool showHighlight: true
     property bool blurEnabled: true
+    property int viewMode: 0 // 0: List, 1: Grid, 2: Fan / Stack
+
     readonly property bool isVertical:
         location === PlasmaCore.Types.LeftEdge
         || location === PlasmaCore.Types.RightEdge
@@ -42,9 +44,9 @@ Window {
 
     signal openFolderRequested(url folderUrl)
 
-    width: 356
+    width: root.viewMode === 1 ? 420 : (root.viewMode === 2 ? 380 : 356)
     height: screen
-        ? Math.max(minimumHeight, Math.min(410, screen.height - 48)) : 410
+        ? Math.max(minimumHeight, Math.min(root.viewMode === 2 ? 460 : 410, screen.height - 48)) : 410
     minimumWidth: 290
     minimumHeight: 280
     flags: Qt.FramelessWindowHint
@@ -95,8 +97,7 @@ Window {
         try {
             path = decodeURIComponent(path);
         } catch (error) {
-            // Keep malformed or partially escaped URLs readable instead of
-            // breaking the title binding.
+            // Keep malformed or partially escaped URLs readable
         }
         var slash = path.lastIndexOf("/");
         var name = slash >= 0 ? path.substring(slash + 1) : path;
@@ -193,73 +194,28 @@ Window {
         }
     }
 
-    onVisualParentChanged: {
-        if (visible) {
-            schedulePositionPopup();
-        }
-    }
-    onWidthChanged: {
-        if (visible) {
-            schedulePositionPopup();
-        }
-    }
-    onHeightChanged: {
-        if (visible) {
-            schedulePositionPopup();
-        }
-    }
-    onScreenChanged: {
-        if (visible) {
-            schedulePositionPopup();
-        }
-    }
-    onLocationChanged: {
-        if (visible) {
-            schedulePositionPopup();
-        }
-    }
-    onScreenEdgeMarginChanged: {
-        if (visible) {
-            schedulePositionPopup();
-        }
-    }
+    onVisualParentChanged: if (visible) schedulePositionPopup()
+    onWidthChanged: if (visible) schedulePositionPopup()
+    onHeightChanged: if (visible) schedulePositionPopup()
+    onScreenChanged: if (visible) schedulePositionPopup()
+    onLocationChanged: if (visible) schedulePositionPopup()
+    onScreenEdgeMarginChanged: if (visible) schedulePositionPopup()
 
     Connections {
         target: root.visualParent
         enabled: root.visible
-
-        function onXChanged() {
-            root.schedulePositionPopup();
-        }
-
-        function onYChanged() {
-            root.schedulePositionPopup();
-        }
-
-        function onWidthChanged() {
-            root.schedulePositionPopup();
-        }
-
-        function onHeightChanged() {
-            root.schedulePositionPopup();
-        }
+        function onXChanged() { root.schedulePositionPopup(); }
+        function onYChanged() { root.schedulePositionPopup(); }
+        function onWidthChanged() { root.schedulePositionPopup(); }
+        function onHeightChanged() { root.schedulePositionPopup(); }
     }
 
     Connections {
         target: root.visualParent ? root.visualParent.Window.window : null
         enabled: root.visible
-
-        function onWidthChanged() {
-            root.schedulePositionPopup();
-        }
-
-        function onHeightChanged() {
-            root.schedulePositionPopup();
-        }
-
-        function onScreenChanged() {
-            root.schedulePositionPopup();
-        }
+        function onWidthChanged() { root.schedulePositionPopup(); }
+        function onHeightChanged() { root.schedulePositionPopup(); }
+        function onScreenChanged() { root.schedulePositionPopup(); }
     }
 
     Shortcut {
@@ -270,7 +226,6 @@ Window {
 
     DockBackground {
         id: popupBackground
-
         anchors.fill: parent
         surfaceOpacity: root.surfaceOpacity
         useThemeColor: root.useThemeColor
@@ -290,6 +245,7 @@ Window {
         anchors.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
+        // Top Navigation & Title Bar
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -337,6 +293,7 @@ Window {
             }
         }
 
+        // View Mode & Sorting Control Bar (macOS Tahoe style)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
@@ -350,9 +307,59 @@ Window {
                 anchors.rightMargin: Math.max(2, Kirigami.Units.smallSpacing / 2)
                 spacing: Kirigami.Units.smallSpacing
 
+                // View Mode Segmented Switcher (List / Grid / Fan)
+                Rectangle {
+                    Layout.preferredWidth: 108
+                    Layout.preferredHeight: 28
+                    radius: 6
+                    color: Qt.rgba(0, 0, 0, 0.18)
+                    border.color: Qt.rgba(255, 255, 255, 0.12)
+                    border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: 0
+
+                        QQC2.ToolButton {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            icon.name: "view-list-details"
+                            checkable: true
+                            checked: root.viewMode === 0
+                            onClicked: root.viewMode = 0
+
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: i18n("List View")
+                        }
+
+                        QQC2.ToolButton {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            icon.name: "view-grid"
+                            checkable: true
+                            checked: root.viewMode === 1
+                            onClicked: root.viewMode = 1
+
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: i18n("Grid View")
+                        }
+
+                        QQC2.ToolButton {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            icon.name: "view-pages"
+                            checkable: true
+                            checked: root.viewMode === 2
+                            onClicked: root.viewMode = 2
+
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: i18n("Fan / Stack View")
+                        }
+                    }
+                }
+
                 QQC2.ComboBox {
                     id: sortCombo
-
                     Layout.fillWidth: true
                     model: [i18n("Name"), i18n("Date"),
                         i18n("Size"), i18n("Type")]
@@ -387,14 +394,16 @@ Window {
             }
         }
 
+        // Main Content Area (List / Grid / Fan View)
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            // MODE 0: LISTENANSICHT (LIST VIEW)
             ListView {
                 id: fileList
-
                 anchors.fill: parent
+                visible: root.viewMode === 0
                 clip: true
                 spacing: Math.max(2, Kirigami.Units.smallSpacing / 2)
                 model: root.folderModel
@@ -404,7 +413,6 @@ Window {
 
                 delegate: Item {
                     id: fileDelegate
-
                     required property int index
                     required property bool isDir
                     required property var size
@@ -455,10 +463,8 @@ Window {
                         QQC2.Label {
                             width: parent.width
                             text: {
-                                var itemSize = String(
-                                    fileDelegate.size || "");
-                                return itemSize.length > 0
-                                        && itemSize !== "undefined"
+                                var itemSize = String(fileDelegate.size || "");
+                                return itemSize.length > 0 && itemSize !== "undefined"
                                     ? fileDelegate.type + " · " + itemSize
                                     : fileDelegate.type;
                             }
@@ -487,10 +493,211 @@ Window {
                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
             }
 
+            // MODE 1: GRIDANSICHT (GRID VIEW)
+            GridView {
+                id: fileGrid
+                anchors.fill: parent
+                visible: root.viewMode === 1
+                clip: true
+                cellWidth: 98
+                cellHeight: 96
+                model: root.folderModel
+                boundsBehavior: Flickable.StopAtBounds
+                reuseItems: true
+                cacheBuffer: 104
+
+                delegate: Item {
+                    id: gridDelegate
+                    required property int index
+                    required property bool isDir
+                    required property var size
+                    required property string type
+                    required property string display
+                    required property var decoration
+
+                    width: GridView.view.cellWidth
+                    height: GridView.view.cellHeight
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        radius: 10
+                        color: gridHover.hovered
+                            ? Kirigami.Theme.highlightColor
+                            : Kirigami.Theme.alternateBackgroundColor
+                        opacity: gridHover.hovered ? 0.28 : 0.45
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 100 }
+                        }
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        spacing: 2
+
+                        Kirigami.Icon {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.preferredWidth: 44
+                            Layout.preferredHeight: 44
+                            source: gridDelegate.decoration
+                        }
+
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: gridDelegate.display
+                            font.pixelSize: 11
+                            font.weight: Font.Medium
+                            horizontalAlignment: Text.AlignHCenter
+                            maximumLineCount: 2
+                            wrapMode: Text.WrapAnywhere
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    HoverHandler {
+                        id: gridHover
+                        cursorShape: Qt.PointingHandCursor
+                    }
+
+                    TapHandler {
+                        onTapped: {
+                            if (gridDelegate.isDir) {
+                                root.folderModel.cd(gridDelegate.index);
+                            } else {
+                                root.folderModel.run(gridDelegate.index);
+                                root.close();
+                            }
+                        }
+                    }
+                }
+
+                QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+            }
+
+            // MODE 2: STAPELANSICHT / FAN VIEW (macOS FAN VIEW)
+            ListView {
+                id: fileFanList
+                anchors.fill: parent
+                visible: root.viewMode === 2
+                clip: true
+                spacing: 6
+                model: root.folderModel
+                boundsBehavior: Flickable.StopAtBounds
+                reuseItems: true
+                cacheBuffer: 104
+
+                delegate: Item {
+                    id: fanDelegate
+                    required property int index
+                    required property bool isDir
+                    required property var size
+                    required property string type
+                    required property string display
+                    required property var decoration
+
+                    width: ListView.view.width
+                    height: 44
+
+                    // macOS Fan Arc Curved Layout Shift
+                    readonly property real arcOffset: Math.sin(
+                        Math.min(1.0, fanDelegate.index / Math.max(1, (fileFanList.count || 1) - 1)) * Math.PI * 0.7
+                    ) * 28
+
+                    Item {
+                        anchors.fill: parent
+                        anchors.leftMargin: Math.max(4, fanDelegate.arcOffset)
+                        anchors.rightMargin: Math.max(4, 28 - fanDelegate.arcOffset)
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 12
+                            color: fanHover.hovered
+                                ? Kirigami.Theme.highlightColor
+                                : Kirigami.Theme.alternateBackgroundColor
+                            opacity: fanHover.hovered ? 0.32 : 0.68
+                            border.color: fanHover.hovered
+                                ? Kirigami.Theme.hoverColor
+                                : Qt.rgba(255, 255, 255, 0.1)
+                            border.width: 1
+
+                            scale: fanHover.hovered ? 1.02 : 1.0
+                            Behavior on scale {
+                                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                            }
+                            Behavior on opacity {
+                                NumberAnimation { duration: 100 }
+                            }
+                        }
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: Kirigami.Units.smallSpacing + 2
+                            anchors.rightMargin: Kirigami.Units.smallSpacing + 2
+                            spacing: Kirigami.Units.smallSpacing
+
+                            Kirigami.Icon {
+                                Layout.preferredWidth: 32
+                                Layout.preferredHeight: 32
+                                source: fanDelegate.decoration
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                QQC2.Label {
+                                    Layout.fillWidth: true
+                                    text: fanDelegate.display
+                                    font.weight: Font.Bold
+                                    font.pixelSize: 12
+                                    elide: Text.ElideMiddle
+                                }
+
+                                QQC2.Label {
+                                    Layout.fillWidth: true
+                                    text: {
+                                        var itemSize = String(fanDelegate.size || "");
+                                        return itemSize.length > 0 && itemSize !== "undefined"
+                                            ? fanDelegate.type + " · " + itemSize
+                                            : fanDelegate.type;
+                                    }
+                                    font.pixelSize: 10
+                                    opacity: 0.7
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        HoverHandler {
+                            id: fanHover
+                            cursorShape: Qt.PointingHandCursor
+                        }
+
+                        TapHandler {
+                            onTapped: {
+                                if (fanDelegate.isDir) {
+                                    root.folderModel.cd(fanDelegate.index);
+                                } else {
+                                    root.folderModel.run(fanDelegate.index);
+                                    root.close();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+            }
+
+            // Empty Folder Label
             QQC2.Label {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.largeSpacing
-                visible: fileList.count === 0
+                visible: (root.viewMode === 0 && fileList.count === 0)
+                      || (root.viewMode === 1 && fileGrid.count === 0)
+                      || (root.viewMode === 2 && fileFanList.count === 0)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap

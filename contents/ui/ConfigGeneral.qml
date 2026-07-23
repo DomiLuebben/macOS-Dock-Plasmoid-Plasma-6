@@ -30,6 +30,7 @@ KCM.SimpleKCM {
     property alias cfg_hideOnMaximized: hideOnMaximizedCheckBox.checked
     property alias cfg_launchAnimation: launchAnimationCombo.currentIndex
     property alias cfg_showFolderView: showFolderViewCheckBox.checked
+    property alias cfg_folderViewMode: folderViewModeCombo.currentIndex
     property alias cfg_folderUrl: folderUrlField.text
     property var cfg_folderUrls: []
     property alias cfg_showTrash: showTrashCheckBox.checked
@@ -334,6 +335,15 @@ KCM.SimpleKCM {
                 id: showPowerButtonCheckBox
                 text: i18n("Show power button")
             }
+        }
+
+        QQC2.ComboBox {
+            id: folderViewModeCombo
+
+            Kirigami.FormData.label: i18n("Folder view mode:")
+            Layout.fillWidth: true
+            enabled: showFolderViewCheckBox.checked
+            model: [i18n("List View"), i18n("Grid View"), i18n("Fan / Stack View")]
         }
 
         QQC2.ComboBox {
