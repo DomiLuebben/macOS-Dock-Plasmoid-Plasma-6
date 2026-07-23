@@ -6,6 +6,7 @@
 #include <QVariant>
 #include <QList>
 #include <QString>
+#include <QSet>
 
 class RemovableVolumesModel : public QAbstractListModel
 {
@@ -64,14 +65,16 @@ private slots:
     void onDeviceRemoved(const QString &udi);
     void onAccessibilityChanged(bool accessible, const QString &udi);
     void onTeardownDone(int error, const QVariant &errorData, const QString &udi);
+    void onEjectDone(int error, const QVariant &errorData, const QString &udi);
 
 private:
     void refreshModel();
-    bool shouldIncludeDevice(const QString &udi, VolumeItem &itemOut);
+    bool isCandidateDevice(const QString &udi, VolumeItem &itemOut, bool requireMounted = true);
     int findRowByUdi(const QString &udi) const;
     void connectDeviceSignals(const QString &udi);
 
     QList<VolumeItem> m_items;
+    QSet<QString> m_watchedUdis;
 };
 
 #endif // REMOVABLEVOLUMESMODEL_H

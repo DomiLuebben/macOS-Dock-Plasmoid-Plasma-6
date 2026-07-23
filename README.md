@@ -41,7 +41,7 @@ color scheme.
 
 - KDE Plasma 6
 - Qt 6 with Qt Quick/QML
-- KDE Frameworks 6 WindowSystem and Service
+- KDE Frameworks 6 WindowSystem, Service, Solid, I18n, and KIO
 - CMake and a C++17 compiler
 - Gettext (`msgfmt`) for the translation catalogs
 
@@ -51,7 +51,7 @@ integration remains inactive without affecting the Dock.
 On Arch Linux, the build dependencies can be installed with:
 
 ```bash
-sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem
+sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem ksolid ki18n kio
 ```
 
 ## Installation

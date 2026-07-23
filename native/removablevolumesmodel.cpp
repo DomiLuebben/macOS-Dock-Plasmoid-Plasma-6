@@ -1,3 +1,7 @@
+#ifndef TRANSLATION_DOMAIN
+#define TRANSLATION_DOMAIN "plasma_applet_org.kde.plasma.macosdock"
+#endif
+
 #include "removablevolumesmodel.h"
 
 #include <Solid/Device>
@@ -100,7 +104,7 @@ int RemovableVolumesModel::findRowByUdi(const QString &udi) const
     return -1;
 }
 
-bool RemovableVolumesModel::shouldIncludeDevice(const QString &udi, VolumeItem &itemOut)
+bool RemovableVolumesModel::isCandidateDevice(const QString &udi, VolumeItem &itemOut, bool requireMounted)
 {
     Solid::Device dev(udi);
     if (!dev.isValid()) {
@@ -108,12 +112,7 @@ bool RemovableVolumesModel::shouldIncludeDevice(const QString &udi, VolumeItem &
     }
 
     auto *access = dev.as<Solid::StorageAccess>();
-    if (!access || access->isIgnored() || !access->isAccessible()) {
-        return false;
-    }
-
-    QString filePath = access->filePath();
-    if (filePath.isEmpty() || filePath == QStringLiteral("/")) {
+    if (!access) {
         return false;
     }
 
@@ -128,12 +127,12 @@ bool RemovableVolumesModel::shouldIncludeDevice(const QString &udi, VolumeItem &
 
     if (!isOptical) {
         auto *volume = dev.as<Solid::StorageVolume>();
-        if (!volume || volume->isIgnored() || volume->usage() != Solid::StorageVolume::FileSystem) {
+        if (!volume || volume->usage() != Solid::StorageVolume::FileSystem) {
             return false;
         }
     }
 
-    // Find parent StorageDrive to check if removable or hotpluggable
+    // Check parent StorageDrive
     Solid::Device parentDev = dev;
     Solid::StorageDrive *drive = nullptr;
     while (parentDev.isValid()) {
@@ -150,6 +149,17 @@ bool RemovableVolumesModel::shouldIncludeDevice(const QString &udi, VolumeItem &
 
     if (!drive->isRemovable() && !drive->isHotpluggable()) {
         return false;
+    }
+
+    if (requireMounted) {
+        if (!access->isAccessible()) {
+            return false;
+        }
+        QString filePath = access->filePath();
+        if (filePath.isEmpty() || filePath == QStringLiteral("/")) {
+            return false;
+        }
+        itemOut.mountUrl = QUrl::fromLocalFile(filePath);
     }
 
     itemOut.udi = udi;
@@ -170,7 +180,6 @@ bool RemovableVolumesModel::shouldIncludeDevice(const QString &udi, VolumeItem &
         itemOut.iconName = isOptical ? QStringLiteral("media-optical") : QStringLiteral("drive-removable-media");
     }
 
-    itemOut.mountUrl = QUrl::fromLocalFile(filePath);
     itemOut.kind = isOptical ? QStringLiteral("optical") : QStringLiteral("filesystem");
     itemOut.mounted = access->isAccessible();
     itemOut.busy = false;
@@ -184,6 +193,10 @@ bool RemovableVolumesModel::shouldIncludeDevice(const QString &udi, VolumeItem &
 
 void RemovableVolumesModel::connectDeviceSignals(const QString &udi)
 {
+    if (m_watchedUdis.contains(udi)) {
+        return;
+    }
+
     Solid::Device dev(udi);
     if (!dev.isValid()) {
         return;
@@ -192,14 +205,26 @@ void RemovableVolumesModel::connectDeviceSignals(const QString &udi)
     auto *access = dev.as<Solid::StorageAccess>();
     if (access) {
         connect(access, &Solid::StorageAccess::accessibilityChanged,
-                this, [this, udi](bool accessible) {
-            onAccessibilityChanged(accessible, udi);
-        }, Qt::UniqueConnection);
+                this, &RemovableVolumesModel::onAccessibilityChanged, Qt::UniqueConnection);
 
         connect(access, &Solid::StorageAccess::teardownDone,
-                this, [this, udi](Solid::ErrorType error, const QVariant &errorData) {
-            onTeardownDone(static_cast<int>(error), errorData, udi);
-        }, Qt::UniqueConnection);
+                this, &RemovableVolumesModel::onTeardownDone, Qt::UniqueConnection);
+
+        m_watchedUdis.insert(udi);
+    }
+
+    // Connect optical drive signals if applicable
+    Solid::Device parentDev = dev;
+    while (parentDev.isValid()) {
+        if (parentDev.isDeviceInterface(Solid::DeviceInterface::OpticalDrive)) {
+            auto *optical = parentDev.as<Solid::OpticalDrive>();
+            if (optical) {
+                connect(optical, &Solid::OpticalDrive::ejectDone,
+                        this, &RemovableVolumesModel::onEjectDone, Qt::UniqueConnection);
+            }
+            break;
+        }
+        parentDev = parentDev.parent();
     }
 }
 
@@ -212,22 +237,23 @@ void RemovableVolumesModel::refreshModel()
     for (const Solid::Device &dev : volumeDevices) {
         const QString udi = dev.udi();
         VolumeItem item;
-        if (shouldIncludeDevice(udi, item)) {
-            m_items.append(item);
+        if (isCandidateDevice(udi, item, false)) {
             connectDeviceSignals(udi);
+            if (item.mounted) {
+                m_items.append(item);
+            }
         }
     }
 
     const auto opticalDevices = Solid::Device::listFromType(Solid::DeviceInterface::OpticalDisc);
     for (const Solid::Device &dev : opticalDevices) {
         const QString udi = dev.udi();
-        if (findRowByUdi(udi) != -1) {
-            continue;
-        }
         VolumeItem item;
-        if (shouldIncludeDevice(udi, item)) {
-            m_items.append(item);
+        if (isCandidateDevice(udi, item, false)) {
             connectDeviceSignals(udi);
+            if (findRowByUdi(udi) == -1 && item.mounted) {
+                m_items.append(item);
+            }
         }
     }
 
@@ -237,23 +263,22 @@ void RemovableVolumesModel::refreshModel()
 
 void RemovableVolumesModel::onDeviceAdded(const QString &udi)
 {
-    if (findRowByUdi(udi) != -1) {
-        return;
-    }
-
     VolumeItem item;
-    if (shouldIncludeDevice(udi, item)) {
-        int newRow = m_items.size();
-        beginInsertRows(QModelIndex(), newRow, newRow);
-        m_items.append(item);
-        endInsertRows();
+    if (isCandidateDevice(udi, item, false)) {
         connectDeviceSignals(udi);
-        emit countChanged();
+        if (item.mounted && findRowByUdi(udi) == -1) {
+            int newRow = m_items.size();
+            beginInsertRows(QModelIndex(), newRow, newRow);
+            m_items.append(item);
+            endInsertRows();
+            emit countChanged();
+        }
     }
 }
 
 void RemovableVolumesModel::onDeviceRemoved(const QString &udi)
 {
+    m_watchedUdis.remove(udi);
     int row = findRowByUdi(udi);
     if (row != -1) {
         beginRemoveRows(QModelIndex(), row, row);
@@ -266,13 +291,20 @@ void RemovableVolumesModel::onDeviceRemoved(const QString &udi)
 void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QString &udi)
 {
     int row = findRowByUdi(udi);
-    if (!accessible && row != -1) {
+    if (accessible && row == -1) {
+        VolumeItem item;
+        if (isCandidateDevice(udi, item, true)) {
+            int newRow = m_items.size();
+            beginInsertRows(QModelIndex(), newRow, newRow);
+            m_items.append(item);
+            endInsertRows();
+            emit countChanged();
+        }
+    } else if (!accessible && row != -1) {
         beginRemoveRows(QModelIndex(), row, row);
         m_items.removeAt(row);
         endRemoveRows();
         emit countChanged();
-    } else if (accessible && row == -1) {
-        onDeviceAdded(udi);
     }
 }
 
@@ -290,7 +322,33 @@ void RemovableVolumesModel::onTeardownDone(int error, const QVariant &errorData,
     if (error != 0) { // Solid::NoError == 0
         QString msg = errorData.toString();
         if (msg.isEmpty()) {
-            msg = i18n("Failed to unmount device.");
+            msg = i18n("Failed to unmount volume.");
+        }
+        item.errorText = msg;
+        QModelIndex idx = createIndex(row, 0);
+        emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
+        emit operationFailed(udi, msg);
+    } else {
+        item.errorText.clear();
+        emit operationSucceeded(udi);
+    }
+}
+
+void RemovableVolumesModel::onEjectDone(int error, const QVariant &errorData, const QString &udi)
+{
+    int row = findRowByUdi(udi);
+    if (row == -1) {
+        return;
+    }
+
+    VolumeItem &item = m_items[row];
+    item.busy = false;
+    item.operation = QStringLiteral("idle");
+
+    if (error != 0) {
+        QString msg = errorData.toString();
+        if (msg.isEmpty()) {
+            msg = i18n("Failed to eject optical disc.");
         }
         item.errorText = msg;
         QModelIndex idx = createIndex(row, 0);
@@ -341,18 +399,32 @@ void RemovableVolumesModel::remove(const QString &udi)
         return;
     }
 
-    if (dev.isDeviceInterface(Solid::DeviceInterface::OpticalDrive)) {
-        auto *optical = dev.as<Solid::OpticalDrive>();
-        if (optical) {
-            item.busy = true;
-            item.operation = QStringLiteral("ejecting");
-            item.errorText.clear();
-            QModelIndex idx = createIndex(row, 0);
-            emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
-
-            optical->eject();
-            return;
+    // Check optical drive parent / interface
+    Solid::Device parentDev = dev;
+    Solid::OpticalDrive *optical = nullptr;
+    while (parentDev.isValid()) {
+        if (parentDev.isDeviceInterface(Solid::DeviceInterface::OpticalDrive)) {
+            optical = parentDev.as<Solid::OpticalDrive>();
+            break;
         }
+        parentDev = parentDev.parent();
+    }
+
+    if (optical) {
+        item.busy = true;
+        item.operation = QStringLiteral("ejecting");
+        item.errorText.clear();
+        QModelIndex idx = createIndex(row, 0);
+        emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
+
+        if (!optical->eject()) {
+            item.busy = false;
+            item.operation = QStringLiteral("idle");
+            item.errorText = i18n("Could not initiate eject.");
+            emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
+            emit operationFailed(udi, item.errorText);
+        }
+        return;
     }
 
     auto *access = dev.as<Solid::StorageAccess>();

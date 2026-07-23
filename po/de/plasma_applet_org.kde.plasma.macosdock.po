@@ -351,3 +351,33 @@ msgstr "Erneut von %1 öffnen"
 
 msgid "Recent share from %1"
 msgstr "Kürzlich von %1 geteilt"
+
+msgid "Show removable drives"
+msgstr "Wechselmedien anzeigen"
+
+msgid "Open Volume"
+msgstr "Volume öffnen"
+
+msgid "Unmount Volume"
+msgstr "Volume aushängen"
+
+msgid "Eject Disc"
+msgstr "Medium auswerfen"
+
+msgid "Unmounting…"
+msgstr "Aushängen …"
+
+msgid "Ejecting…"
+msgstr "Auswerfen …"
+
+msgid "Failed to unmount volume."
+msgstr "Volume konnte nicht ausgehängt werden."
+
+msgid "Failed to eject optical disc."
+msgstr "Optisches Medium konnte nicht ausgeworfen werden."
+
+msgid "Could not initiate unmounting."
+msgstr "Aushängevorgang konnte nicht gestartet werden."
+
+msgid "Could not initiate eject."
+msgstr "Auswurfvorgang konnte nicht gestartet werden."

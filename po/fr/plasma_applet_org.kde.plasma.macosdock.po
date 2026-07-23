@@ -351,3 +351,33 @@ msgstr "Rouvrir depuis %1"
 
 msgid "Recent share from %1"
 msgstr "Partage récent depuis %1"
+
+msgid "Show removable drives"
+msgstr "Afficher les lecteurs amovibles"
+
+msgid "Open Volume"
+msgstr "Ouvrir le volume"
+
+msgid "Unmount Volume"
+msgstr "Démonter le volume"
+
+msgid "Eject Disc"
+msgstr "Éjecter le disque"
+
+msgid "Unmounting…"
+msgstr "Démontage…"
+
+msgid "Ejecting…"
+msgstr "Éjection…"
+
+msgid "Failed to unmount volume."
+msgstr "Échec du démontage du volume."
+
+msgid "Failed to eject optical disc."
+msgstr "Échec de l'éjection du disque optique."
+
+msgid "Could not initiate unmounting."
+msgstr "Impossible d'initier le démontage."
+
+msgid "Could not initiate eject."
+msgstr "Impossible d'initier l'éjection."

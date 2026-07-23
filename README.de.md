@@ -40,7 +40,7 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 
 - KDE Plasma 6
 - Qt 6 mit Qt Quick/QML
-- KDE Frameworks 6 WindowSystem und Service
+- KDE Frameworks 6 WindowSystem, Service, Solid, I18n und KIO
 - CMake und ein C++17-Compiler
 - Gettext (`msgfmt`) für die Übersetzungskataloge
 
@@ -52,7 +52,7 @@ Unter Arch Linux werden die Build-Abhängigkeiten beispielsweise mit folgendem
 Befehl installiert:
 
 ```bash
-sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem
+sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem ksolid ki18n kio
 ```
 
 ## Installation

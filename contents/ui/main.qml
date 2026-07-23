@@ -2295,10 +2295,11 @@ PlasmoidItem {
         DropArea {
             anchors.fill: parent
             enabled: utilityDelegate.isTrash
-            keys: ["org.kde.plasma.macosdock.removable-volume"]
 
             onEntered: (drag) => {
-                root.isVolumeDragOverTrash = true;
+                if (drag.keys && drag.keys.indexOf("org.kde.plasma.macosdock.removable-volume") !== -1) {
+                    root.isVolumeDragOverTrash = true;
+                }
                 utilityDelegate.dropTarget = true;
             }
             onExited: {
@@ -2429,6 +2430,7 @@ PlasmoidItem {
         required property bool volumeMounted
         required property bool volumeBusy
         required property string volumeOperation
+        property string volumeKind: "filesystem"
 
         appName: volumeDisplayName
         appIcon: volumeIconName.length > 0 ? volumeIconName : "drive-removable-media"
@@ -2446,6 +2448,8 @@ PlasmoidItem {
 
         Item {
             id: dragProxy
+            width: volumeDelegate.width
+            height: volumeDelegate.height
             Drag.active: volumeDragHandler.active
             Drag.keys: ["org.kde.plasma.macosdock.removable-volume"]
             Drag.source: volumeDelegate
@@ -2454,12 +2458,14 @@ PlasmoidItem {
 
         DragHandler {
             id: volumeDragHandler
-            target: null
+            target: dragProxy
             onActiveChanged: {
                 if (active) {
                     dragProxy.Drag.start();
                 } else {
                     dragProxy.Drag.drop();
+                    dragProxy.x = 0;
+                    dragProxy.y = 0;
                 }
             }
         }
@@ -2468,7 +2474,7 @@ PlasmoidItem {
             id: volumeMenu
 
             QQC2.MenuItem {
-                text: i18n("Open Drive")
+                text: i18n("Open Volume")
                 icon.name: "document-open-folder"
                 enabled: !volumeDelegate.volumeBusy
                 onTriggered: removableVolumesModel.open(volumeDelegate.volumeUdi)
@@ -2479,7 +2485,9 @@ PlasmoidItem {
                     ? i18n("Ejecting…")
                     : (volumeDelegate.volumeOperation === "unmounting"
                         ? i18n("Unmounting…")
-                        : i18n("Eject Drive"))
+                        : (volumeDelegate.volumeKind === "optical"
+                            ? i18n("Eject Disc")
+                            : i18n("Unmount Volume")))
                 icon.name: "media-eject"
                 enabled: !volumeDelegate.volumeBusy
                 onTriggered: removableVolumesModel.remove(volumeDelegate.volumeUdi)
@@ -2785,6 +2793,7 @@ PlasmoidItem {
                     required property string udi
                     required property string displayName
                     required property string iconName
+                    required property string kind
                     required property bool mounted
                     required property bool busy
                     required property string operation
@@ -2792,6 +2801,7 @@ PlasmoidItem {
                     volumeUdi: udi
                     volumeDisplayName: displayName
                     volumeIconName: iconName
+                    volumeKind: kind
                     volumeMounted: mounted
                     volumeBusy: busy
                     volumeOperation: operation
@@ -3356,6 +3366,7 @@ PlasmoidItem {
                         required property string udi
                         required property string displayName
                         required property string iconName
+                        required property string kind
                         required property bool mounted
                         required property bool busy
                         required property string operation
@@ -3363,6 +3374,7 @@ PlasmoidItem {
                         volumeUdi: udi
                         volumeDisplayName: displayName
                         volumeIconName: iconName
+                        volumeKind: kind
                         volumeMounted: mounted
                         volumeBusy: busy
                         volumeOperation: operation
