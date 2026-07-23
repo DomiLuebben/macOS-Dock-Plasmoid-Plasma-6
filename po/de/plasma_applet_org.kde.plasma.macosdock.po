@@ -345,3 +345,9 @@ msgstr "Download- und Fortschrittsanzeigen anzeigen"
 
 msgid "Show KDE Connect recent shares"
 msgstr "KDE Connect Kürzlich geteilte Elemente anzeigen"
+
+msgid "Von %1 erneut öffnen"
+msgstr "Von %1 erneut öffnen"
+
+msgid "Recent share from %1"
+msgstr "Kürzlich von %1 geteilt"

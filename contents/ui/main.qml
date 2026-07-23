@@ -220,9 +220,18 @@ PlasmoidItem {
         Plasmoid.configuration.showProgressIndicators === undefined
             ? true : Boolean(Plasmoid.configuration.showProgressIndicators)
 
+    readonly property bool showKdeConnectRecentShares:
+        Plasmoid.configuration.showKdeConnectRecentShares === undefined
+            ? true : Boolean(Plasmoid.configuration.showKdeConnectRecentShares)
+
     ProgressController {
         id: progressController
         enabled: root.showProgressIndicators
+    }
+
+    DockEffects.KdeConnectShareMonitor {
+        id: kdeConnectMonitor
+        enabled: root.showKdeConnectRecentShares
     }
     property bool maximizedWindowPresent: false
     property bool fullscreenWindowPresent: false
@@ -1634,6 +1643,21 @@ PlasmoidItem {
         progressValue: Number(progressInfo.progress)
         progressIndeterminate: Boolean(progressInfo.indeterminate)
 
+        readonly property var recentShareInfo: (root.showKdeConnectRecentShares && kdeConnectMonitor.active)
+            ? kdeConnectMonitor.getLatestShareForApp(
+                model.AppId || model.LauncherUrlWithoutIcon || model.LauncherUrl,
+                model.AppName || model.display)
+            : null
+
+        hasRecentShare: Boolean(recentShareInfo && recentShareInfo.url)
+        recentShareDevice: recentShareInfo ? String(recentShareInfo.deviceName || "") : ""
+        recentShareUrl: recentShareInfo ? String(recentShareInfo.url || "") : ""
+        onRecentShareClicked: {
+            if (recentShareInfo && recentShareInfo.url) {
+                kdeConnectMonitor.openShareUrl(recentShareInfo.url);
+            }
+        }
+
         Behavior on currentScale {
             NumberAnimation {
                 duration: 75
@@ -1779,6 +1803,19 @@ PlasmoidItem {
                 icon.name: "window-new"
                 visible: taskDelegate.canOpenNewInstance
                 onTriggered: root.launchNewInstance(taskDelegate.index)
+            }
+
+            QQC2.MenuItem {
+                text: taskDelegate.hasRecentShare
+                    ? i18n("Von %1 erneut öffnen", taskDelegate.recentShareDevice)
+                    : ""
+                icon.name: "preferences-kde-connect"
+                visible: taskDelegate.hasRecentShare && taskDelegate.recentShareUrl.length > 0
+                onTriggered: {
+                    if (taskDelegate.recentShareUrl.length > 0) {
+                        kdeConnectMonitor.openShareUrl(taskDelegate.recentShareUrl);
+                    }
+                }
             }
 
             QQC2.MenuSeparator {}

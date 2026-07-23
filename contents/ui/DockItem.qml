@@ -28,6 +28,11 @@ Item {
     property real progressValue: 0.0
     property bool progressIndeterminate: false
 
+    property bool hasRecentShare: false
+    property string recentShareDevice: ""
+    property string recentShareUrl: ""
+    signal recentShareClicked()
+
     readonly property real scaledSize: baseSize * currentScale
     readonly property real indicatorSize: 3
     readonly property real indicatorGap: 2
@@ -503,6 +508,19 @@ Item {
                 ProgressOverlay {
                     progressValue: root.progressValue
                     indeterminate: root.progressIndeterminate
+                }
+            }
+        }
+
+        Loader {
+            id: recentShareBadgeLoader
+            anchors.fill: parent
+            active: root.hasRecentShare && root.recentShareUrl.length > 0
+            sourceComponent: Component {
+                RecentShareBadge {
+                    deviceName: root.recentShareDevice
+                    shareUrl: root.recentShareUrl
+                    onClicked: root.recentShareClicked()
                 }
             }
         }

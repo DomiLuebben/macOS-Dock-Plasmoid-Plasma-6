@@ -13,6 +13,8 @@ find_package(KF6WindowSystem REQUIRED)
 add_library(macosdockeffectsplugin MODULE
     blurregion.cpp
     blurregion.h
+    kdeconnectsharemonitor.cpp
+    kdeconnectsharemonitor.h
     launcherprogressmonitor.cpp
     launcherprogressmonitor.h
     plugin.cpp

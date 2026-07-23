@@ -345,3 +345,9 @@ msgstr "Afficher les indicateurs de progression des téléchargements et des tâ
 
 msgid "Show KDE Connect recent shares"
 msgstr "Afficher les partages récents KDE Connect"
+
+msgid "Von %1 erneut öffnen"
+msgstr "Rouvrir depuis %1"
+
+msgid "Recent share from %1"
+msgstr "Partage récent depuis %1"
