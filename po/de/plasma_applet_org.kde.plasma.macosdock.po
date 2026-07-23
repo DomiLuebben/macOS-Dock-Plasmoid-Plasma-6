@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.9.5\n"
-"PO-Revision-Date: 2026-07-22 00:00+0200\n"
+"PO-Revision-Date: 2026-07-23 00:00+0200\n"
 "Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
 "Language-Team: German\n"
 "Language: de\n"
@@ -189,6 +189,18 @@ msgstr "Werkzeuge:"
 
 msgid "Show folder view"
 msgstr "Ordneransicht anzeigen"
+
+msgid "Folder view mode:"
+msgstr "Darstellung der Ordneransicht:"
+
+msgid "List View"
+msgstr "Listenansicht"
+
+msgid "Grid View"
+msgstr "Rasteransicht"
+
+msgid "Fan / Stack View"
+msgstr "Fächer-/Stapelansicht"
 
 msgid "Show Trash"
 msgstr "Papierkorb anzeigen"

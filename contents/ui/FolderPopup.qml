@@ -24,13 +24,10 @@ Window {
     property real shadowOpacity: 0.42
     property bool showHighlight: true
     property bool blurEnabled: true
-    property int viewMode: 0 // 0: List, 1: Grid, 2: Fan / Stack
-
-    onViewModeChanged: {
-        if (viewMode < 0 || viewMode > 2) {
-            viewMode = 0;
-        }
-    }
+    readonly property int listViewMode: 0
+    readonly property int gridViewMode: 1
+    readonly property int fanViewMode: 2
+    property int viewMode: listViewMode
 
     readonly property bool isVertical:
         location === PlasmaCore.Types.LeftEdge
@@ -49,10 +46,14 @@ Window {
     property bool positionPending: false
 
     signal openFolderRequested(url folderUrl)
+    signal viewModeRequested(int mode)
 
-    width: root.viewMode === 1 ? 420 : (root.viewMode === 2 ? 380 : 356)
+    width: root.viewMode === root.gridViewMode
+        ? 420 : (root.viewMode === root.fanViewMode ? 380 : 356)
     height: screen
-        ? Math.max(minimumHeight, Math.min(root.viewMode === 2 ? 460 : 410, screen.height - 48)) : 410
+        ? Math.max(minimumHeight, Math.min(
+            root.viewMode === root.fanViewMode ? 460 : 410,
+            screen.height - 48)) : 410
     minimumWidth: 290
     minimumHeight: 280
     flags: Qt.FramelessWindowHint
@@ -108,6 +109,32 @@ Window {
         var slash = path.lastIndexOf("/");
         var name = slash >= 0 ? path.substring(slash + 1) : path;
         return name.length > 0 ? name : i18n("Folder");
+    }
+
+    function entryDetails(type, size) {
+        var entryType = String(type || "");
+        var entrySize = String(size || "");
+        return entrySize.length > 0
+            ? entryType + " · " + entrySize : entryType;
+    }
+
+    function activateEntry(index, isDirectory) {
+        if (!folderModel) {
+            return;
+        }
+        if (isDirectory) {
+            folderModel.cd(index);
+        } else {
+            folderModel.run(index);
+            close();
+        }
+    }
+
+    function requestViewMode(mode) {
+        if (mode >= listViewMode && mode <= fanViewMode
+                && mode !== viewMode) {
+            viewModeRequested(mode);
+        }
     }
 
     function showPopup() {
@@ -251,7 +278,6 @@ Window {
         anchors.margins: Kirigami.Units.smallSpacing
         spacing: Kirigami.Units.smallSpacing
 
-        // Top Navigation & Title Bar
         RowLayout {
             Layout.fillWidth: true
             spacing: Kirigami.Units.smallSpacing
@@ -299,13 +325,11 @@ Window {
             }
         }
 
-        // View Mode & Sorting Control Bar (macOS Tahoe style)
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 40
             radius: 8
             color: Kirigami.Theme.alternateBackgroundColor
-            opacity: 0.86
 
             RowLayout {
                 anchors.fill: parent
@@ -313,13 +337,14 @@ Window {
                 anchors.rightMargin: Math.max(2, Kirigami.Units.smallSpacing / 2)
                 spacing: Kirigami.Units.smallSpacing
 
-                // View Mode Segmented Switcher (List / Grid / Fan)
                 Rectangle {
                     Layout.preferredWidth: 108
                     Layout.preferredHeight: 28
                     radius: 6
-                    color: Qt.rgba(0, 0, 0, 0.18)
-                    border.color: Qt.rgba(255, 255, 255, 0.12)
+                    color: Kirigami.Theme.backgroundColor
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                        Kirigami.Theme.textColor.g,
+                        Kirigami.Theme.textColor.b, 0.16)
                     border.width: 1
 
                     RowLayout {
@@ -327,39 +352,48 @@ Window {
                         spacing: 0
 
                         QQC2.ToolButton {
+                            id: listViewButton
+
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            text: i18n("List View")
+                            display: QQC2.AbstractButton.IconOnly
                             icon.name: "view-list-details"
-                            checkable: true
-                            checked: root.viewMode === 0
-                            onClicked: root.viewMode = 0
+                            checked: root.viewMode === root.listViewMode
+                            onClicked: root.requestViewMode(root.listViewMode)
 
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: i18n("List View")
+                            QQC2.ToolTip.text: listViewButton.text
                         }
 
                         QQC2.ToolButton {
+                            id: gridViewButton
+
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            text: i18n("Grid View")
+                            display: QQC2.AbstractButton.IconOnly
                             icon.name: "view-grid"
-                            checkable: true
-                            checked: root.viewMode === 1
-                            onClicked: root.viewMode = 1
+                            checked: root.viewMode === root.gridViewMode
+                            onClicked: root.requestViewMode(root.gridViewMode)
 
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: i18n("Grid View")
+                            QQC2.ToolTip.text: gridViewButton.text
                         }
 
                         QQC2.ToolButton {
+                            id: fanViewButton
+
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            icon.name: "view-pages"
-                            checkable: true
-                            checked: root.viewMode === 2
-                            onClicked: root.viewMode = 2
+                            text: i18n("Fan / Stack View")
+                            display: QQC2.AbstractButton.IconOnly
+                            icon.name: "view-list-icons"
+                            checked: root.viewMode === root.fanViewMode
+                            onClicked: root.requestViewMode(root.fanViewMode)
 
                             QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: i18n("Fan / Stack View")
+                            QQC2.ToolTip.text: fanViewButton.text
                         }
                     }
                 }
@@ -400,19 +434,18 @@ Window {
             }
         }
 
-        // Main Content Area (List / Grid / Fan View)
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // MODE 0: LISTENANSICHT (LIST VIEW)
             ListView {
                 id: fileList
                 anchors.fill: parent
-                visible: root.viewMode === 0
+                visible: root.viewMode === root.listViewMode
                 clip: true
                 spacing: Math.max(2, Kirigami.Units.smallSpacing / 2)
-                model: root.folderModel
+                model: root.visible && fileList.visible
+                    ? root.folderModel : null
                 boundsBehavior: Flickable.StopAtBounds
                 reuseItems: true
                 cacheBuffer: 104
@@ -468,12 +501,8 @@ Window {
 
                         QQC2.Label {
                             width: parent.width
-                            text: {
-                                var itemSize = String(fileDelegate.size || "");
-                                return itemSize.length > 0 && itemSize !== "undefined"
-                                    ? fileDelegate.type + " · " + itemSize
-                                    : fileDelegate.type;
-                            }
+                            text: root.entryDetails(fileDelegate.type,
+                                fileDelegate.size)
                             opacity: 0.66
                             elide: Text.ElideRight
                         }
@@ -485,29 +514,23 @@ Window {
                     }
 
                     TapHandler {
-                        onTapped: {
-                            if (fileDelegate.isDir) {
-                                root.folderModel.cd(fileDelegate.index);
-                            } else {
-                                root.folderModel.run(fileDelegate.index);
-                                root.close();
-                            }
-                        }
+                        onTapped: root.activateEntry(fileDelegate.index,
+                            fileDelegate.isDir)
                     }
                 }
 
                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
             }
 
-            // MODE 1: GRIDANSICHT (GRID VIEW)
             GridView {
                 id: fileGrid
                 anchors.fill: parent
-                visible: root.viewMode === 1
+                visible: root.viewMode === root.gridViewMode
                 clip: true
                 cellWidth: 98
                 cellHeight: 96
-                model: root.folderModel
+                model: root.visible && fileGrid.visible
+                    ? root.folderModel : null
                 boundsBehavior: Flickable.StopAtBounds
                 reuseItems: true
                 cacheBuffer: 104
@@ -516,8 +539,6 @@ Window {
                     id: gridDelegate
                     required property int index
                     required property bool isDir
-                    required property var size
-                    required property string type
                     required property string display
                     required property var decoration
 
@@ -568,28 +589,22 @@ Window {
                     }
 
                     TapHandler {
-                        onTapped: {
-                            if (gridDelegate.isDir) {
-                                root.folderModel.cd(gridDelegate.index);
-                            } else {
-                                root.folderModel.run(gridDelegate.index);
-                                root.close();
-                            }
-                        }
+                        onTapped: root.activateEntry(gridDelegate.index,
+                            gridDelegate.isDir)
                     }
                 }
 
                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
             }
 
-            // MODE 2: STAPELANSICHT / FAN VIEW (macOS FAN VIEW)
             ListView {
                 id: fileFanList
                 anchors.fill: parent
-                visible: root.viewMode === 2
+                visible: root.viewMode === root.fanViewMode
                 clip: true
                 spacing: 6
-                model: root.folderModel
+                model: root.visible && fileFanList.visible
+                    ? root.folderModel : null
                 boundsBehavior: Flickable.StopAtBounds
                 reuseItems: true
                 cacheBuffer: 104
@@ -606,9 +621,9 @@ Window {
                     width: ListView.view.width
                     height: 44
 
-                    // macOS Fan Arc Curved Layout Shift
                     readonly property real arcOffset: Math.sin(
-                        Math.min(1.0, fanDelegate.index / Math.max(1, (fileFanList.count || 1) - 1)) * Math.PI * 0.7
+                        Math.min(1.0, fanDelegate.index / Math.max(1,
+                            fileFanList.count - 1)) * Math.PI * 0.7
                     ) * 28
 
                     Item {
@@ -663,12 +678,8 @@ Window {
 
                                 QQC2.Label {
                                     Layout.fillWidth: true
-                                    text: {
-                                        var itemSize = String(fanDelegate.size || "");
-                                        return itemSize.length > 0 && itemSize !== "undefined"
-                                            ? fanDelegate.type + " · " + itemSize
-                                            : fanDelegate.type;
-                                    }
+                                    text: root.entryDetails(fanDelegate.type,
+                                        fanDelegate.size)
                                     font.pixelSize: 10
                                     opacity: 0.7
                                     elide: Text.ElideRight
@@ -682,14 +693,8 @@ Window {
                         }
 
                         TapHandler {
-                            onTapped: {
-                                if (fanDelegate.isDir) {
-                                    root.folderModel.cd(fanDelegate.index);
-                                } else {
-                                    root.folderModel.run(fanDelegate.index);
-                                    root.close();
-                                }
-                            }
+                            onTapped: root.activateEntry(fanDelegate.index,
+                                fanDelegate.isDir)
                         }
                     }
                 }
@@ -697,13 +702,15 @@ Window {
                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
             }
 
-            // Empty Folder Label
             QQC2.Label {
                 anchors.fill: parent
                 anchors.margins: Kirigami.Units.largeSpacing
-                visible: (root.viewMode === 0 && fileList.count === 0)
-                      || (root.viewMode === 1 && fileGrid.count === 0)
-                      || (root.viewMode === 2 && fileFanList.count === 0)
+                visible: (root.viewMode === root.listViewMode
+                        && fileList.count === 0)
+                    || (root.viewMode === root.gridViewMode
+                        && fileGrid.count === 0)
+                    || (root.viewMode === root.fanViewMode
+                        && fileFanList.count === 0)
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 wrapMode: Text.WordWrap

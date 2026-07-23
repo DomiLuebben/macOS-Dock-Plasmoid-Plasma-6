@@ -78,6 +78,8 @@ PlasmoidItem {
     readonly property bool showFolderView:
         Plasmoid.configuration.showFolderView === undefined
             ? true : Boolean(Plasmoid.configuration.showFolderView)
+    readonly property int folderViewMode: Math.round(boundedNumber(
+        Plasmoid.configuration.folderViewMode, 0, 0, 2))
     readonly property bool showTrash:
         Plasmoid.configuration.showTrash === undefined
             ? true : Boolean(Plasmoid.configuration.showTrash)
@@ -2308,11 +2310,11 @@ PlasmoidItem {
         shadowOpacity: root.shadowOpacity
         showHighlight: root.showHighlight
         blurEnabled: root.enableBlur
-        viewMode: plasmoid.configuration.folderViewMode || 0
+        viewMode: root.folderViewMode
 
-        onViewModeChanged: {
-            if (plasmoid.configuration.folderViewMode !== viewMode) {
-                plasmoid.configuration.folderViewMode = viewMode;
+        onViewModeRequested: (mode) => {
+            if (Plasmoid.configuration.folderViewMode !== mode) {
+                Plasmoid.configuration.folderViewMode = mode;
             }
         }
 
