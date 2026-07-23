@@ -247,6 +247,9 @@ PlasmoidItem {
 
     DockEffects.RemovableVolumesModel {
         id: removableVolumesModel
+        onOperationFailed: (udi, message) => {
+            console.warn("macOS Dock: volume operation failed for", udi, ":", message);
+        }
     }
     readonly property var recentKdeConnectShares:
         kdeConnectMonitor.recentShares
@@ -2431,6 +2434,7 @@ PlasmoidItem {
         required property bool volumeBusy
         required property string volumeOperation
         property string volumeKind: "filesystem"
+        property string volumeErrorText: ""
 
         appName: volumeDisplayName
         appIcon: volumeIconName.length > 0 ? volumeIconName : "drive-removable-media"
@@ -2445,6 +2449,17 @@ PlasmoidItem {
             }
         }
         onContextMenuRequested: volumeMenu.popup()
+
+        onVolumeErrorTextChanged: {
+            if (volumeErrorText.length > 0) {
+                errorToolTip.show(volumeErrorText, 5000);
+            }
+        }
+
+        QQC2.ToolTip {
+            id: errorToolTip
+            timeout: 5000
+        }
 
         Item {
             id: dragProxy
@@ -2794,6 +2809,7 @@ PlasmoidItem {
                     required property string displayName
                     required property string iconName
                     required property string kind
+                    required property string errorText
                     required property bool mounted
                     required property bool busy
                     required property string operation
@@ -2802,6 +2818,7 @@ PlasmoidItem {
                     volumeDisplayName: displayName
                     volumeIconName: iconName
                     volumeKind: kind
+                    volumeErrorText: errorText
                     volumeMounted: mounted
                     volumeBusy: busy
                     volumeOperation: operation
@@ -3367,6 +3384,7 @@ PlasmoidItem {
                         required property string displayName
                         required property string iconName
                         required property string kind
+                        required property string errorText
                         required property bool mounted
                         required property bool busy
                         required property string operation
@@ -3375,6 +3393,7 @@ PlasmoidItem {
                         volumeDisplayName: displayName
                         volumeIconName: iconName
                         volumeKind: kind
+                        volumeErrorText: errorText
                         volumeMounted: mounted
                         volumeBusy: busy
                         volumeOperation: operation

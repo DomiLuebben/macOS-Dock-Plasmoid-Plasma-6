@@ -8,6 +8,8 @@
 #include <QString>
 #include <QSet>
 
+#include <Solid/SolidNamespace>
+
 class RemovableVolumesModel : public QAbstractListModel
 {
     Q_OBJECT
@@ -64,8 +66,8 @@ private slots:
     void onDeviceAdded(const QString &udi);
     void onDeviceRemoved(const QString &udi);
     void onAccessibilityChanged(bool accessible, const QString &udi);
-    void onTeardownDone(int error, const QVariant &errorData, const QString &udi);
-    void onEjectDone(int error, const QVariant &errorData, const QString &udi);
+    void onTeardownDone(Solid::ErrorType error, const QVariant &errorData, const QString &udi);
+    void onEjectDone(Solid::ErrorType error, const QVariant &errorData, const QString &udi);
 
 private:
     void refreshModel();

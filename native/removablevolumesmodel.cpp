@@ -308,7 +308,7 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
     }
 }
 
-void RemovableVolumesModel::onTeardownDone(int error, const QVariant &errorData, const QString &udi)
+void RemovableVolumesModel::onTeardownDone(Solid::ErrorType error, const QVariant &errorData, const QString &udi)
 {
     int row = findRowByUdi(udi);
     if (row == -1) {
@@ -319,7 +319,7 @@ void RemovableVolumesModel::onTeardownDone(int error, const QVariant &errorData,
     item.busy = false;
     item.operation = QStringLiteral("idle");
 
-    if (error != 0) { // Solid::NoError == 0
+    if (error != Solid::NoError) {
         QString msg = errorData.toString();
         if (msg.isEmpty()) {
             msg = i18n("Failed to unmount volume.");
@@ -334,7 +334,7 @@ void RemovableVolumesModel::onTeardownDone(int error, const QVariant &errorData,
     }
 }
 
-void RemovableVolumesModel::onEjectDone(int error, const QVariant &errorData, const QString &udi)
+void RemovableVolumesModel::onEjectDone(Solid::ErrorType error, const QVariant &errorData, const QString &udi)
 {
     int row = findRowByUdi(udi);
     if (row == -1) {
@@ -345,7 +345,7 @@ void RemovableVolumesModel::onEjectDone(int error, const QVariant &errorData, co
     item.busy = false;
     item.operation = QStringLiteral("idle");
 
-    if (error != 0) {
+    if (error != Solid::NoError) {
         QString msg = errorData.toString();
         if (msg.isEmpty()) {
             msg = i18n("Failed to eject optical disc.");
