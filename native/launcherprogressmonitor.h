@@ -1,42 +1,45 @@
-#ifndef LAUNCHERPROGRESSMONITOR_H
-#define LAUNCHERPROGRESSMONITOR_H
+#pragma once
 
-#include <QObject>
-#include <QVariantMap>
-#include <QString>
+#include <QDBusContext>
 #include <QHash>
-#include <QDBusConnection>
-#include <QDBusServiceWatcher>
+#include <QObject>
+#include <QSet>
+#include <QVariantMap>
 
-class LauncherProgressMonitor : public QObject
+class QDBusServiceWatcher;
+
+class LauncherProgressMonitor : public QObject, protected QDBusContext
 {
     Q_OBJECT
-    Q_PROPERTY(bool active READ isActive NOTIFY activeChanged)
 
 public:
     explicit LauncherProgressMonitor(QObject *parent = nullptr);
     ~LauncherProgressMonitor() override;
 
-    bool isActive() const { return m_active; }
-
     static QString normalizeDesktopId(const QString &rawId);
 
-public Q_SLOTS:
-    void Update(const QString &appUri, const QVariantMap &properties);
-
 Q_SIGNALS:
-    void activeChanged();
     void progressUpdated(const QString &desktopId, double progress, bool visible);
 
+private Q_SLOTS:
+    void update(const QString &appUri, const QVariantMap &properties);
+    void onPublisherUnregistered(const QString &service);
+
 private:
-    void tryRegisterService();
+    struct Entry {
+        double progress = 0.0;
+        bool visible = false;
+        QString publisher;
+    };
+
     void setupDBus();
+    void tryClaimUnityEndpoint();
+    void associatePublisher(const QString &publisher, const QString &desktopId);
 
-    bool m_active = false;
+    bool m_registeredObject = false;
     bool m_registeredService = false;
-    QDBusServiceWatcher *m_serviceWatcher = nullptr;
-    QHash<QString, double> m_progressMap;
-    QHash<QString, bool> m_visibleMap;
+    QDBusServiceWatcher *m_unityServiceWatcher = nullptr;
+    QDBusServiceWatcher *m_publisherWatcher = nullptr;
+    QHash<QString, Entry> m_entries;
+    QHash<QString, QSet<QString>> m_publisherEntries;
 };
-
-#endif // LAUNCHERPROGRESSMONITOR_H

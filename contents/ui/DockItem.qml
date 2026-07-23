@@ -27,10 +27,12 @@ Item {
     property bool progressVisible: false
     property real progressValue: 0.0
     property bool progressIndeterminate: false
+    property bool progressCompleting: false
 
     property bool hasRecentShare: false
     property string recentShareDevice: ""
     property string recentShareUrl: ""
+    property string recentSharePreview: ""
     signal recentShareClicked()
 
     readonly property real scaledSize: baseSize * currentScale
@@ -508,6 +510,7 @@ Item {
                 ProgressOverlay {
                     progressValue: root.progressValue
                     indeterminate: root.progressIndeterminate
+                    completing: root.progressCompleting
                 }
             }
         }
@@ -519,7 +522,7 @@ Item {
             sourceComponent: Component {
                 RecentShareBadge {
                     deviceName: root.recentShareDevice
-                    shareUrl: root.recentShareUrl
+                    previewText: root.recentSharePreview
                     onClicked: root.recentShareClicked()
                 }
             }

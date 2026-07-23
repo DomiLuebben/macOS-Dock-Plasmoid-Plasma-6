@@ -344,10 +344,10 @@ msgid "Show download and job progress indicators"
 msgstr "Download- und Fortschrittsanzeigen anzeigen"
 
 msgid "Show KDE Connect recent shares"
-msgstr "KDE Connect Kürzlich geteilte Elemente anzeigen"
+msgstr "Kürzlich über KDE Connect geteilte Elemente anzeigen"
 
-msgid "Von %1 erneut öffnen"
-msgstr "Von %1 erneut öffnen"
+msgid "Open again from %1"
+msgstr "Erneut von %1 öffnen"
 
 msgid "Recent share from %1"
 msgstr "Kürzlich von %1 geteilt"

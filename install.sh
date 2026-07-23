@@ -97,18 +97,10 @@ cp -a "$SCRIPT_DIR/contents/." "$PACKAGE_DIR/contents/"
 
 printf '%s\n' "$MSG_INSTALL"
 
-TARGET_DIR="$HOME/.local/share/plasma/plasmoids/$PLASMOID_ID"
-
 if kpackagetool6 -t Plasma/Applet --show "$PLASMOID_ID" >/dev/null 2>&1; then
-    kpackagetool6 -t Plasma/Applet --upgrade "$PACKAGE_DIR" || {
-        kpackagetool6 -t Plasma/Applet --remove "$PLASMOID_ID" || rm -rf "$TARGET_DIR"
-        kpackagetool6 -t Plasma/Applet --install "$PACKAGE_DIR"
-    }
+    kpackagetool6 -t Plasma/Applet --upgrade "$PACKAGE_DIR"
 else
-    kpackagetool6 -t Plasma/Applet --install "$PACKAGE_DIR" || {
-        rm -rf "$TARGET_DIR"
-        kpackagetool6 -t Plasma/Applet --install "$PACKAGE_DIR"
-    }
+    kpackagetool6 -t Plasma/Applet --install "$PACKAGE_DIR"
 fi
 
 cleanup_package

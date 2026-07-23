@@ -1,217 +1,452 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
+import QtQml.Models
 import org.kde.notificationmanager as NotificationManager
 import "effects" as DockEffects
 
 Item {
     id: root
 
-    property bool enabled: true
+    property bool monitoringEnabled: true
 
-    // Internal maps storing state
-    // Key: normalized desktop ID or folder path
+    // Assigning fresh objects is intentional: consumers use these properties
+    // as their change notification instead of polling the models.
     property var appProgressState: ({})
     property var folderProgressState: ({})
+    property var unityState: ({})
+    property var appCompletionState: ({})
+    property var folderCompletionState: ({})
 
-    signal progressUpdated()
+    property bool updatePending: false
 
-    DockEffects.LauncherProgressMonitor {
-        id: unityMonitor
-        onProgressUpdated: (desktopId, progress, visible) => {
-            root.handleUnityUpdate(desktopId, progress, visible);
+    width: 0
+    height: 0
+
+    Timer {
+        id: completionTimer
+        interval: 520
+        repeat: false
+        onTriggered: {
+            root.appCompletionState = {};
+            root.folderCompletionState = {};
+            root.scheduleUpdate();
         }
     }
 
-    NotificationManager.JobsModel {
+    Timer {
+        id: updateTimer
+        interval: 33
+        repeat: false
+        onTriggered: root.recalculateProgress()
+    }
+
+    Loader {
+        active: root.monitoringEnabled
+        sourceComponent: Component {
+            DockEffects.LauncherProgressMonitor {
+                onProgressUpdated: (desktopId, progress, visible) => {
+                    root.handleUnityUpdate(desktopId, progress, visible);
+                }
+            }
+        }
+    }
+
+    NotificationManager.Notifications {
         id: jobsModel
-        onRowsInserted: (parent, first, last) => root.scheduleUpdate()
-        onRowsRemoved: (parent, first, last) => root.scheduleUpdate()
-        onDataChanged: (topLeft, bottomRight, roles) => root.scheduleUpdate()
-        onModelReset: () => root.scheduleUpdate()
+
+        showNotifications: false
+        showJobs: root.monitoringEnabled
+        showExpired: false
+        showDismissed: false
+        groupMode: NotificationManager.Notifications.GroupDisabled
+    }
+
+    component JobItem: QtObject {
+        id: jobItem
+
+        required property string desktopEntry
+        required property int jobState
+        required property int percentage
+        required property var jobDetails
+        property bool completionRecorded: false
+
+        property Connections detailsConnections: Connections {
+            target: jobItem.jobDetails
+            function onDestUrlChanged() { root.scheduleUpdate(); }
+            function onEffectiveDestUrlChanged() { root.scheduleUpdate(); }
+            function onProcessedBytesChanged() { root.scheduleUpdate(); }
+            function onTotalBytesChanged() { root.scheduleUpdate(); }
+        }
+
+        onDesktopEntryChanged: root.scheduleUpdate()
+        onJobStateChanged: {
+            root.maybeRecordCompletion(jobItem);
+            root.scheduleUpdate();
+        }
+        onPercentageChanged: root.scheduleUpdate()
+        onJobDetailsChanged: root.scheduleUpdate()
+    }
+
+    Instantiator {
+        id: jobItems
+        model: jobsModel
+        delegate: JobItem {}
+
+        onObjectAdded: root.scheduleUpdate()
+        onObjectRemoved: (index, object) => {
+            root.maybeRecordCompletion(object as JobItem);
+            root.scheduleUpdate();
+        }
     }
 
     function normalizeDesktopId(rawId) {
-        if (!rawId) return "";
-        var id = String(rawId).trim();
-        if (id.startsWith("application://")) {
-            id = id.substring(14);
-        } else if (id.startsWith("applications:")) {
-            id = id.substring(13);
+        if (!rawId) {
+            return "";
         }
-        var qIdx = id.indexOf("?");
-        if (qIdx !== -1) {
-            id = id.substring(0, qIdx);
+
+        var desktopId = String(rawId).trim();
+        var queryIndex = desktopId.indexOf("?");
+        if (queryIndex !== -1) {
+            desktopId = desktopId.substring(0, queryIndex);
         }
-        if (id.toLowerCase().endsWith(".desktop")) {
-            id = id.substring(0, id.length - 8);
+
+        if (desktopId.startsWith("application://")) {
+            desktopId = desktopId.substring(14);
+        } else if (desktopId.startsWith("applications:")) {
+            desktopId = desktopId.substring(13);
+        } else if (desktopId.startsWith("file:")) {
+            try {
+                desktopId = decodeURIComponent(desktopId);
+            } catch (error) {
+                // Keep the encoded value; it is still safe to compare.
+            }
         }
-        return id.toLowerCase();
+
+        desktopId = desktopId.replace(/\\/g, "/");
+        var slashIndex = desktopId.lastIndexOf("/");
+        if (slashIndex !== -1) {
+            desktopId = desktopId.substring(slashIndex + 1);
+        }
+        if (desktopId.toLowerCase().endsWith(".desktop")) {
+            desktopId = desktopId.substring(0, desktopId.length - 8);
+        }
+        return desktopId.toLowerCase();
     }
 
     function normalizeUrl(rawUrl) {
-        if (!rawUrl) return "";
-        var url = String(rawUrl).trim();
-        if (url.startsWith("file://")) {
-            url = url.substring(7);
+        if (!rawUrl) {
+            return "";
         }
-        return url;
+
+        var value = String(rawUrl).trim();
+        var fragmentIndex = value.indexOf("#");
+        if (fragmentIndex !== -1) {
+            value = value.substring(0, fragmentIndex);
+        }
+        var queryIndex = value.indexOf("?");
+        if (queryIndex !== -1) {
+            value = value.substring(0, queryIndex);
+        }
+
+        try {
+            value = decodeURI(value);
+        } catch (error) {
+            // Compare the encoded forms if the URL is malformed.
+        }
+
+        value = value.replace(/^file:/i, "file:");
+        while (value.length > 1 && value.endsWith("/")
+                && value !== "file:///") {
+            value = value.substring(0, value.length - 1);
+        }
+        return value;
     }
 
     function scheduleUpdate() {
-        Qt.callLater(recalculateProgress);
+        if (root.updatePending) {
+            return;
+        }
+        root.updatePending = true;
+        updateTimer.start();
     }
 
-    property var unityState: ({})
-
     function handleUnityUpdate(desktopId, progress, visible) {
-        var norm = normalizeDesktopId(desktopId);
-        if (!norm) return;
-        var newUnity = Object.assign({}, unityState);
-        newUnity[norm] = {
-            progress: Math.max(0.0, Math.min(1.0, progress)),
-            visible: Boolean(visible)
-        };
-        unityState = newUnity;
-        scheduleUpdate();
+        var normalizedId = normalizeDesktopId(desktopId);
+        if (!normalizedId) {
+            return;
+        }
+
+        var updatedState = Object.assign({}, root.unityState);
+        if (visible) {
+            updatedState[normalizedId] = {
+                progress: Math.max(0.0, Math.min(1.0, Number(progress))),
+                visible: true
+            };
+        } else {
+            var previous = updatedState[normalizedId];
+            if (previous && previous.progress >= 0.999) {
+                root.recordCompletion(normalizedId, "");
+            }
+            delete updatedState[normalizedId];
+        }
+        root.unityState = updatedState;
+        root.scheduleUpdate();
+    }
+
+    function maybeRecordCompletion(item) {
+        if (!item || item.completionRecorded) {
+            return;
+        }
+
+        var details = item.jobDetails;
+        var state = item.jobState;
+        if (state !== NotificationManager.Notifications.JobStateStopped) {
+            return;
+        }
+
+        var percentage = Number(item.percentage);
+        var processedBytes = Number(details ? details.processedBytes : 0);
+        var totalBytes = Number(details ? details.totalBytes : 0);
+        var complete = percentage >= 100
+            || (totalBytes > 0 && processedBytes >= totalBytes);
+        if (!complete) {
+            return;
+        }
+
+        item.completionRecorded = true;
+        var desktopEntry = normalizeDesktopId(
+            item.desktopEntry || (details ? details.desktopEntry : ""));
+        var destination = normalizeUrl(details
+            ? (details.effectiveDestUrl || details.destUrl) : "");
+        root.recordCompletion(desktopEntry, destination);
+    }
+
+    function recordCompletion(desktopEntry, destination) {
+        var changed = false;
+        if (desktopEntry && !root.appCompletionState[desktopEntry]) {
+            var appState = Object.assign({}, root.appCompletionState);
+            appState[desktopEntry] = true;
+            root.appCompletionState = appState;
+            changed = true;
+        }
+        if (destination && !root.folderCompletionState[destination]) {
+            var folderState = Object.assign({}, root.folderCompletionState);
+            folderState[destination] = true;
+            root.folderCompletionState = folderState;
+            changed = true;
+        }
+        if (changed) {
+            completionTimer.restart();
+            root.scheduleUpdate();
+        }
     }
 
     function recalculateProgress() {
-        if (!root.enabled) {
-            appProgressState = {};
-            folderProgressState = {};
-            progressUpdated();
+        if (!root.monitoringEnabled) {
+            root.appProgressState = {};
+            root.folderProgressState = {};
+            root.unityState = {};
+            root.appCompletionState = {};
+            root.folderCompletionState = {};
+            completionTimer.stop();
+            root.updatePending = false;
             return;
         }
 
         var appJobs = {};
         var folderJobs = {};
 
-        var count = jobsModel.rowCount();
-        for (var i = 0; i < count; i++) {
-            var idx = jobsModel.index(i, 0);
-            var dEntry = normalizeDesktopId(jobsModel.data(idx, NotificationManager.JobsModel.DesktopEntryRole || 267) || jobsModel.data(idx, 267) || "");
-            var state = jobsModel.data(idx, NotificationManager.JobsModel.StateRole || 259) || jobsModel.data(idx, 259);
-            var pct = jobsModel.data(idx, NotificationManager.JobsModel.PercentageRole || 263) || jobsModel.data(idx, 263);
-            var procBytes = Number(jobsModel.data(idx, NotificationManager.JobsModel.ProcessedBytesRole || 265) || jobsModel.data(idx, 265) || 0);
-            var totBytes = Number(jobsModel.data(idx, NotificationManager.JobsModel.TotalBytesRole || 266) || jobsModel.data(idx, 266) || 0);
-            var rawDest = jobsModel.data(idx, NotificationManager.JobsModel.DestUrlRole || 268) || jobsModel.data(idx, 268) ||
-                          jobsModel.data(idx, NotificationManager.JobsModel.EffectiveDestUrlRole || 269) || jobsModel.data(idx, 269) || "";
-            var destPath = normalizeUrl(rawDest);
+        for (var index = 0; index < jobItems.count; ++index) {
+            var item = jobItems.objectAt(index) as JobItem;
+            if (!item
+                    || item.jobState === NotificationManager.Notifications.JobStateStopped) {
+                root.maybeRecordCompletion(item);
+                continue;
+            }
 
-            // Job active check
-            var isRunning = (state === undefined || state === 0 || state === 1 || state === "running");
+            var details = item.jobDetails;
+            var desktopEntry = normalizeDesktopId(
+                item.desktopEntry || (details ? details.desktopEntry : ""));
+            var rawPercentage = Number(
+                details ? details.percentage : item.percentage);
+            var processedBytes = Number(details ? details.processedBytes : 0);
+            var totalBytes = Number(details ? details.totalBytes : 0);
+            var destination = normalizeUrl(details
+                ? (details.destUrl || details.effectiveDestUrl) : "");
+            var job = {
+                percentage: isFinite(rawPercentage) ? rawPercentage : -1,
+                processedBytes: isFinite(processedBytes) ? processedBytes : 0,
+                totalBytes: isFinite(totalBytes) ? totalBytes : 0
+            };
 
-            if (isRunning) {
-                var jobData = {
-                    percentage: Number(pct !== undefined ? pct : 0),
-                    processedBytes: procBytes,
-                    totalBytes: totBytes
-                };
-
-                if (dEntry) {
-                    if (!appJobs[dEntry]) appJobs[dEntry] = [];
-                    appJobs[dEntry].push(jobData);
+            if (desktopEntry) {
+                if (!appJobs[desktopEntry]) {
+                    appJobs[desktopEntry] = [];
                 }
+                appJobs[desktopEntry].push(job);
+            }
 
-                if (destPath) {
-                    if (!folderJobs[destPath]) folderJobs[destPath] = [];
-                    folderJobs[destPath].push(jobData);
+            if (destination) {
+                if (!folderJobs[destination]) {
+                    folderJobs[destination] = [];
                 }
+                folderJobs[destination].push(job);
             }
         }
 
-        // Aggregate for apps
-        var newAppMap = {};
+        var appState = {};
         for (var appKey in appJobs) {
-            newAppMap[appKey] = aggregateJobGroup(appJobs[appKey]);
+            appState[appKey] = root.aggregateJobGroup(appJobs[appKey]);
         }
 
-        // Add Unity fallbacks if no KJob targets the app
-        for (var uKey in unityState) {
-            if (!newAppMap[uKey] && unityState[uKey] && unityState[uKey].visible) {
-                newAppMap[uKey] = {
+        // KJob is richer and therefore wins whenever both transports report
+        // the same operation.
+        for (var unityKey in root.unityState) {
+            if (!appState[unityKey]) {
+                appState[unityKey] = {
                     visible: true,
-                    progress: unityState[uKey].progress,
-                    indeterminate: false
+                    progress: root.unityState[unityKey].progress,
+                    indeterminate: false,
+                    completing: false
                 };
             }
         }
 
-        appProgressState = newAppMap;
-        folderProgressState = folderJobs;
-        progressUpdated();
+        for (var completedApp in root.appCompletionState) {
+            if (!appState[completedApp]) {
+                appState[completedApp] = {
+                    visible: true,
+                    progress: 1.0,
+                    indeterminate: false,
+                    completing: true
+                };
+            }
+        }
+
+        root.appProgressState = appState;
+        root.folderProgressState = folderJobs;
+        root.updatePending = false;
     }
 
     function aggregateJobGroup(jobs) {
         if (!jobs || jobs.length === 0) {
-            return { visible: false, progress: 0.0, indeterminate: false };
+            return {
+                visible: false,
+                progress: 0.0,
+                indeterminate: false,
+                completing: false
+            };
         }
 
-        var sumProcessed = 0;
-        var sumTotal = 0;
-        var hasByteTotals = true;
-        var sumPct = 0;
+        var allHaveByteTotals = true;
+        var processedBytes = 0;
+        var totalBytes = 0;
+        var progressSum = 0;
+        var knownProgressCount = 0;
 
-        for (var j = 0; j < jobs.length; j++) {
-            var job = jobs[j];
-            if (job.totalBytes && job.totalBytes > 0) {
-                sumProcessed += job.processedBytes;
-                sumTotal += job.totalBytes;
+        for (var index = 0; index < jobs.length; ++index) {
+            var job = jobs[index];
+            if (job.totalBytes > 0) {
+                processedBytes += Math.max(0, job.processedBytes);
+                totalBytes += job.totalBytes;
             } else {
-                hasByteTotals = false;
+                allHaveByteTotals = false;
             }
-            sumPct += job.percentage;
+
+            if (job.totalBytes > 0) {
+                progressSum += job.processedBytes / job.totalBytes;
+                ++knownProgressCount;
+            } else if (job.percentage > 0) {
+                progressSum += job.percentage > 1
+                    ? job.percentage / 100 : job.percentage;
+                ++knownProgressCount;
+            }
         }
 
-        var finalProgress = 0.0;
-        if (hasByteTotals && sumTotal > 0) {
-            finalProgress = sumProcessed / sumTotal;
-        } else {
-            var avgPct = sumPct / jobs.length;
-            finalProgress = avgPct > 1.0 ? avgPct / 100.0 : avgPct;
+        var progress = 0;
+        if (allHaveByteTotals && totalBytes > 0) {
+            progress = processedBytes / totalBytes;
+        } else if (knownProgressCount > 0) {
+            progress = progressSum / knownProgressCount;
         }
-
-        finalProgress = Math.max(0.0, Math.min(1.0, finalProgress));
 
         return {
             visible: true,
-            progress: finalProgress,
-            indeterminate: (finalProgress === 0.0 && !hasByteTotals)
+            progress: Math.max(0.0, Math.min(1.0, progress)),
+            indeterminate: knownProgressCount === 0,
+            completing: false
         };
     }
 
-    function getAppProgress(desktopId, appName) {
-        var normId = normalizeDesktopId(desktopId);
-        var normName = normalizeDesktopId(appName);
-
-        if (normId && appProgressState[normId]) {
-            return appProgressState[normId];
+    function getAppProgress(desktopId, launcherUrl) {
+        var normalizedId = normalizeDesktopId(desktopId);
+        if (normalizedId && root.appProgressState[normalizedId]) {
+            return root.appProgressState[normalizedId];
         }
-        if (normName && appProgressState[normName]) {
-            return appProgressState[normName];
+        var normalizedLauncher = normalizeDesktopId(launcherUrl);
+        if (normalizedLauncher
+                && root.appProgressState[normalizedLauncher]) {
+            return root.appProgressState[normalizedLauncher];
         }
-        return { visible: false, progress: 0.0, indeterminate: false };
+        return {
+            visible: false,
+            progress: 0.0,
+            indeterminate: false,
+            completing: false
+        };
     }
 
-    function getFolderProgress(folderPath) {
-        var normFolder = normalizeUrl(folderPath);
-        if (!normFolder) {
-            return { visible: false, progress: 0.0, indeterminate: false };
-        }
-
-        if (!normFolder.endsWith("/")) {
-            normFolder += "/";
+    function getFolderProgress(folderUrl) {
+        var normalizedFolder = normalizeUrl(folderUrl);
+        if (!normalizedFolder) {
+            return {
+                visible: false,
+                progress: 0.0,
+                indeterminate: false,
+                completing: false
+            };
         }
 
         var matchingJobs = [];
-        for (var destPath in folderProgressState) {
-            if (destPath.startsWith(normFolder) || (destPath + "/").startsWith(normFolder)) {
-                var jobs = folderProgressState[destPath];
-                for (var k = 0; k < jobs.length; k++) {
-                    matchingJobs.push(jobs[k]);
+        var completionMatches = false;
+        var folderPrefix = normalizedFolder + "/";
+        for (var destination in root.folderProgressState) {
+            if (destination === normalizedFolder
+                    || destination.startsWith(folderPrefix)) {
+                var jobs = root.folderProgressState[destination];
+                for (var index = 0; index < jobs.length; ++index) {
+                    matchingJobs.push(jobs[index]);
                 }
             }
         }
+        for (var completedDestination in root.folderCompletionState) {
+            if (completedDestination === normalizedFolder
+                    || completedDestination.startsWith(folderPrefix)) {
+                completionMatches = true;
+                break;
+            }
+        }
 
-        return aggregateJobGroup(matchingJobs);
+        if (matchingJobs.length > 0) {
+            return root.aggregateJobGroup(matchingJobs);
+        }
+        if (completionMatches) {
+            return {
+                visible: true,
+                progress: 1.0,
+                indeterminate: false,
+                completing: true
+            };
+        }
+        return {
+            visible: false,
+            progress: 0.0,
+            indeterminate: false,
+            completing: false
+        };
     }
+
+    onMonitoringEnabledChanged: root.scheduleUpdate()
+    Component.onCompleted: root.scheduleUpdate()
 }

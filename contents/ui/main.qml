@@ -226,13 +226,15 @@ PlasmoidItem {
 
     ProgressController {
         id: progressController
-        enabled: root.showProgressIndicators
+        monitoringEnabled: root.showProgressIndicators
     }
 
     DockEffects.KdeConnectShareMonitor {
         id: kdeConnectMonitor
         enabled: root.showKdeConnectRecentShares
     }
+    readonly property var recentKdeConnectShares:
+        kdeConnectMonitor.recentShares
     property bool maximizedWindowPresent: false
     property bool fullscreenWindowPresent: false
     property bool windowStateUpdatePending: false
@@ -1635,23 +1637,37 @@ PlasmoidItem {
 
         readonly property var progressInfo: root.showProgressIndicators
             ? progressController.getAppProgress(
-                model.AppId || model.LauncherUrlWithoutIcon || model.LauncherUrl,
-                model.AppName || model.display)
-            : ({ visible: false, progress: 0.0, indeterminate: false })
+                model.AppId || "",
+                model.LauncherUrlWithoutIcon || model.LauncherUrl || "")
+            : ({
+                visible: false,
+                progress: 0.0,
+                indeterminate: false,
+                completing: false
+            })
 
         progressVisible: Boolean(progressInfo.visible)
         progressValue: Number(progressInfo.progress)
         progressIndeterminate: Boolean(progressInfo.indeterminate)
+        progressCompleting: Boolean(progressInfo.completing)
 
-        readonly property var recentShareInfo: (root.showKdeConnectRecentShares && kdeConnectMonitor.active)
-            ? kdeConnectMonitor.getLatestShareForApp(
-                model.AppId || model.LauncherUrlWithoutIcon || model.LauncherUrl,
-                model.AppName || model.display)
-            : null
+        readonly property var recentShareInfo: {
+            // Establish the property dependency explicitly. The native lookup
+            // function itself cannot make a QML binding observe its data.
+            if (root.recentKdeConnectShares === undefined
+                    || !root.showKdeConnectRecentShares
+                    || !kdeConnectMonitor.active) {
+                return null;
+            }
+            return kdeConnectMonitor.getLatestShareForApp(
+                model.AppId || "",
+                model.LauncherUrlWithoutIcon || model.LauncherUrl || "");
+        }
 
         hasRecentShare: Boolean(recentShareInfo && recentShareInfo.url)
         recentShareDevice: recentShareInfo ? String(recentShareInfo.deviceName || "") : ""
         recentShareUrl: recentShareInfo ? String(recentShareInfo.url || "") : ""
+        recentSharePreview: recentShareInfo ? String(recentShareInfo.preview || "") : ""
         onRecentShareClicked: {
             if (recentShareInfo && recentShareInfo.url) {
                 kdeConnectMonitor.openShareUrl(recentShareInfo.url);
@@ -1807,7 +1823,7 @@ PlasmoidItem {
 
             QQC2.MenuItem {
                 text: taskDelegate.hasRecentShare
-                    ? i18n("Von %1 erneut öffnen", taskDelegate.recentShareDevice)
+                    ? i18n("Open again from %1", taskDelegate.recentShareDevice)
                     : ""
                 icon.name: "preferences-kde-connect"
                 visible: taskDelegate.hasRecentShare && taskDelegate.recentShareUrl.length > 0
@@ -2189,11 +2205,41 @@ PlasmoidItem {
 
         readonly property var folderProgressInfo: (root.showProgressIndicators && isFolder)
             ? progressController.getFolderProgress(folderUrl)
-            : ({ visible: false, progress: 0.0, indeterminate: false })
+            : ({
+                visible: false,
+                progress: 0.0,
+                indeterminate: false,
+                completing: false
+            })
+
+        readonly property var recentFolderShareInfo: {
+            if (root.recentKdeConnectShares === undefined
+                    || !root.showKdeConnectRecentShares
+                    || !kdeConnectMonitor.active
+                    || !utilityDelegate.isFolder) {
+                return null;
+            }
+            return kdeConnectMonitor.getLatestShareForFolder(
+                utilityDelegate.folderUrl);
+        }
 
         progressVisible: Boolean(folderProgressInfo.visible)
         progressValue: Number(folderProgressInfo.progress)
         progressIndeterminate: Boolean(folderProgressInfo.indeterminate)
+        progressCompleting: Boolean(folderProgressInfo.completing)
+        hasRecentShare: Boolean(recentFolderShareInfo
+            && recentFolderShareInfo.url)
+        recentShareDevice: recentFolderShareInfo
+            ? String(recentFolderShareInfo.deviceName || "") : ""
+        recentShareUrl: recentFolderShareInfo
+            ? String(recentFolderShareInfo.url || "") : ""
+        recentSharePreview: recentFolderShareInfo
+            ? String(recentFolderShareInfo.preview || "") : ""
+        onRecentShareClicked: {
+            if (recentFolderShareInfo && recentFolderShareInfo.url) {
+                kdeConnectMonitor.openShareUrl(recentFolderShareInfo.url);
+            }
+        }
 
         appName: isFolder
             ? root.folderName(folderUrl)
@@ -2259,6 +2305,18 @@ PlasmoidItem {
                         root.openTrashExternally();
                     }
                 }
+            }
+
+            QQC2.MenuItem {
+                text: utilityDelegate.hasRecentShare
+                    ? i18n("Open again from %1",
+                        utilityDelegate.recentShareDevice)
+                    : ""
+                icon.name: "preferences-kde-connect"
+                visible: utilityDelegate.hasRecentShare
+                    && utilityDelegate.recentShareUrl.length > 0
+                onTriggered: kdeConnectMonitor.openShareUrl(
+                    utilityDelegate.recentShareUrl)
             }
 
             QQC2.MenuItem {

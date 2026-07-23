@@ -12,6 +12,10 @@ couleurs du thème Qt.
 - Réorganisation par glisser-déposer des lanceurs à la souris
 - Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
   macOS ; d’autres dossiers peuvent être glissés directement depuis le gestionnaire de fichiers
+- Anneaux de progression facultatifs pour les tâches Plasma et les
+  téléchargements compatibles Unity sur les applications et les piles de dossiers correspondantes
+- Badges KDE Connect facultatifs pour les liens et fichiers reçus récemment ;
+  les liens sont associés au navigateur par défaut du système
 - Corbeille facultative adaptée au thème avec état vide/plein et dépôt de fichiers
 - Menu alimentation/session facultatif avec mise en veille, redémarrage, arrêt,
   verrouillage et déconnexion selon les capacités du système
@@ -37,14 +41,17 @@ couleurs du thème Qt.
 
 - KDE Plasma 6
 - Qt 6 avec Qt Quick/QML
-- KDE Frameworks 6 WindowSystem
-- CMake et un compilateur C++20
+- KDE Frameworks 6 WindowSystem et Service
+- CMake et un compilateur C++17
 - Gettext (`msgfmt`) pour les catalogues de traduction
+
+KDE Connect est facultatif. S’il n’est pas installé ou en cours d’exécution,
+l’intégration des partages récents reste inactive sans affecter le Dock.
 
 Sous Arch Linux, installez les dépendances de compilation avec :
 
 ```bash
-sudo pacman -S --needed base-devel cmake gettext qt6-declarative kwindowsystem
+sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem
 ```
 
 ## Installation
@@ -56,9 +63,9 @@ cd macOS-Dock-Plasmoid-Plasma-6
 systemctl --user restart plasma-plasmashell.service
 ```
 
-Le script compile le petit module QML natif utilisé pour la zone de flou et
-les actions KWin, compile les traductions, puis installe ou met à jour le
-composant graphique.
+Le script compile le petit module QML natif utilisé pour la zone de flou, les
+actions KWin et les intégrations facultatives, compile les traductions, puis
+installe ou met à jour le composant graphique.
 
 Après « Forcer à quitter l’application… », le pointeur devient un sélecteur de
 fenêtre. Sélectionnez la fenêtre bloquée ou appuyez sur `Échap` pour annuler.

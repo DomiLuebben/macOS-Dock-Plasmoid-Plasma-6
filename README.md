@@ -12,6 +12,10 @@ color scheme.
 - Drag-and-drop reordering of launchers and starters with mouse interaction
 - Optional Downloads/folder stacks with a macOS-style file popover; drag
   folders from the file manager onto the Dock to add more
+- Optional progress rings for Plasma jobs and Unity-compatible downloads on
+  application icons and matching folder stacks
+- Optional KDE Connect badges for recently received links and files; links
+  are associated with the system's default browser
 - Optional theme-aware Trash with empty/full state and file drop support
 - Optional power/session menu with capability-aware sleep, restart, shutdown,
   screen-lock, and logout actions
@@ -37,14 +41,17 @@ color scheme.
 
 - KDE Plasma 6
 - Qt 6 with Qt Quick/QML
-- KDE Frameworks 6 WindowSystem
-- CMake and a C++20 compiler
+- KDE Frameworks 6 WindowSystem and Service
+- CMake and a C++17 compiler
 - Gettext (`msgfmt`) for the translation catalogs
+
+KDE Connect is optional. When it is not installed or running, the recent-share
+integration remains inactive without affecting the Dock.
 
 On Arch Linux, the build dependencies can be installed with:
 
 ```bash
-sudo pacman -S --needed base-devel cmake gettext qt6-declarative kwindowsystem
+sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem
 ```
 
 ## Installation
@@ -57,7 +64,8 @@ systemctl --user restart plasma-plasmashell.service
 ```
 
 The installation script first builds the small native QML module used for the
-blur region and KWin window actions, then installs or updates the plasmoid.
+blur region, KWin window actions, and optional integrations, then installs or
+updates the plasmoid.
 
 After choosing “Force Quit Application…”, the pointer becomes a window picker.
 Select the unresponsive window or press `Esc` to cancel.

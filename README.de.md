@@ -11,6 +11,10 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 - Verschieben und Anordnen der Starter per Drag-and-Drop mit der Maus
 - optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; weitere
   Ordner lassen sich direkt aus dem Dateimanager auf das Dock ziehen
+- optionale Fortschrittsringe für Plasma-Aufträge und Unity-kompatible
+  Downloads auf Anwendungssymbolen und passenden Ordnerstapeln
+- optionale KDE-Connect-Badges für kürzlich empfangene Links und Dateien;
+  Links werden dem Standardbrowser des Systems zugeordnet
 - optionaler, designkonformer Papierkorb mit Leer-/Vollstatus und Dateiablage
 - optionales Energie-/Sitzungsmenü mit systemabhängig verfügbaren Aktionen für
   Energiesparmodus, Neustart, Herunterfahren, Bildschirmsperre und Abmeldung
@@ -36,15 +40,19 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 
 - KDE Plasma 6
 - Qt 6 mit Qt Quick/QML
-- KDE Frameworks 6 WindowSystem
-- CMake und ein C++20-Compiler
+- KDE Frameworks 6 WindowSystem und Service
+- CMake und ein C++17-Compiler
 - Gettext (`msgfmt`) für die Übersetzungskataloge
+
+KDE Connect ist optional. Wenn es nicht installiert ist oder nicht läuft,
+bleibt die Integration für kürzlich geteilte Elemente ohne Auswirkungen auf
+das Dock inaktiv.
 
 Unter Arch Linux werden die Build-Abhängigkeiten beispielsweise mit folgendem
 Befehl installiert:
 
 ```bash
-sudo pacman -S --needed base-devel cmake gettext qt6-declarative kwindowsystem
+sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem
 ```
 
 ## Installation
@@ -57,8 +65,8 @@ systemctl --user restart plasma-plasmashell.service
 ```
 
 Das Installationsskript baut zuerst das kleine native QML-Modul für die
-Blur-Region und die KWin-Fensteraktionen und installiert bzw. aktualisiert
-anschließend das Plasmoid.
+Blur-Region, die KWin-Fensteraktionen und die optionalen Integrationen und
+installiert bzw. aktualisiert anschließend das Plasmoid.
 
 Bei „Anwendung sofort beenden …“ wird der Mauszeiger zur Zielauswahl. Klicke das
 nicht reagierende Fenster an oder brich mit `Esc` ab.

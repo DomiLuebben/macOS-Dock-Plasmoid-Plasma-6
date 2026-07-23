@@ -8,11 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 REQUIRED COMPONENTS Core DBus Gui Qml)
+find_package(KF6Service REQUIRED)
 find_package(KF6WindowSystem REQUIRED)
 
 add_library(macosdockeffectsplugin MODULE
     blurregion.cpp
     blurregion.h
+    desktopidutils.h
     kdeconnectsharemonitor.cpp
     kdeconnectsharemonitor.h
     launcherprogressmonitor.cpp
@@ -27,6 +29,7 @@ target_link_libraries(macosdockeffectsplugin PRIVATE
     Qt6::DBus
     Qt6::Gui
     Qt6::Qml
+    KF6::Service
     KF6::WindowSystem
 )
 
