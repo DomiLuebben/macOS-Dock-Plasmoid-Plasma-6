@@ -216,6 +216,14 @@ PlasmoidItem {
     property bool overlayOpen: false
     readonly property bool dockAvailable: hasDockContent
         && representationItem !== null
+    readonly property bool showProgressIndicators:
+        Plasmoid.configuration.showProgressIndicators === undefined
+            ? true : Boolean(Plasmoid.configuration.showProgressIndicators)
+
+    ProgressController {
+        id: progressController
+        enabled: root.showProgressIndicators
+    }
     property bool maximizedWindowPresent: false
     property bool fullscreenWindowPresent: false
     property bool windowStateUpdatePending: false
@@ -1616,6 +1624,16 @@ PlasmoidItem {
         isStarting: Boolean(model.IsStartup)
         launchAnimation: root.launchAnimation
 
+        readonly property var progressInfo: root.showProgressIndicators
+            ? progressController.getAppProgress(
+                model.AppId || model.LauncherUrlWithoutIcon || model.LauncherUrl,
+                model.AppName || model.display)
+            : ({ visible: false, progress: 0.0, indeterminate: false })
+
+        progressVisible: Boolean(progressInfo.visible)
+        progressValue: Number(progressInfo.progress)
+        progressIndeterminate: Boolean(progressInfo.indeterminate)
+
         Behavior on currentScale {
             NumberAnimation {
                 duration: 75
@@ -2131,6 +2149,14 @@ PlasmoidItem {
 
         readonly property bool isFolder: utilityType === "folder"
         readonly property bool isTrash: utilityType === "trash"
+
+        readonly property var folderProgressInfo: (root.showProgressIndicators && isFolder)
+            ? progressController.getFolderProgress(folderUrl)
+            : ({ visible: false, progress: 0.0, indeterminate: false })
+
+        progressVisible: Boolean(folderProgressInfo.visible)
+        progressValue: Number(folderProgressInfo.progress)
+        progressIndeterminate: Boolean(folderProgressInfo.indeterminate)
 
         appName: isFolder
             ? root.folderName(folderUrl)

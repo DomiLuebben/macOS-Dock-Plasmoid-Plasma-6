@@ -24,6 +24,10 @@ Item {
     property int launchAnimation: 1
     property bool previewAvailable: isRunning
 
+    property bool progressVisible: false
+    property real progressValue: 0.0
+    property bool progressIndeterminate: false
+
     readonly property real scaledSize: baseSize * currentScale
     readonly property real indicatorSize: 3
     readonly property real indicatorGap: 2
@@ -489,6 +493,18 @@ Item {
             source: root.appIcon || "application-x-executable"
             roundToIconSize: false
             smooth: true
+        }
+
+        Loader {
+            id: progressLoader
+            anchors.fill: parent
+            active: root.progressVisible
+            sourceComponent: Component {
+                ProgressOverlay {
+                    progressValue: root.progressValue
+                    indeterminate: root.progressIndeterminate
+                }
+            }
         }
 
         HoverHandler {

@@ -1,5 +1,6 @@
 #include "blurregion.h"
 #include "windowactions.h"
+#include "launcherprogressmonitor.h"
 
 #include <QQmlEngine>
 #include <QQmlExtensionPlugin>
@@ -14,6 +15,7 @@ public:
     {
         qmlRegisterType<BlurRegion>(uri, 1, 0, "BlurRegion");
         qmlRegisterType<WindowActions>(uri, 1, 0, "WindowActions");
+        qmlRegisterType<LauncherProgressMonitor>(uri, 1, 0, "LauncherProgressMonitor");
     }
 };
 

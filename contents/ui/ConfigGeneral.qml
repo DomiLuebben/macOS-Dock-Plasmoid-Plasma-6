@@ -44,6 +44,10 @@ KCM.SimpleKCM {
         showPowerButtonCheckBox.checked
     property alias cfg_powerButtonPosition:
         powerButtonPositionCombo.currentIndex
+    property alias cfg_showProgressIndicators:
+        showProgressIndicatorsCheckBox.checked
+    property alias cfg_showKdeConnectRecentShares:
+        showKdeConnectRecentSharesCheckBox.checked
     property var cfg_launchers: []
 
     // Accepted for compatibility with the configuration page instance that
@@ -259,6 +263,19 @@ KCM.SimpleKCM {
 
             Kirigami.FormData.label: i18n("Window behavior:")
             text: i18n("Automatically hide when a window is maximized")
+        }
+
+        QQC2.CheckBox {
+            id: showProgressIndicatorsCheckBox
+
+            Kirigami.FormData.label: i18n("Integrations:")
+            text: i18n("Show download and job progress indicators")
+        }
+
+        QQC2.CheckBox {
+            id: showKdeConnectRecentSharesCheckBox
+
+            text: i18n("Show KDE Connect recent shares")
         }
 
         Item {

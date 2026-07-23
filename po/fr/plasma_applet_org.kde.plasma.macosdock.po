@@ -336,3 +336,12 @@ msgstr "Afficher les fichiers cachés"
 
 msgid "This folder is empty"
 msgstr "Ce dossier est vide"
+
+msgid "Integrations:"
+msgstr "Intégrations :"
+
+msgid "Show download and job progress indicators"
+msgstr "Afficher les indicateurs de progression des téléchargements et des tâches"
+
+msgid "Show KDE Connect recent shares"
+msgstr "Afficher les partages récents KDE Connect"

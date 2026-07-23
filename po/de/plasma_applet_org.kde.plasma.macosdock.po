@@ -336,3 +336,12 @@ msgstr "Versteckte Dateien anzeigen"
 
 msgid "This folder is empty"
 msgstr "Dieser Ordner ist leer"
+
+msgid "Integrations:"
+msgstr "Integrationen:"
+
+msgid "Show download and job progress indicators"
+msgstr "Download- und Fortschrittsanzeigen anzeigen"
+
+msgid "Show KDE Connect recent shares"
+msgstr "KDE Connect Kürzlich geteilte Elemente anzeigen"

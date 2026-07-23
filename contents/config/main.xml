@@ -83,6 +83,12 @@
     <entry name="powerButtonPosition" type="Int">
       <default>1</default>
     </entry>
+    <entry name="showProgressIndicators" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showKdeConnectRecentShares" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="launchers" type="StringList"/>
   </group>
 </kcfg>
