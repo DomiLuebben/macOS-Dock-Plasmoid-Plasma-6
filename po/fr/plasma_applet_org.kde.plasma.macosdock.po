@@ -381,3 +381,21 @@ msgstr "Impossible d'initier le démontage."
 
 msgid "Could not initiate eject."
 msgstr "Impossible d'initier l'éjection."
+
+msgid "Removable Drive"
+msgstr "Lecteur amovible"
+
+msgid "Failed to open volume."
+msgstr "Impossible d'ouvrir le volume."
+
+msgid "Mount Volume"
+msgstr "Monter le volume"
+
+msgid "Mounting…"
+msgstr "Montage…"
+
+msgid "Could not initiate mounting."
+msgstr "Impossible d'initier le montage."
+
+msgid "Failed to mount volume."
+msgstr "Échec du montage du volume."

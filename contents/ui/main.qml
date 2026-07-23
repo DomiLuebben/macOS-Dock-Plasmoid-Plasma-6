@@ -2313,7 +2313,8 @@ PlasmoidItem {
                 root.isVolumeDragOverTrash = false;
                 utilityDelegate.dropTarget = false;
                 if (drop.keys && drop.keys.indexOf("org.kde.plasma.macosdock.removable-volume") !== -1) {
-                    var udi = drop.source ? drop.source.volumeUdi : "";
+                    var udi = drop.source
+                        ? String(drop.source.objectName || "") : "";
                     if (udi) {
                         removableVolumesModel.remove(udi);
                         drop.acceptProposedAction();
@@ -2433,20 +2434,29 @@ PlasmoidItem {
         required property bool volumeMounted
         required property bool volumeBusy
         required property string volumeOperation
-        property string volumeKind: "filesystem"
-        property string volumeErrorText: ""
+        required property string volumeKind
+        required property bool volumeCanOpen
+        required property bool volumeCanRemove
+        required property string volumeErrorText
 
         appName: volumeDisplayName
         appIcon: volumeIconName.length > 0 ? volumeIconName : "drive-removable-media"
+
+        opacity: volumeMounted ? 1.0 : 0.25
+        Behavior on opacity {
+            NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+        }
 
         progressVisible: volumeBusy
         progressIndeterminate: volumeBusy
 
         onClicked: {
-            if (!volumeBusy) {
-                triggerBounce();
-                removableVolumesModel.open(volumeUdi);
+            if (volumeBusy) {
+                return;
             }
+            triggerBounce();
+            // open() handles mount-if-needed internally
+            removableVolumesModel.open(volumeUdi);
         }
         onContextMenuRequested: volumeMenu.popup()
 
@@ -2463,20 +2473,25 @@ PlasmoidItem {
 
         Item {
             id: dragProxy
+            objectName: volumeDelegate.volumeUdi
             width: volumeDelegate.width
             height: volumeDelegate.height
-            Drag.active: volumeDragHandler.active
+            Drag.hotSpot: Qt.point(width / 2, height / 2)
             Drag.keys: ["org.kde.plasma.macosdock.removable-volume"]
-            Drag.source: volumeDelegate
-            property string volumeUdi: volumeDelegate.volumeUdi
+            Drag.proposedAction: Qt.MoveAction
+            Drag.source: dragProxy
+            Drag.supportedActions: Qt.MoveAction
         }
 
         DragHandler {
             id: volumeDragHandler
+            enabled: volumeDelegate.volumeMounted
+                && volumeDelegate.volumeCanRemove
+                && !volumeDelegate.volumeBusy
             target: dragProxy
             onActiveChanged: {
                 if (active) {
-                    dragProxy.Drag.start();
+                    dragProxy.Drag.start(Qt.MoveAction);
                 } else {
                     dragProxy.Drag.drop();
                     dragProxy.x = 0;
@@ -2489,8 +2504,13 @@ PlasmoidItem {
             id: volumeMenu
 
             QQC2.MenuItem {
-                text: i18n("Open Volume")
-                icon.name: "document-open-folder"
+                text: volumeDelegate.volumeMounted
+                    ? i18n("Open Volume")
+                    : (volumeDelegate.volumeOperation === "mounting"
+                        ? i18n("Mounting…")
+                        : i18n("Mount Volume"))
+                icon.name: volumeDelegate.volumeMounted
+                    ? "document-open-folder" : "media-mount"
                 enabled: !volumeDelegate.volumeBusy
                 onTriggered: removableVolumesModel.open(volumeDelegate.volumeUdi)
             }
@@ -2504,7 +2524,9 @@ PlasmoidItem {
                             ? i18n("Eject Disc")
                             : i18n("Unmount Volume")))
                 icon.name: "media-eject"
-                enabled: !volumeDelegate.volumeBusy
+                enabled: volumeDelegate.volumeMounted
+                    && volumeDelegate.volumeCanRemove
+                    && !volumeDelegate.volumeBusy
                 onTriggered: removableVolumesModel.remove(volumeDelegate.volumeUdi)
             }
         }
@@ -2810,6 +2832,8 @@ PlasmoidItem {
                     required property string iconName
                     required property string kind
                     required property string errorText
+                    required property bool canOpen
+                    required property bool canRemove
                     required property bool mounted
                     required property bool busy
                     required property string operation
@@ -2818,6 +2842,8 @@ PlasmoidItem {
                     volumeDisplayName: displayName
                     volumeIconName: iconName
                     volumeKind: kind
+                    volumeCanOpen: canOpen
+                    volumeCanRemove: canRemove
                     volumeErrorText: errorText
                     volumeMounted: mounted
                     volumeBusy: busy
@@ -3385,6 +3411,8 @@ PlasmoidItem {
                         required property string iconName
                         required property string kind
                         required property string errorText
+                        required property bool canOpen
+                        required property bool canRemove
                         required property bool mounted
                         required property bool busy
                         required property string operation
@@ -3393,6 +3421,8 @@ PlasmoidItem {
                         volumeDisplayName: displayName
                         volumeIconName: iconName
                         volumeKind: kind
+                        volumeCanOpen: canOpen
+                        volumeCanRemove: canRemove
                         volumeErrorText: errorText
                         volumeMounted: mounted
                         volumeBusy: busy

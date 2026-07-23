@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 
 project(macosdockeffects LANGUAGES CXX)
 
+include(CTest)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -44,3 +46,37 @@ target_link_libraries(macosdockeffectsplugin PRIVATE
 set_target_properties(macosdockeffectsplugin PROPERTIES
     LIBRARY_OUTPUT_NAME macosdockeffectsplugin
 )
+
+if(BUILD_TESTING)
+    find_package(Qt6 REQUIRED COMPONENTS Test QmlTools)
+
+    add_executable(removablevolumesmodeltest
+        tests/removablevolumesmodeltest.cpp
+        removablevolumesmodel.cpp
+        removablevolumesmodel.h
+    )
+    target_compile_definitions(removablevolumesmodeltest PRIVATE
+        TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/tests/data/removable-volumes.xml"
+    )
+    target_include_directories(removablevolumesmodeltest PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(removablevolumesmodeltest PRIVATE
+        Qt6::Core
+        Qt6::Test
+        KF6::Solid
+        KF6::I18n
+        KF6::KIOGui
+    )
+
+    add_test(NAME removablevolumesmodeltest
+        COMMAND removablevolumesmodeltest
+    )
+    add_test(NAME removablevolumedragqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_removablevolumedrag.qml"
+    )
+    set_tests_properties(removablevolumedragqmltest PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    )
+endif()

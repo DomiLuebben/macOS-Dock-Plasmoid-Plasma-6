@@ -381,3 +381,21 @@ msgstr "Aushängevorgang konnte nicht gestartet werden."
 
 msgid "Could not initiate eject."
 msgstr "Auswurfvorgang konnte nicht gestartet werden."
+
+msgid "Removable Drive"
+msgstr "Wechseldatenträger"
+
+msgid "Failed to open volume."
+msgstr "Volume konnte nicht geöffnet werden."
+
+msgid "Mount Volume"
+msgstr "Volume einhängen"
+
+msgid "Mounting…"
+msgstr "Einhängen …"
+
+msgid "Could not initiate mounting."
+msgstr "Einhängevorgang konnte nicht gestartet werden."
+
+msgid "Failed to mount volume."
+msgstr "Volume konnte nicht eingehängt werden."

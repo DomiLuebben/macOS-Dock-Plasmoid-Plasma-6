@@ -1,0 +1,132 @@
+<machine>
+    <device udi="/org/kde/solid/fakehw/computer">
+        <property key="name">Computer</property>
+        <property key="vendor">Solid</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/removable-drive">
+        <property key="name">Test USB Drive</property>
+        <property key="interfaces">StorageDrive,Block</property>
+        <property key="parent">/org/kde/solid/fakehw/computer</property>
+        <property key="major">8</property>
+        <property key="minor">240</property>
+        <property key="device">/dev/sdz</property>
+        <property key="bus">usb</property>
+        <property key="driveType">disk</property>
+        <property key="isRemovable">false</property>
+        <property key="isHotpluggable">true</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/mounted-volume">
+        <property key="name">Mounted Volume</property>
+        <property key="interfaces">Block,StorageVolume,StorageAccess</property>
+        <property key="parent">/org/kde/solid/fakehw/removable-drive</property>
+        <property key="major">8</property>
+        <property key="minor">241</property>
+        <property key="device">/dev/sdz1</property>
+        <property key="isIgnored">false</property>
+        <property key="isMounted">true</property>
+        <property key="mountPoint">/media/Mounted</property>
+        <property key="usage">filesystem</property>
+        <property key="label">Mounted</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/later-mounted-volume">
+        <property key="name">Later Mounted Volume</property>
+        <property key="interfaces">Block,StorageVolume,StorageAccess</property>
+        <property key="parent">/org/kde/solid/fakehw/removable-drive</property>
+        <property key="major">8</property>
+        <property key="minor">242</property>
+        <property key="device">/dev/sdz2</property>
+        <property key="isIgnored">false</property>
+        <property key="isMounted">false</property>
+        <property key="mountPoint">/media/Later</property>
+        <property key="usage">filesystem</property>
+        <property key="label">Later</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/ignored-volume">
+        <property key="name">Ignored Volume</property>
+        <property key="interfaces">Block,StorageVolume,StorageAccess</property>
+        <property key="parent">/org/kde/solid/fakehw/removable-drive</property>
+        <property key="major">8</property>
+        <property key="minor">243</property>
+        <property key="device">/dev/sdz3</property>
+        <property key="isIgnored">true</property>
+        <property key="isMounted">true</property>
+        <property key="mountPoint">/media/Ignored</property>
+        <property key="usage">filesystem</property>
+        <property key="label">Ignored</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/loop-volume">
+        <property key="name">Loop Volume</property>
+        <property key="interfaces">Block,StorageVolume,StorageAccess</property>
+        <property key="parent">/org/kde/solid/fakehw/removable-drive</property>
+        <property key="major">7</property>
+        <property key="minor">7</property>
+        <property key="device">/dev/loop7</property>
+        <property key="isIgnored">false</property>
+        <property key="isMounted">true</property>
+        <property key="mountPoint">/media/Loop</property>
+        <property key="usage">filesystem</property>
+        <property key="label">Loop</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/internal-drive">
+        <property key="name">Internal Drive</property>
+        <property key="interfaces">StorageDrive,Block</property>
+        <property key="parent">/org/kde/solid/fakehw/computer</property>
+        <property key="major">8</property>
+        <property key="minor">0</property>
+        <property key="device">/dev/sda</property>
+        <property key="bus">sata</property>
+        <property key="driveType">disk</property>
+        <property key="isRemovable">false</property>
+        <property key="isHotpluggable">false</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/internal-volume">
+        <property key="name">Internal Volume</property>
+        <property key="interfaces">Block,StorageVolume,StorageAccess</property>
+        <property key="parent">/org/kde/solid/fakehw/internal-drive</property>
+        <property key="major">8</property>
+        <property key="minor">1</property>
+        <property key="device">/dev/sda1</property>
+        <property key="isIgnored">false</property>
+        <property key="isMounted">true</property>
+        <property key="mountPoint">/home</property>
+        <property key="usage">filesystem</property>
+        <property key="label">Internal</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/optical-drive">
+        <property key="name">Test Optical Drive</property>
+        <property key="interfaces">Block,StorageDrive,OpticalDrive</property>
+        <property key="parent">/org/kde/solid/fakehw/computer</property>
+        <property key="major">11</property>
+        <property key="minor">0</property>
+        <property key="device">/dev/sr0</property>
+        <property key="bus">sata</property>
+        <property key="driveType">cdrom</property>
+        <property key="isRemovable">true</property>
+        <property key="isHotpluggable">false</property>
+        <property key="supportedMedia">cdr,dvd</property>
+    </device>
+
+    <device udi="/org/kde/solid/fakehw/optical-disc">
+        <property key="name">Test Disc</property>
+        <property key="interfaces">Block,StorageVolume,OpticalDisc,StorageAccess</property>
+        <property key="parent">/org/kde/solid/fakehw/optical-drive</property>
+        <property key="major">11</property>
+        <property key="minor">0</property>
+        <property key="device">/dev/sr0</property>
+        <property key="isIgnored">false</property>
+        <property key="isMounted">true</property>
+        <property key="mountPoint">/media/Disc</property>
+        <property key="usage">filesystem</property>
+        <property key="discType">cd_rom</property>
+        <property key="availableContent">data</property>
+        <property key="label">Disc</property>
+    </device>
+</machine>

@@ -55,6 +55,7 @@ public:
     int count() const;
 
     Q_INVOKABLE void open(const QString &udi);
+    Q_INVOKABLE void mount(const QString &udi);
     Q_INVOKABLE void remove(const QString &udi);
 
 signals:
@@ -66,6 +67,8 @@ private slots:
     void onDeviceAdded(const QString &udi);
     void onDeviceRemoved(const QString &udi);
     void onAccessibilityChanged(bool accessible, const QString &udi);
+    void onTeardownRequested(const QString &udi);
+    void onSetupDone(Solid::ErrorType error, const QVariant &errorData, const QString &udi);
     void onTeardownDone(Solid::ErrorType error, const QVariant &errorData, const QString &udi);
     void onEjectDone(Solid::ErrorType error, const QVariant &errorData, const QString &udi);
 
@@ -74,6 +77,7 @@ private:
     bool isCandidateDevice(const QString &udi, VolumeItem &itemOut, bool requireMounted = true);
     int findRowByUdi(const QString &udi) const;
     void connectDeviceSignals(const QString &udi);
+    void reportError(const QString &udi, const QString &message);
 
     QList<VolumeItem> m_items;
     QSet<QString> m_watchedUdis;

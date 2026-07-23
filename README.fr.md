@@ -41,7 +41,7 @@ couleurs du thème Qt.
 
 - KDE Plasma 6
 - Qt 6 avec Qt Quick/QML
-- KDE Frameworks 6 WindowSystem et Service
+- KDE Frameworks 6 WindowSystem, Service, Solid, I18n et KIO
 - CMake et un compilateur C++17
 - Gettext (`msgfmt`) pour les catalogues de traduction
 
@@ -51,7 +51,7 @@ l’intégration des partages récents reste inactive sans affecter le Dock.
 Sous Arch Linux, installez les dépendances de compilation avec :
 
 ```bash
-sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem
+sudo pacman -S --needed base-devel cmake gettext qt6-declarative kservice kwindowsystem solid ki18n kio
 ```
 
 ## Installation
