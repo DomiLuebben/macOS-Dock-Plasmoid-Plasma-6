@@ -360,6 +360,7 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
     item.busy = false;
     item.operation = QStringLiteral("idle");
 
+    bool shouldOpenAfterMount = false;
     if (accessible) {
         Solid::Device dev(udi);
         auto *access = dev.as<Solid::StorageAccess>();
@@ -370,12 +371,19 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
             }
         }
         item.errorText.clear();
+        shouldOpenAfterMount = item.openOnMount;
+        item.openOnMount = false;
     } else {
+        item.openOnMount = false;
         item.mountUrl.clear();
     }
 
     QModelIndex idx = createIndex(row, 0);
     emit dataChanged(idx, idx, {MountedRole, CanOpenRole, MountUrlRole, BusyRole, OperationRole, ErrorTextRole});
+
+    if (shouldOpenAfterMount) {
+        open(udi);
+    }
 }
 
 void RemovableVolumesModel::onTeardownRequested(const QString &udi)
@@ -493,6 +501,7 @@ void RemovableVolumesModel::mount(const QString &udi)
 
     item.busy = true;
     item.operation = QStringLiteral("mounting");
+    item.openOnMount = true;
     item.errorText.clear();
     QModelIndex idx = createIndex(row, 0);
     emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
@@ -500,6 +509,7 @@ void RemovableVolumesModel::mount(const QString &udi)
     if (!access->setup()) {
         item.busy = false;
         item.operation = QStringLiteral("idle");
+        item.openOnMount = false;
         item.errorText = i18n("Could not initiate mounting.");
         emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
         emit operationFailed(udi, item.errorText);
@@ -519,6 +529,7 @@ void RemovableVolumesModel::onSetupDone(Solid::ErrorType error, const QVariant &
     item.operation = QStringLiteral("idle");
 
     if (error != Solid::NoError) {
+        item.openOnMount = false;
         QString msg = errorData.toString();
         if (msg.isEmpty()) {
             msg = i18n("Failed to mount volume.");

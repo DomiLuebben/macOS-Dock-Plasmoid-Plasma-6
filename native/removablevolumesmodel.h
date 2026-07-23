@@ -42,6 +42,7 @@ public:
         QString operation{"idle"}; // "idle", "unmounting", "ejecting"
         bool canOpen{true};
         bool canRemove{true};
+        bool openOnMount{false};
         QString errorText;
     };
 
