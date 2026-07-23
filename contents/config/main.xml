@@ -68,6 +68,9 @@
     <entry name="showTrash" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="showRemovableVolumes" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="showDesktopSwitcher" type="Bool">
       <default>true</default>
     </entry>

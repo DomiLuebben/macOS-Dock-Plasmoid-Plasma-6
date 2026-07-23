@@ -83,6 +83,14 @@ PlasmoidItem {
     readonly property bool showTrash:
         Plasmoid.configuration.showTrash === undefined
             ? true : Boolean(Plasmoid.configuration.showTrash)
+    readonly property bool showRemovableVolumes:
+        Plasmoid.configuration.showRemovableVolumes === undefined
+            ? true : Boolean(Plasmoid.configuration.showRemovableVolumes)
+    property bool isVolumeDragOverTrash: false
+
+    readonly property int removableVolumeCount: showRemovableVolumes
+        ? removableVolumesModel.count : 0
+
     readonly property bool showPowerButton:
         Plasmoid.configuration.showPowerButton === undefined
             ? true : Boolean(Plasmoid.configuration.showPowerButton)
@@ -130,20 +138,23 @@ PlasmoidItem {
     // button occupies slot zero, so task drag and magnification use this offset.
     readonly property int taskDockStartIndex:
         powerButtonOnLeft ? 1 : 0
-    readonly property int trailingUtilityItemCount:
-        folderItemCount + (showTrash ? 1 : 0)
-            + (showPowerButton && !powerButtonOnLeft ? 1 : 0)
-    readonly property int utilityItemCount:
-        folderItemCount + (showTrash ? 1 : 0) + (showPowerButton ? 1 : 0)
-    readonly property int dockItemCount: taskCount + utilityItemCount
     readonly property int folderDockIndex:
         folderItemCount > 0
             ? taskDockStartIndex + taskCount : -1
+    readonly property int removableVolumeDockStartIndex:
+        removableVolumeCount > 0
+            ? taskDockStartIndex + taskCount + folderItemCount : -1
     readonly property int trashDockIndex: showTrash
-        ? taskDockStartIndex + taskCount + folderItemCount : -1
+        ? taskDockStartIndex + taskCount + folderItemCount + removableVolumeCount : -1
     readonly property int powerButtonDockIndex: showPowerButton
         ? (powerButtonOnLeft ? 0
-            : taskCount + folderItemCount + (showTrash ? 1 : 0)) : -1
+            : taskCount + folderItemCount + removableVolumeCount + (showTrash ? 1 : 0)) : -1
+    readonly property int trailingUtilityItemCount:
+        folderItemCount + removableVolumeCount + (showTrash ? 1 : 0)
+            + (showPowerButton && !powerButtonOnLeft ? 1 : 0)
+    readonly property int utilityItemCount:
+        folderItemCount + removableVolumeCount + (showTrash ? 1 : 0) + (showPowerButton ? 1 : 0)
+    readonly property int dockItemCount: taskCount + utilityItemCount
     readonly property bool leadingUtilitySeparatorVisible:
         powerButtonOnLeft && dockItemCount > 1
     readonly property bool trailingUtilitySeparatorVisible:
@@ -232,6 +243,10 @@ PlasmoidItem {
     DockEffects.KdeConnectShareMonitor {
         id: kdeConnectMonitor
         enabled: root.showKdeConnectRecentShares
+    }
+
+    DockEffects.RemovableVolumesModel {
+        id: removableVolumesModel
     }
     readonly property var recentKdeConnectShares:
         kdeConnectMonitor.recentShares
@@ -2251,6 +2266,9 @@ PlasmoidItem {
             if (!isTrash) {
                 return "application-x-executable";
             }
+            if (root.isVolumeDragOverTrash) {
+                return "media-eject";
+            }
             // KIO exposes trash:/ as a folder on some Plasma versions.
             // Resolve the canonical trash icon names through the active icon
             // theme instead, while still reflecting the empty/full state.
@@ -2277,15 +2295,27 @@ PlasmoidItem {
         DropArea {
             anchors.fill: parent
             enabled: utilityDelegate.isTrash
+            keys: ["org.kde.plasma.macosdock.removable-volume"]
 
-            onEntered: utilityDelegate.dropTarget = true
-            onExited: utilityDelegate.dropTarget = false
-            onDropped: (drop) => {
+            onEntered: (drag) => {
+                root.isVolumeDragOverTrash = true;
+                utilityDelegate.dropTarget = true;
+            }
+            onExited: {
+                root.isVolumeDragOverTrash = false;
                 utilityDelegate.dropTarget = false;
-                if (utilityDelegate.isTrash) {
+            }
+            onDropped: (drop) => {
+                root.isVolumeDragOverTrash = false;
+                utilityDelegate.dropTarget = false;
+                if (drop.keys && drop.keys.indexOf("org.kde.plasma.macosdock.removable-volume") !== -1) {
+                    var udi = drop.source ? drop.source.volumeUdi : "";
+                    if (udi) {
+                        removableVolumesModel.remove(udi);
+                        drop.acceptProposedAction();
+                    }
+                } else if (utilityDelegate.isTrash) {
                     trashModel.drop(utilityDelegate, drop, -1, false);
-                } else {
-                    drop.accepted = false;
                 }
             }
         }
@@ -2386,6 +2416,73 @@ PlasmoidItem {
                 enabled: sessionManagement.canLogout
                 onTriggered: sessionManagement.requestLogout(
                     Sessions.SessionManagement.ForcePrompt)
+            }
+        }
+    }
+
+    component RemovableVolumeDelegate: AuxiliaryDelegate {
+        id: volumeDelegate
+
+        required property string volumeUdi
+        required property string volumeDisplayName
+        required property string volumeIconName
+        required property bool volumeMounted
+        required property bool volumeBusy
+        required property string volumeOperation
+
+        appName: volumeDisplayName
+        appIcon: volumeIconName.length > 0 ? volumeIconName : "drive-removable-media"
+
+        progressVisible: volumeBusy
+        progressIndeterminate: volumeBusy
+
+        onClicked: {
+            if (!volumeBusy) {
+                triggerBounce();
+                removableVolumesModel.open(volumeUdi);
+            }
+        }
+        onContextMenuRequested: volumeMenu.popup()
+
+        Item {
+            id: dragProxy
+            Drag.active: volumeDragHandler.active
+            Drag.keys: ["org.kde.plasma.macosdock.removable-volume"]
+            Drag.source: volumeDelegate
+            property string volumeUdi: volumeDelegate.volumeUdi
+        }
+
+        DragHandler {
+            id: volumeDragHandler
+            target: null
+            onActiveChanged: {
+                if (active) {
+                    dragProxy.Drag.start();
+                } else {
+                    dragProxy.Drag.drop();
+                }
+            }
+        }
+
+        TrackedMenu {
+            id: volumeMenu
+
+            QQC2.MenuItem {
+                text: i18n("Open Drive")
+                icon.name: "document-open-folder"
+                enabled: !volumeDelegate.volumeBusy
+                onTriggered: removableVolumesModel.open(volumeDelegate.volumeUdi)
+            }
+
+            QQC2.MenuItem {
+                text: volumeDelegate.volumeOperation === "ejecting"
+                    ? i18n("Ejecting…")
+                    : (volumeDelegate.volumeOperation === "unmounting"
+                        ? i18n("Unmounting…")
+                        : i18n("Eject Drive"))
+                icon.name: "media-eject"
+                enabled: !volumeDelegate.volumeBusy
+                onTriggered: removableVolumesModel.remove(volumeDelegate.volumeUdi)
             }
         }
     }
@@ -2680,6 +2777,34 @@ PlasmoidItem {
                 }
             }
 
+            Repeater {
+                model: root.showRemovableVolumes ? removableVolumesModel : 0
+
+                delegate: RemovableVolumeDelegate {
+                    required property int index
+                    required property string udi
+                    required property string displayName
+                    required property string iconName
+                    required property bool mounted
+                    required property bool busy
+                    required property string operation
+
+                    volumeUdi: udi
+                    volumeDisplayName: displayName
+                    volumeIconName: iconName
+                    volumeMounted: mounted
+                    volumeBusy: busy
+                    volumeOperation: operation
+
+                    dockIndex: root.removableVolumeDockStartIndex + index
+                    x: root.isVertical ? root.crossMargin
+                        : root.baseCenterForIndex(dockIndex) - scaledSize / 2
+                    y: root.isVertical
+                        ? root.baseCenterForIndex(dockIndex) - scaledSize / 2
+                        : root.crossMargin
+                }
+            }
+
             UtilityDelegate {
                 id: trashBaseItem
 
@@ -2841,6 +2966,11 @@ PlasmoidItem {
                             + root.folderItemCount) {
                     item = folderOverlayRepeater.itemAt(
                         index - root.folderDockIndex);
+                } else if (index >= root.removableVolumeDockStartIndex
+                        && index < root.removableVolumeDockStartIndex
+                            + root.removableVolumeCount) {
+                    item = removableVolumeOverlayRepeater.itemAt(
+                        index - root.removableVolumeDockStartIndex);
                 } else if (index === root.trashDockIndex) {
                     item = trashOverlayItem;
                 } else if (index === root.powerButtonDockIndex) {
@@ -3202,6 +3332,42 @@ PlasmoidItem {
                         folderUrl: root.folderUrlAt(index)
                         dockIndex: root.folderDockIndex + index
                         utilityType: "folder"
+                        displayScale: root.scaleForIndex(dockIndex,
+                            root.lastPointerMain, root.overlayOpen,
+                            overlayContent.mainLength, root.maxScale,
+                            root.baseIconSize)
+                        displayCrossExtent: root.maximumIconSize
+                        x: root.isVertical ? 0
+                            : overlayContent.centerForVisualIndex(dockIndex)
+                                - scaledSize / 2
+                        y: root.isVertical
+                            ? overlayContent.centerForVisualIndex(dockIndex)
+                                - scaledSize / 2 : 0
+                    }
+                }
+
+                Repeater {
+                    id: removableVolumeOverlayRepeater
+
+                    model: root.showRemovableVolumes ? removableVolumesModel : 0
+
+                    delegate: RemovableVolumeDelegate {
+                        required property int index
+                        required property string udi
+                        required property string displayName
+                        required property string iconName
+                        required property bool mounted
+                        required property bool busy
+                        required property string operation
+
+                        volumeUdi: udi
+                        volumeDisplayName: displayName
+                        volumeIconName: iconName
+                        volumeMounted: mounted
+                        volumeBusy: busy
+                        volumeOperation: operation
+
+                        dockIndex: root.removableVolumeDockStartIndex + index
                         displayScale: root.scaleForIndex(dockIndex,
                             root.lastPointerMain, root.overlayOpen,
                             overlayContent.mainLength, root.maxScale,

@@ -2,6 +2,7 @@
 #include "windowactions.h"
 #include "launcherprogressmonitor.h"
 #include "kdeconnectsharemonitor.h"
+#include "removablevolumesmodel.h"
 
 #include <QQmlEngine>
 #include <QQmlExtensionPlugin>
@@ -18,6 +19,7 @@ public:
         qmlRegisterType<WindowActions>(uri, 1, 0, "WindowActions");
         qmlRegisterType<LauncherProgressMonitor>(uri, 1, 0, "LauncherProgressMonitor");
         qmlRegisterType<KdeConnectShareMonitor>(uri, 1, 0, "KdeConnectShareMonitor");
+        qmlRegisterType<RemovableVolumesModel>(uri, 1, 0, "RemovableVolumesModel");
     }
 };
 

@@ -34,6 +34,7 @@ KCM.SimpleKCM {
     property alias cfg_folderUrl: folderUrlField.text
     property var cfg_folderUrls: []
     property alias cfg_showTrash: showTrashCheckBox.checked
+    property alias cfg_showRemovableVolumes: showRemovableVolumesCheckBox.checked
     property alias cfg_showDesktopSwitcher:
         showDesktopSwitcherCheckBox.checked
     property alias cfg_desktopSwitcherPosition:
@@ -341,6 +342,11 @@ KCM.SimpleKCM {
             QQC2.CheckBox {
                 id: showTrashCheckBox
                 text: i18n("Show Trash")
+            }
+
+            QQC2.CheckBox {
+                id: showRemovableVolumesCheckBox
+                text: i18n("Show removable drives")
             }
 
             QQC2.CheckBox {
