@@ -17,6 +17,7 @@
 #include <KJob>
 #include <KLocalizedString>
 #include <QDesktopServices>
+#include <QTimer>
 #include <QDebug>
 
 RemovableVolumesModel::RemovableVolumesModel(QObject *parent)
@@ -382,7 +383,7 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
     emit dataChanged(idx, idx, {MountedRole, CanOpenRole, MountUrlRole, BusyRole, OperationRole, ErrorTextRole});
 
     if (shouldOpenAfterMount) {
-        open(udi);
+        openWhenReady(udi, 10);
     }
 }
 
@@ -547,6 +548,37 @@ void RemovableVolumesModel::onSetupDone(Solid::ErrorType error, const QVariant &
     }
 }
 
+void RemovableVolumesModel::openWhenReady(const QString &udi, int retries)
+{
+    int row = findRowByUdi(udi);
+    if (row == -1) {
+        return;
+    }
+
+    Solid::Device dev(udi);
+    if (!dev.isValid()) {
+        return;
+    }
+
+    auto *access = dev.as<Solid::StorageAccess>();
+    if (access && access->isAccessible()) {
+        QString path = access->filePath();
+        if (!path.isEmpty() && path != QStringLiteral("/")) {
+            m_items[row].mountUrl = QUrl::fromLocalFile(path);
+            QDesktopServices::openUrl(m_items[row].mountUrl);
+            return;
+        }
+    }
+
+    if (retries > 0) {
+        QTimer::singleShot(100, this, [this, udi, retries]() {
+            openWhenReady(udi, retries - 1);
+        });
+    } else {
+        reportError(udi, i18n("Failed to open volume."));
+    }
+}
+
 void RemovableVolumesModel::open(const QString &udi)
 {
     int row = findRowByUdi(udi);
@@ -560,16 +592,6 @@ void RemovableVolumesModel::open(const QString &udi)
         return;
     }
 
-    Solid::Device dev(udi);
-    if (!dev.isValid()) {
-        return;
-    }
-
-    auto *access = dev.as<Solid::StorageAccess>();
-    if (!access || !access->isAccessible()) {
-        return;
-    }
-
     VolumeItem &item = m_items[row];
     if (!item.errorText.isEmpty()) {
         item.errorText.clear();
@@ -577,20 +599,7 @@ void RemovableVolumesModel::open(const QString &udi)
         emit dataChanged(idx, idx, {ErrorTextRole});
     }
 
-    QUrl url = QUrl::fromLocalFile(access->filePath());
-    auto *job = new KIO::OpenUrlJob(url);
-    connect(job, &KJob::result, this, [this, udi, job]() {
-        if (!job->error()) {
-            return;
-        }
-
-        QString message = job->errorText();
-        if (message.isEmpty()) {
-            message = i18n("Failed to open volume.");
-        }
-        reportError(udi, message);
-    });
-    job->start();
+    openWhenReady(udi, 10);
 }
 
 void RemovableVolumesModel::remove(const QString &udi)

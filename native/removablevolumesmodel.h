@@ -79,6 +79,7 @@ private:
     int findRowByUdi(const QString &udi) const;
     void connectDeviceSignals(const QString &udi);
     void reportError(const QString &udi, const QString &message);
+    void openWhenReady(const QString &udi, int retries = 10);
 
     QList<VolumeItem> m_items;
     QSet<QString> m_watchedUdis;
