@@ -39,13 +39,16 @@ private slots:
 
         RemovableVolumesModel model;
 
-        QCOMPARE(model.rowCount(), 2);
+        QCOMPARE(model.rowCount(), 3);
         QCOMPARE(rowForUdi(model, ignoredUdi), -1);
         QCOMPARE(rowForUdi(model, loopUdi), -1);
         QCOMPARE(rowForUdi(model, internalUdi), -1);
 
         const int mountedRow = rowForUdi(model, mountedUdi);
         QVERIFY(mountedRow >= 0);
+        QCOMPARE(
+            model.data(model.index(mountedRow, 0), RemovableVolumesModel::MountedRole).toBool(),
+            true);
         QCOMPARE(
             model.data(model.index(mountedRow, 0), RemovableVolumesModel::MountUrlRole).toUrl(),
             QUrl::fromLocalFile(QStringLiteral("/media/Mounted")));
@@ -60,20 +63,30 @@ private slots:
         QVERIFY(access);
         QVERIFY(!access->isAccessible());
 
-        QSignalSpy countChangedSpy(&model, &RemovableVolumesModel::countChanged);
-        QVERIFY(access->setup());
-        QTRY_COMPARE(model.rowCount(), 3);
-        QVERIFY(countChangedSpy.count() >= 1);
+        const int initialLaterRow = rowForUdi(model, laterMountedUdi);
+        QVERIFY(initialLaterRow >= 0);
+        QCOMPARE(
+            model.data(model.index(initialLaterRow, 0), RemovableVolumesModel::MountedRole).toBool(),
+            false);
 
-        const int laterMountedRow = rowForUdi(model, laterMountedUdi);
-        QVERIFY(laterMountedRow >= 0);
-        QCOMPARE(model.data(model.index(laterMountedRow, 0), RemovableVolumesModel::MountUrlRole)
+        QSignalSpy dataChangedSpy(&model, &RemovableVolumesModel::dataChanged);
+        QVERIFY(access->setup());
+        QTRY_COMPARE(
+            model.data(model.index(initialLaterRow, 0), RemovableVolumesModel::MountedRole).toBool(),
+            true);
+        QVERIFY(dataChangedSpy.count() >= 1);
+
+        QCOMPARE(model.data(model.index(initialLaterRow, 0), RemovableVolumesModel::MountUrlRole)
                      .toUrl(),
                  QUrl::fromLocalFile(QStringLiteral("/media/Later")));
 
         QVERIFY(access->teardown());
-        QTRY_COMPARE(model.rowCount(), 2);
-        QCOMPARE(rowForUdi(model, laterMountedUdi), -1);
+        QTRY_COMPARE(
+            model.data(model.index(initialLaterRow, 0), RemovableVolumesModel::MountedRole).toBool(),
+            false);
+        QCOMPARE(model.data(model.index(initialLaterRow, 0), RemovableVolumesModel::MountUrlRole)
+                     .toUrl(),
+                 QUrl());
     }
 
     void reportsOpticalEjectStartFailure()
