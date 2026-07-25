@@ -862,6 +862,43 @@ PlasmoidItem {
         return result;
     }
 
+    // Layer-Shell-Flächen kennen ihre eigene Bildschirmposition nicht: der
+    // Compositor platziert sie, Qt lässt QWindow::position() auf (0,0) stehen.
+    // mapToGlobal() liefert hier also Fenster- statt Bildschirmkoordinaten.
+    //
+    // Die Position ist trotzdem exakt berechenbar: die Fläche ist an genau
+    // eine Kante verankert und wird auf der freien Achse zentriert (so
+    // definiert es das Layer-Shell-Protokoll für Flächen mit nur einem Anker).
+    function windowScreenOrigin(windowItem) {
+        if (!windowItem) {
+            return null;
+        }
+        var screenItem = windowItem.screen;
+        if (!screenItem) {
+            return null;
+        }
+        // Nur die Kante, an der die Fläche verankert ist, bekommt einen Rand.
+        var edgeMargin = windowItem === edgeWindow ? 0 : root.panelEdgeMargin;
+        var originX;
+        var originY;
+        if (root.isVertical) {
+            originY = screenItem.virtualY
+                + (screenItem.height - windowItem.height) / 2;
+            originX = root.dockLocation === PlasmaCore.Types.LeftEdge
+                ? screenItem.virtualX + edgeMargin
+                : screenItem.virtualX + screenItem.width
+                    - windowItem.width - edgeMargin;
+        } else {
+            originX = screenItem.virtualX
+                + (screenItem.width - windowItem.width) / 2;
+            originY = root.dockLocation === PlasmaCore.Types.TopEdge
+                ? screenItem.virtualY + edgeMargin
+                : screenItem.virtualY + screenItem.height
+                    - windowItem.height - edgeMargin;
+        }
+        return Qt.point(originX, originY);
+    }
+
     function publishDelegateGeometry(row, delegateItem, windowItem) {
         if (!root.taskModelReady || row < 0 || row >= root.taskCount
                 || !delegateItem || !windowItem || !windowItem.visible) {
@@ -872,13 +909,50 @@ PlasmoidItem {
             return;
         }
 
-        var globalPos = delegateItem.mapToGlobal(0, 0);
-        var globalRect = Qt.rect(globalPos.x, globalPos.y,
-            delegateItem.width, delegateItem.height);
+        // XWindowTasksModel wertet diesen Rahmen als Bildschirmkoordinaten aus
+        // (_NET_WM_ICON_GEOMETRY) — für XWayland-Anwendungen muss er stimmen.
+        // WaylandTasksModel ignoriert ihn und leitet die Geometrie selbst aus
+        // dem übergebenen Delegate ab, deshalb ist dort ausschlaggebend, dass
+        // dieses Item zu einer gemappten Fläche gehört.
+        var origin = windowScreenOrigin(windowItem);
+        var globalRect;
+        if (origin) {
+            var scenePos = delegateItem.mapToItem(null, 0, 0);
+            globalRect = Qt.rect(origin.x + scenePos.x, origin.y + scenePos.y,
+                delegateItem.width, delegateItem.height);
+        } else {
+            var globalPos = delegateItem.mapToGlobal(0, 0);
+            globalRect = Qt.rect(globalPos.x, globalPos.y,
+                delegateItem.width, delegateItem.height);
+        }
 
         // TasksModel propagates a group parent's geometry to all children.
         tasksModel.requestPublishDelegateGeometry(parentIndex, globalRect,
             delegateItem);
+    }
+
+    // Basis-, Overlay- und Kantenfenster lösen einander ab. Wird eines gerade
+    // erst gemappt, kann die Veröffentlichung noch auf eine fehlende Fläche
+    // treffen; ein zweiter Durchlauf kurz danach fängt das ab.
+    function republishTaskGeometry() {
+        var repeaters = [baseRepeater, overlayRepeater, edgeGeometryRepeater];
+        for (var r = 0; r < repeaters.length; ++r) {
+            var repeater = repeaters[r];
+            if (!repeater) {
+                continue;
+            }
+            for (var i = 0; i < repeater.count; ++i) {
+                var item = repeater.itemAt(i);
+                if (!item) {
+                    continue;
+                }
+                if (item.scheduleGeometryPublish) {
+                    item.scheduleGeometryPublish();
+                } else if (item.publishEdgeGeometry) {
+                    item.publishEdgeGeometry();
+                }
+            }
+        }
     }
 
     function activateTask(row, launcher) {
@@ -1305,6 +1379,18 @@ PlasmoidItem {
         interval: 210
         repeat: false
         onTriggered: root.reorderAnimationActive = false
+    }
+
+    // Nachzügler nach einem Fensterwechsel: die native Fläche eines gerade
+    // sichtbar gewordenen Layer-Shell-Fensters entsteht nicht zwingend im
+    // selben Ereigniszyklus. Ein zweiter Durchlauf stellt sicher, dass die
+    // Minimier-Geometrie auch dann ankommt.
+    Timer {
+        id: geometryRepublishTimer
+
+        interval: 150
+        repeat: false
+        onTriggered: root.republishTaskGeometry()
     }
 
     Timer {
@@ -2659,6 +2745,8 @@ PlasmoidItem {
             if (!visible) {
                 root.baseHovered = false;
             }
+            root.republishTaskGeometry();
+            geometryRepublishTimer.restart();
         }
 
         Item {
@@ -2926,10 +3014,62 @@ PlasmoidItem {
                 root.edgeHovered = false;
                 root.scheduleDockHide();
             }
+            // Fensterwechsel: die neu gemappte Fläche muss die Geometrie
+            // übernehmen, sonst zeigt KWin weiter auf die zerstörte alte.
+            root.republishTaskGeometry();
+            geometryRepublishTimer.restart();
         }
 
         Item {
             anchors.fill: parent
+
+            // Ist das Dock automatisch versteckt (Vollbild oder maximiertes
+            // Fenster bei hideOnMaximized), sind Basis- und Overlay-Fenster
+            // nicht gemappt. Ihre wl_surface existiert dann nicht mehr und KWin
+            // verliert die veröffentlichte Minimier-Geometrie — die Animation
+            // fliegt anschließend in eine Ersatzposition statt zum Icon.
+            //
+            // Dieses Kantenfenster ist genau in diesem Zustand gemappt und
+            // exakt so lang wie das Dock. Wir veröffentlichen die Geometrie
+            // deshalb hier weiter: an der Bildschirmkante, aber an der
+            // richtigen Position des jeweiligen Icons.
+            Repeater {
+                id: edgeGeometryRepeater
+
+                model: tasksModel
+
+                delegate: Item {
+                    id: edgeGeometryProxy
+
+                    required property int index
+
+                    readonly property real proxyCenter: root.baseCenterForIndex(
+                        root.taskDockStartIndex
+                            + root.visualIndexForModelIndex(index))
+
+                    // Unsichtbar, aber nicht `visible: false` — die Geometrie
+                    // eines Items muss im Szenengraph auflösbar bleiben.
+                    opacity: 0
+                    width: root.isVertical ? edgeWindow.width : root.baseIconSize
+                    height: root.isVertical ? root.baseIconSize : edgeWindow.height
+                    x: root.isVertical ? 0 : proxyCenter - width / 2
+                    y: root.isVertical ? proxyCenter - height / 2 : 0
+
+                    function publishEdgeGeometry() {
+                        if (!edgeWindow.visible) {
+                            return;
+                        }
+                        root.publishDelegateGeometry(index, edgeGeometryProxy,
+                            edgeWindow);
+                    }
+
+                    onXChanged: Qt.callLater(publishEdgeGeometry)
+                    onYChanged: Qt.callLater(publishEdgeGeometry)
+                    onWidthChanged: Qt.callLater(publishEdgeGeometry)
+                    onHeightChanged: Qt.callLater(publishEdgeGeometry)
+                    Component.onCompleted: Qt.callLater(publishEdgeGeometry)
+                }
+            }
 
             FolderDropTarget {
                 anchors.fill: parent
@@ -2990,6 +3130,8 @@ PlasmoidItem {
             if (!visible) {
                 root.overlayHovered = false;
             }
+            root.republishTaskGeometry();
+            geometryRepublishTimer.restart();
         }
 
         Item {
