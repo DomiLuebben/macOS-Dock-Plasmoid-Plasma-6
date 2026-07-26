@@ -62,6 +62,76 @@ TestCase {
         verify(!AppGroupStore.isLeader(layout, 2, "browsers"));
     }
 
+    function test_appIdentitySurvivesLauncherStateChanges() {
+        var groups = AppGroupStore.parse([
+            JSON.stringify({
+                id: "assistants",
+                name: "AI",
+                members: [
+                    {
+                        launcher: "applications:Codex.desktop",
+                        name: "Codex",
+                        appId: "Codex.desktop"
+                    },
+                    {
+                        launcher:
+                            "applications:com.anthropic.Claude.desktop",
+                        name: "Claude",
+                        appId: "com.anthropic.Claude.desktop"
+                    }
+                ]
+            })
+        ], "Application", "Group");
+
+        var closedLayout = AppGroupStore.buildLayout([
+            "applications:Codex.desktop",
+            "applications:com.anthropic.Claude.desktop"
+        ], groups, [
+            "Codex.desktop",
+            "com.anthropic.Claude.desktop"
+        ]);
+        compare(closedLayout.modelByVisual.length, 1);
+
+        // Plasma may expose another launcher URL after replacing a pinned,
+        // closed launcher row with the running task. The desktop app ID stays
+        // stable and must retain the group membership.
+        var runningLayout = AppGroupStore.buildLayout([
+            "applications:org.openai.Codex.desktop",
+            "applications:Claude.desktop"
+        ], groups, [
+            "Codex.desktop",
+            "com.anthropic.Claude.desktop"
+        ]);
+        compare(runningLayout.modelByVisual.length, 1);
+        compare(runningLayout.groupIdByRow[0], "assistants");
+        compare(runningLayout.groupIdByRow[1], "assistants");
+        compare(AppGroupStore.findGroupForIdentity(groups,
+            "applications:org.openai.Codex.desktop",
+            "Codex.desktop").id, "assistants");
+    }
+
+    function test_appIdsAreNormalizedAndStayUnambiguous() {
+        compare(AppGroupStore.normalizeAppId(
+            "applications:Org.Kde.Konsole.desktop?icon=x"),
+            "org.kde.konsole");
+
+        var duplicateIdentity = JSON.stringify({
+            id: "duplicate-identity",
+            members: [
+                {
+                    launcher: "applications:first.desktop",
+                    appId: "same.desktop"
+                },
+                {
+                    launcher: "applications:second.desktop",
+                    appId: "SAME"
+                }
+            ]
+        });
+        compare(AppGroupStore.parse(
+            [duplicateIdentity], "Application", "Group").length, 0);
+    }
+
     function test_duplicateAndSingleMemberGroupsAreRejected() {
         var duplicateGroup = JSON.stringify({
             id: "invalid",

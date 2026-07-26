@@ -12,7 +12,8 @@ couleurs du thème Qt.
 - Réorganisation par glisser-déposer des lanceurs à la souris
 - Groupes d’applications de style Android : déposez une application au centre
   d’une autre pour les regrouper, puis utilisez la liste
-  animée pour lancer, renommer, retirer ou dissocier les applications
+  animée pour lancer, renommer, retirer ou dissocier les applications ; les
+  lanceurs épinglés fonctionnent, que l’application soit ouverte ou fermée
 - Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
   macOS ; d’autres dossiers peuvent être glissés directement depuis le gestionnaire de fichiers
 - Anneaux de progression facultatifs pour les tâches Plasma et les
@@ -84,7 +85,8 @@ Pour créer un groupe, faites glisser une application au centre d’une autre. L
 cible s’agrandit immédiatement ; relâchez pour créer le groupe. Un dépôt entre
 deux icônes continue de simplement réorganiser le Dock. Les applications
 groupées conservent le suivi natif des tâches et les animations de réduction de
-Plasma.
+Plasma. Lorsqu’une application groupée possède plusieurs fenêtres, son entrée
+ouvre une liste de fenêtres imbriquée au lieu de réduire une fenêtre arbitraire.
 
 Lors d’une mise à niveau depuis une ancienne version, retirez d’abord le Dock
 de son ancien panneau Plasma. Si ce panneau a été créé uniquement pour le Dock,

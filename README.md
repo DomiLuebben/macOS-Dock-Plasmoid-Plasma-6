@@ -11,7 +11,8 @@ color scheme.
 - Smooth macOS-style icon magnification on hover
 - Drag-and-drop reordering of launchers and starters with mouse interaction
 - Android-style app groups: drop one app onto the center of another, then open
-  the animated group list to launch, rename, remove, or ungroup its apps
+  the animated group list to launch, rename, remove, or ungroup its apps;
+  pinned launchers work whether their applications are open or closed
 - Optional Downloads/folder stacks with a macOS-style file popover; drag
   folders from the file manager onto the Dock to add more
 - Optional progress rings for Plasma jobs and Unity-compatible downloads on
@@ -81,7 +82,8 @@ Dock stays centered along the selected screen edge.
 To create an app group, drag an app onto the center of another app. The target
 expands immediately; release to group them. Dropping between icons still
 reorders the Dock. Grouped apps keep Plasma's native running-task and minimize
-behavior.
+behavior. If a grouped application owns several windows, selecting it opens a
+nested window list instead of minimizing an arbitrary window.
 
 When upgrading from an older version, first remove the Dock from its previous
 Plasma panel. If that panel was created only for the Dock, remove the entire

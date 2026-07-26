@@ -129,10 +129,13 @@ PlasmoidItem {
         void taskLayoutRevision;
         void appGroups;
         var launcherUrls = [];
+        var appIds = [];
         for (var row = 0; row < taskCount; ++row) {
             launcherUrls.push(launcherUrlAtTaskRow(row));
+            appIds.push(String(taskRole(modelIndex(row),
+                TaskManager.AbstractTasksModel.AppId) || ""));
         }
-        return AppGroupStore.buildLayout(launcherUrls, appGroups);
+        return AppGroupStore.buildLayout(launcherUrls, appGroups, appIds);
     }
     readonly property int taskVisualCount:
         taskLayout.modelByVisual.length
@@ -617,7 +620,7 @@ PlasmoidItem {
         activeAppGroupId = group.id;
         appGroupPopup.groupId = group.id;
         appGroupPopup.groupName = group.name;
-        appGroupPopup.members = groupRuntimeMembers(group);
+        appGroupPopup.members = groupRuntimeMembers(group, true);
         appGroupPopup.visualParent = visualParent;
         revealDock();
         overlayOpen = true;
@@ -646,7 +649,9 @@ PlasmoidItem {
     }
 
     function updateActiveAppGroupPopup() {
-        if (!activeAppGroupId) {
+        if (!activeAppGroupId
+                || (!appGroupPopup.visible
+                    && !appGroupPopupOpenPending)) {
             return;
         }
         var group = appGroupById(activeAppGroupId);
@@ -656,7 +661,7 @@ PlasmoidItem {
             return;
         }
         appGroupPopup.groupName = group.name;
-        appGroupPopup.members = groupRuntimeMembers(group);
+        appGroupPopup.members = groupRuntimeMembers(group, true);
     }
 
     function updateTrashCount() {
@@ -1228,6 +1233,21 @@ PlasmoidItem {
         return url.length > 0 && tasksModel.launcherPosition(url) !== -1;
     }
 
+    function pinnedLauncherForAppId(appId) {
+        var targetAppId = AppGroupStore.normalizeAppId(appId);
+        if (!targetAppId) {
+            return "";
+        }
+        var launchers = tasksModel.launcherList || [];
+        for (var index = 0; index < launchers.length; ++index) {
+            if (AppGroupStore.normalizeAppId(launchers[index])
+                    === targetAppId) {
+                return normalizedLauncherUrl(launchers[index]);
+            }
+        }
+        return "";
+    }
+
     function toggleLauncher(task) {
         var url = launcherUrl(task);
         if (url.length === 0) {
@@ -1277,12 +1297,28 @@ PlasmoidItem {
         return AppGroupStore.findGroupById(appGroups, groupId);
     }
 
-    function appGroupForTask(row, launcherTarget) {
+    function appGroupMemberForLauncher(launcherUrl) {
+        var target = normalizedLauncherUrl(launcherUrl);
+        var group = appGroupForLauncher(target);
+        if (!group) {
+            return null;
+        }
+        for (var index = 0; index < group.members.length; ++index) {
+            if (normalizedLauncherUrl(group.members[index].launcher)
+                    === target) {
+                return group.members[index];
+            }
+        }
+        return null;
+    }
+
+    function appGroupForTask(row, launcherTarget, appId) {
         var launcher = normalizedLauncherUrl(launcherTarget);
         if (!launcher) {
             launcher = launcherUrlAtTaskRow(row);
         }
-        return appGroupForLauncher(launcher);
+        return AppGroupStore.findGroupForIdentity(
+            appGroups, launcher, appId);
     }
 
     function appGroupIdForTask(row) {
@@ -1335,34 +1371,55 @@ PlasmoidItem {
 
     function taskSnapshot(row) {
         var delegate = taskDelegateForRow(row);
-        var launcher = delegate
-            ? normalizedLauncherUrl(delegate.launcherTarget)
-            : launcherUrlAtTaskRow(row);
+        var index = modelIndex(row);
+        var appId = delegate
+            ? String(delegate.taskAppId || "")
+            : String(taskRole(index,
+                TaskManager.AbstractTasksModel.AppId) || "");
+        var launcher = pinnedLauncherForAppId(appId)
+            || launcherUrlAtTaskRow(row);
+        if (!launcher && delegate) {
+            launcher = normalizedLauncherUrl(delegate.launcherTarget);
+        }
         if (!launcher) {
             return null;
         }
-        var appId = delegate ? String(delegate.taskAppId || "") : "";
+        var name = delegate
+            ? String(delegate.originalAppName || "")
+            : String(taskRole(index,
+                TaskManager.AbstractTasksModel.AppName)
+                || taskRole(index, Qt.DisplayRole) || "");
         return {
             launcher: launcher,
-            name: delegate
-                ? String(delegate.originalAppName || i18n("Application"))
-                : i18n("Application"),
+            name: name || i18n("Application"),
             icon: fallbackIconName(launcher, appId),
             appId: appId
         };
     }
 
-    function taskRowForLauncher(launcherUrl) {
+    function taskRowForLauncher(launcherUrl, appId) {
         var target = normalizedLauncherUrl(launcherUrl);
         for (var row = 0; row < taskCount; ++row) {
             if (launcherUrlAtTaskRow(row) === target) {
                 return row;
             }
         }
+        var targetAppId = AppGroupStore.normalizeAppId(appId);
+        if (!targetAppId) {
+            return -1;
+        }
+        for (var appRow = 0; appRow < taskCount; ++appRow) {
+            var rowAppId = taskRole(modelIndex(appRow),
+                TaskManager.AbstractTasksModel.AppId);
+            if (AppGroupStore.normalizeAppId(rowAppId)
+                    === targetAppId) {
+                return appRow;
+            }
+        }
         return -1;
     }
 
-    function groupRuntimeMembers(group) {
+    function groupRuntimeMembers(group, includeWindows) {
         void taskLayoutRevision;
         var result = [];
         if (!group || !group.members) {
@@ -1370,9 +1427,10 @@ PlasmoidItem {
         }
         for (var index = 0; index < group.members.length; ++index) {
             var storedMember = group.members[index];
-            var row = taskRowForLauncher(storedMember.launcher);
+            var row = taskRowForLauncher(storedMember.launcher,
+                storedMember.appId);
             var delegate = taskDelegateForRow(row);
-            result.push({
+            var runtimeMember = {
                 launcher: storedMember.launcher,
                 name: delegate
                     ? String(delegate.originalAppName)
@@ -1387,7 +1445,14 @@ PlasmoidItem {
                     ? Boolean(delegate.runningTask) : false,
                 active: delegate
                     ? Boolean(delegate.taskIsActive) : false
-            });
+            };
+            if (includeWindows) {
+                runtimeMember.windows =
+                    delegate && delegate.runningTask
+                        ? windowsInfoForTask(row,
+                            Number(delegate.childCount)) : [];
+            }
+            result.push(runtimeMember);
         }
         return result;
     }
@@ -1437,19 +1502,31 @@ PlasmoidItem {
         return result;
     }
 
-    function createOrExtendAppGroup(sourceRow, targetRow) {
-        var source = taskSnapshot(sourceRow);
-        var target = taskSnapshot(targetRow);
+    function canGroupAppSnapshots(source, target) {
         if (!source || !target || source.launcher === target.launcher) {
             return false;
         }
-
-        var targetGroup = appGroupForLauncher(target.launcher);
-        var sourceGroup = appGroupForLauncher(source.launcher);
-        if (sourceGroup
-                || (targetGroup && targetGroup.members.length >= 16)) {
+        var sourceAppId = AppGroupStore.normalizeAppId(source.appId);
+        var targetAppId = AppGroupStore.normalizeAppId(target.appId);
+        if (sourceAppId && sourceAppId === targetAppId) {
             return false;
         }
+
+        var targetGroup = AppGroupStore.findGroupForIdentity(
+            appGroups, target.launcher, target.appId);
+        var sourceGroup = AppGroupStore.findGroupForIdentity(
+            appGroups, source.launcher, source.appId);
+        return !sourceGroup
+            && (!targetGroup || targetGroup.members.length < 16);
+    }
+
+    function createOrExtendAppGroup(source, target) {
+        if (!canGroupAppSnapshots(source, target)) {
+            return false;
+        }
+
+        var targetGroup = AppGroupStore.findGroupForIdentity(
+            appGroups, target.launcher, target.appId);
 
         var nextGroups = appGroups.slice();
         if (targetGroup) {
@@ -1553,7 +1630,9 @@ PlasmoidItem {
     }
 
     function activateGroupMember(launcherUrl) {
-        var row = taskRowForLauncher(launcherUrl);
+        var member = appGroupMemberForLauncher(launcherUrl);
+        var row = taskRowForLauncher(launcherUrl,
+            member ? member.appId : "");
         if (row < 0) {
             return;
         }
@@ -1563,9 +1642,23 @@ PlasmoidItem {
     }
 
     function launchGroupMemberNewInstance(launcherUrl) {
-        var row = taskRowForLauncher(launcherUrl);
+        var member = appGroupMemberForLauncher(launcherUrl);
+        var row = taskRowForLauncher(launcherUrl,
+            member ? member.appId : "");
         if (row >= 0) {
             launchNewInstance(row);
+        }
+    }
+
+    function activateGroupWindow(windowIndex) {
+        if (windowIndex && windowIndex.valid) {
+            tasksModel.requestActivate(windowIndex);
+        }
+    }
+
+    function closeGroupWindow(windowIndex) {
+        if (windowIndex && windowIndex.valid) {
+            tasksModel.requestClose(windowIndex);
         }
     }
 
@@ -1573,11 +1666,19 @@ PlasmoidItem {
         taskLayoutRefreshTimer.restart();
     }
 
+    function scheduleActiveAppGroupPopupRefresh() {
+        if (appGroupPopup.visible || appGroupPopupOpenPending) {
+            appGroupPopupRefreshTimer.restart();
+        }
+    }
+
     property int dragOriginIndex: -1
     property int dragTargetIndex: -1
     property int dragOriginVisualIndex: -1
+    property var dragOriginSnapshot: null
     property int groupDropCandidateIndex: -1
     property int groupDropTargetIndex: -1
+    property var groupDropTargetSnapshot: null
     property real dragStartSceneMain: 0
     property real dragStartSceneCross: 0
     property real dragStartSlotCenterMain: 0
@@ -1704,12 +1805,18 @@ PlasmoidItem {
         if (delegate.appGroupMember) {
             return;
         }
+        var sourceSnapshot = taskSnapshot(delegate.index);
+        if (!sourceSnapshot) {
+            return;
+        }
         dragOriginIndex = delegate.index;
+        dragOriginSnapshot = sourceSnapshot;
         dragOriginVisualIndex =
             stableVisualIndexForModelIndex(delegate.index);
         dragTargetIndex = dragOriginVisualIndex;
         groupDropCandidateIndex = -1;
         groupDropTargetIndex = -1;
+        groupDropTargetSnapshot = null;
         dragInOverlay = delegate.inOverlay;
         dragStartSceneCross = isVertical ? sceneX : sceneY;
 
@@ -1727,32 +1834,25 @@ PlasmoidItem {
         }
     }
 
-    function canGroupTaskRows(sourceRow, targetRow) {
-        if (sourceRow < 0 || targetRow < 0 || sourceRow === targetRow) {
-            return false;
-        }
-        var sourceLauncher = launcherUrlAtTaskRow(sourceRow);
-        var targetLauncher = launcherUrlAtTaskRow(targetRow);
-        if (!sourceLauncher || !targetLauncher
-                || sourceLauncher === targetLauncher
-                || appGroupForLauncher(sourceLauncher)) {
-            return false;
-        }
-        var targetGroup = appGroupForLauncher(targetLauncher);
-        return !targetGroup || targetGroup.members.length < 16;
-    }
-
     function updateGroupDropCandidate(targetRow) {
-        if (!canGroupTaskRows(dragOriginIndex, targetRow)) {
+        var targetSnapshot = targetRow >= 0
+            ? taskSnapshot(targetRow) : null;
+        if (!canGroupAppSnapshots(dragOriginSnapshot,
+                targetSnapshot)) {
             groupDropCandidateIndex = -1;
             groupDropTargetIndex = -1;
+            groupDropTargetSnapshot = null;
             return;
         }
-        if (groupDropCandidateIndex === targetRow) {
+        if (groupDropCandidateIndex === targetRow
+                && groupDropTargetSnapshot
+                && groupDropTargetSnapshot.launcher
+                    === targetSnapshot.launcher) {
             return;
         }
         groupDropCandidateIndex = targetRow;
         groupDropTargetIndex = targetRow;
+        groupDropTargetSnapshot = targetSnapshot;
     }
 
     function handleTaskDragMoved(delegate, sceneX, sceneY) {
@@ -1813,10 +1913,11 @@ PlasmoidItem {
         var sourceIndex = dragOriginIndex;
         var destinationIndex =
             stableModelIndexForVisualIndex(dragTargetIndex);
-        var groupTargetIndex = groupDropTargetIndex;
+        var sourceSnapshot = dragOriginSnapshot;
+        var targetSnapshot = groupDropTargetSnapshot;
 
-        if (groupTargetIndex >= 0) {
-            createOrExtendAppGroup(sourceIndex, groupTargetIndex);
+        if (targetSnapshot) {
+            createOrExtendAppGroup(sourceSnapshot, targetSnapshot);
         } else if (sourceIndex !== destinationIndex
                 && destinationIndex >= 0) {
             moveTaskTo(sourceIndex, destinationIndex);
@@ -1827,8 +1928,10 @@ PlasmoidItem {
         dragOriginIndex = -1;
         dragTargetIndex = -1;
         dragOriginVisualIndex = -1;
+        dragOriginSnapshot = null;
         groupDropCandidateIndex = -1;
         groupDropTargetIndex = -1;
+        groupDropTargetSnapshot = null;
         reorderAnimationActive = true;
         reorderAnimationTimer.restart();
         scheduleOverlayClose();
@@ -1848,7 +1951,18 @@ PlasmoidItem {
 
         interval: 0
         repeat: false
-        onTriggered: ++root.taskLayoutRevision
+        onTriggered: {
+            ++root.taskLayoutRevision;
+            root.updateActiveAppGroupPopup();
+        }
+    }
+
+    Timer {
+        id: appGroupPopupRefreshTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: root.updateActiveAppGroupPopup()
     }
 
     // Nachzügler nach einem Fensterwechsel: die native Fläche eines gerade
@@ -2049,13 +2163,18 @@ PlasmoidItem {
         target: tasksModel
 
         function onDataChanged(topLeft, bottomRight, roles) {
-            if (!roles || roles.length === 0
-                    || roles.indexOf(
-                        TaskManager.AbstractTasksModel.LauncherUrl) !== -1
-                    || roles.indexOf(
-                        TaskManager.AbstractTasksModel
-                            .LauncherUrlWithoutIcon) !== -1) {
+            var identityChanged = !roles || roles.length === 0
+                || roles.indexOf(
+                    TaskManager.AbstractTasksModel.LauncherUrl) !== -1
+                || roles.indexOf(
+                    TaskManager.AbstractTasksModel
+                        .LauncherUrlWithoutIcon) !== -1
+                || roles.indexOf(
+                    TaskManager.AbstractTasksModel.AppId) !== -1;
+            if (identityChanged) {
                 root.scheduleTaskLayoutRefresh();
+            } else {
+                root.scheduleActiveAppGroupPopupRefresh();
             }
         }
 
@@ -2237,7 +2356,7 @@ PlasmoidItem {
         readonly property bool taskIsActive:
             runningTask && Boolean(model.IsActive)
         readonly property var appGroup:
-            root.appGroupForTask(index, launcherTarget)
+            root.appGroupForTask(index, launcherTarget, taskAppId)
         readonly property bool appGroupMember: Boolean(appGroup)
         readonly property bool appGroupLeader: appGroupMember
             && root.isAppGroupLeaderTask(index, appGroup.id)
@@ -3313,6 +3432,12 @@ PlasmoidItem {
             root.closeAppGroupPopup();
             root.launchGroupMemberNewInstance(launcherUrl);
         }
+        onMemberWindowActivated: (windowIndex) => {
+            root.closeAppGroupPopup();
+            root.activateGroupWindow(windowIndex);
+        }
+        onMemberWindowClosed: (windowIndex) =>
+            root.closeGroupWindow(windowIndex)
         onMemberRemoved: (launcherUrl) =>
             root.removeAppFromGroup(groupId, launcherUrl)
         onGroupNameRequested: (name) =>

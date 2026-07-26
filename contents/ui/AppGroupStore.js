@@ -22,6 +22,25 @@ function launcherKey(value) {
     return "launcher:" + normalizeLauncherUrl(value);
 }
 
+function normalizeAppId(value) {
+    var appId = normalizeLauncherUrl(value);
+    appId = appId.replace(/^application:\/\//, "")
+        .replace(/^applications:/, "");
+    var slashIndex = appId.lastIndexOf("/");
+    if (slashIndex >= 0) {
+        appId = appId.substring(slashIndex + 1);
+    }
+    if (appId.toLowerCase().endsWith(".desktop")) {
+        appId = appId.substring(0, appId.length - 8);
+    }
+    return appId.toLowerCase();
+}
+
+function appIdKey(value) {
+    var appId = normalizeAppId(value);
+    return appId ? "app:" + appId : "";
+}
+
 function groupKey(value) {
     return "group:" + String(value || "");
 }
@@ -30,6 +49,7 @@ function parse(serializedGroups, defaultApplicationName, defaultGroupName) {
     var parsedGroups = [];
     var source = serializedGroups || [];
     var claimedLaunchers = {};
+    var claimedAppIds = {};
     var seenGroupIds = {};
     for (var groupIndex = 0; groupIndex < source.length; ++groupIndex) {
         var parsed;
@@ -47,17 +67,25 @@ function parse(serializedGroups, defaultApplicationName, defaultGroupName) {
 
         var members = [];
         var seenLaunchers = {};
+        var seenAppIds = {};
         for (var memberIndex = 0;
                 memberIndex < parsed.members.length; ++memberIndex) {
             var sourceMember = parsed.members[memberIndex] || {};
             var launcher = normalizeLauncherUrl(
                 sourceMember.launcher || "");
             var key = launcherKey(launcher);
+            var sourceAppIdKey = appIdKey(sourceMember.appId);
             if (!launcher || seenLaunchers[key]
-                    || claimedLaunchers[key]) {
+                    || claimedLaunchers[key]
+                    || (sourceAppIdKey
+                        && (seenAppIds[sourceAppIdKey]
+                            || claimedAppIds[sourceAppIdKey]))) {
                 continue;
             }
             seenLaunchers[key] = true;
+            if (sourceAppIdKey) {
+                seenAppIds[sourceAppIdKey] = true;
+            }
             members.push({
                 launcher: launcher,
                 name: String(sourceMember.name
@@ -73,8 +101,13 @@ function parse(serializedGroups, defaultApplicationName, defaultGroupName) {
         seenGroupIds[parsedGroupKey] = true;
         for (var claimedIndex = 0;
                 claimedIndex < members.length; ++claimedIndex) {
+            var claimedMember = members[claimedIndex];
             claimedLaunchers[launcherKey(
-                members[claimedIndex].launcher)] = true;
+                claimedMember.launcher)] = true;
+            var claimedAppIdKey = appIdKey(claimedMember.appId);
+            if (claimedAppIdKey) {
+                claimedAppIds[claimedAppIdKey] = true;
+            }
         }
         parsedGroups.push({
             version: 1,
@@ -95,16 +128,23 @@ function serialize(groups) {
 }
 
 function findGroupForLauncher(groups, launcherUrl) {
-    var targetKey = launcherKey(launcherUrl);
-    if (targetKey === launcherKey("")) {
+    return findGroupForIdentity(groups, launcherUrl, "");
+}
+
+function findGroupForIdentity(groups, launcherUrl, appId) {
+    var targetLauncherKey = launcherKey(launcherUrl);
+    var targetAppIdKey = appIdKey(appId);
+    if (targetLauncherKey === launcherKey("") && !targetAppIdKey) {
         return null;
     }
     for (var groupIndex = 0; groupIndex < groups.length; ++groupIndex) {
         var group = groups[groupIndex];
         for (var memberIndex = 0;
                 memberIndex < group.members.length; ++memberIndex) {
-            if (launcherKey(group.members[memberIndex].launcher)
-                    === targetKey) {
+            var member = group.members[memberIndex];
+            if (launcherKey(member.launcher) === targetLauncherKey
+                    || (targetAppIdKey
+                        && appIdKey(member.appId) === targetAppIdKey)) {
                 return group;
             }
         }
@@ -122,14 +162,19 @@ function findGroupById(groups, groupId) {
     return null;
 }
 
-function buildLayout(launcherUrls, groups) {
+function buildLayout(launcherUrls, groups, appIds) {
     var groupIdByLauncher = {};
+    var groupIdByAppId = {};
     for (var groupIndex = 0; groupIndex < groups.length; ++groupIndex) {
         var group = groups[groupIndex];
         for (var memberIndex = 0;
                 memberIndex < group.members.length; ++memberIndex) {
-            groupIdByLauncher[launcherKey(
-                group.members[memberIndex].launcher)] = group.id;
+            var member = group.members[memberIndex];
+            groupIdByLauncher[launcherKey(member.launcher)] = group.id;
+            var memberAppIdKey = appIdKey(member.appId);
+            if (memberAppIdKey) {
+                groupIdByAppId[memberAppIdKey] = group.id;
+            }
         }
     }
 
@@ -143,6 +188,9 @@ function buildLayout(launcherUrls, groups) {
     for (var row = 0; row < launcherUrls.length; ++row) {
         var groupId = groupIdByLauncher[
             launcherKey(launcherUrls[row])] || "";
+        if (!groupId && appIds && row < appIds.length) {
+            groupId = groupIdByAppId[appIdKey(appIds[row])] || "";
+        }
         var keyedGroupId = groupKey(groupId);
         groupIdByRow.push(groupId);
         if (groupId && seenGroups[keyedGroupId] !== undefined) {

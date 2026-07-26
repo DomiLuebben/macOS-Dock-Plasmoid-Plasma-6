@@ -11,7 +11,8 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 - Verschieben und Anordnen der Starter per Drag-and-Drop mit der Maus
 - App-Gruppen im Android-Stil: Eine App mittig auf einer anderen ablegen, um
   sie zu gruppieren; die animierte Liste dient zum Starten, Umbenennen,
-  Entfernen einzelner Apps oder Auflösen der Gruppe
+  Entfernen einzelner Apps oder Auflösen der Gruppe; angeheftete Starter
+  funktionieren unabhängig davon, ob ihre App geöffnet oder geschlossen ist
 - optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; weitere
   Ordner lassen sich direkt aus dem Dateimanager auf das Dock ziehen
 - optionale Fortschrittsringe für Plasma-Aufträge und Unity-kompatible
@@ -85,6 +86,8 @@ Zum Erstellen einer App-Gruppe ziehst du eine App mittig auf eine andere. Das
 Ziel vergrößert sich sofort; beim Loslassen entsteht die Gruppe. Das Ablegen
 zwischen zwei Symbolen ordnet das Dock weiterhin nur neu. Gruppierte Apps
 behalten Plasmas natives Verhalten für laufende Tasks und Minimieranimationen.
+Besitzt eine gruppierte App mehrere Fenster, öffnet ihr Eintrag eine
+verschachtelte Fensterauswahl, statt ein beliebiges Fenster zu minimieren.
 
 Wenn du von einer älteren Version aktualisierst, entferne das Dock zuerst aus
 der bisherigen Plasma-Leiste. Falls diese Leiste ausschließlich für das Dock
