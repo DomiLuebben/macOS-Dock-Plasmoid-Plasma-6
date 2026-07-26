@@ -10,6 +10,9 @@ couleurs du thème Qt.
 
 - Agrandissement fluide des icônes au survol
 - Réorganisation par glisser-déposer des lanceurs à la souris
+- Groupes d’applications de style Android : maintenez brièvement une
+  application au centre d’une autre pour les regrouper, puis utilisez la liste
+  animée pour lancer, renommer, retirer ou dissocier les applications
 - Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
   macOS ; d’autres dossiers peuvent être glissés directement depuis le gestionnaire de fichiers
 - Anneaux de progression facultatifs pour les tâches Plasma et les
@@ -76,6 +79,11 @@ Plasma : le composant graphique de bureau, minimal et invisible, conserve
 uniquement les réglages, tandis que le Dock s’exécute dans sa propre fenêtre
 transparente. Choisissez le bas, la gauche ou la droite dans les réglages ; le
 Dock reste toujours centré sur le bord d’écran sélectionné.
+
+Pour créer un groupe, faites glisser une application au centre d’une autre et
+maintenez-la jusqu’à ce que la cible s’agrandisse, puis relâchez. Un glissement
+rapide continue de simplement réorganiser le Dock. Les applications groupées
+conservent le suivi natif des tâches et les animations de réduction de Plasma.
 
 Lors d’une mise à niveau depuis une ancienne version, retirez d’abord le Dock
 de son ancien panneau Plasma. Si ce panneau a été créé uniquement pour le Dock,

@@ -12,6 +12,7 @@ import org.kde.plasma.private.sessions as Sessions
 import org.kde.taskmanager as TaskManager
 import org.kde.private.desktopcontainment.folder as Folder
 import "effects" as DockEffects
+import "AppGroupStore.js" as AppGroupStore
 
 PlasmoidItem {
     id: root
@@ -119,6 +120,22 @@ PlasmoidItem {
     readonly property real baseSurfaceMainLength: preferredMainLength
     readonly property real maximumIconSize: baseIconSize * maxScale
     readonly property int taskCount: tasksModel.count
+    property int taskLayoutRevision: 0
+    readonly property var appGroups:
+        parseAppGroups(Plasmoid.configuration.appGroups || [])
+    readonly property var taskLayout: {
+        // QAbstractItemModel role changes are not directly observable from a
+        // JavaScript helper. This revision makes the layout binding explicit.
+        void taskLayoutRevision;
+        void appGroups;
+        var launcherUrls = [];
+        for (var row = 0; row < taskCount; ++row) {
+            launcherUrls.push(launcherUrlAtTaskRow(row));
+        }
+        return AppGroupStore.buildLayout(launcherUrls, appGroups);
+    }
+    readonly property int taskVisualCount:
+        taskLayout.modelByVisual.length
     readonly property int desktopCount:
         virtualDesktopInfo.numberOfDesktops
     readonly property bool desktopSwitcherVisible:
@@ -140,32 +157,34 @@ PlasmoidItem {
         powerButtonOnLeft ? 1 : 0
     readonly property int folderDockIndex:
         folderItemCount > 0
-            ? taskDockStartIndex + taskCount : -1
+            ? taskDockStartIndex + taskVisualCount : -1
     readonly property int removableVolumeDockStartIndex:
         removableVolumeCount > 0
-            ? taskDockStartIndex + taskCount + folderItemCount : -1
+            ? taskDockStartIndex + taskVisualCount + folderItemCount : -1
     readonly property int trashDockIndex: showTrash
-        ? taskDockStartIndex + taskCount + folderItemCount + removableVolumeCount : -1
+        ? taskDockStartIndex + taskVisualCount + folderItemCount
+            + removableVolumeCount : -1
     readonly property int powerButtonDockIndex: showPowerButton
         ? (powerButtonOnLeft ? 0
-            : taskCount + folderItemCount + removableVolumeCount + (showTrash ? 1 : 0)) : -1
+            : taskVisualCount + folderItemCount + removableVolumeCount
+                + (showTrash ? 1 : 0)) : -1
     readonly property int trailingUtilityItemCount:
         folderItemCount + removableVolumeCount + (showTrash ? 1 : 0)
             + (showPowerButton && !powerButtonOnLeft ? 1 : 0)
     readonly property int utilityItemCount:
         folderItemCount + removableVolumeCount + (showTrash ? 1 : 0) + (showPowerButton ? 1 : 0)
-    readonly property int dockItemCount: taskCount + utilityItemCount
+    readonly property int dockItemCount: taskVisualCount + utilityItemCount
     readonly property bool leadingUtilitySeparatorVisible:
         powerButtonOnLeft && dockItemCount > 1
     readonly property bool trailingUtilitySeparatorVisible:
-        taskCount > 0 && trailingUtilityItemCount > 0
+        taskVisualCount > 0 && trailingUtilityItemCount > 0
     readonly property var sectionBreakAfterDockIndices: {
         var result = [];
         if (leadingUtilitySeparatorVisible) {
             result.push(powerButtonDockIndex);
         }
         if (trailingUtilitySeparatorVisible) {
-            result.push(taskDockStartIndex + taskCount - 1);
+            result.push(taskDockStartIndex + taskVisualCount - 1);
         }
         return result;
     }
@@ -277,6 +296,9 @@ PlasmoidItem {
     property int openPreviewCount: 0
     property bool folderPopupCountedAsOpen: false
     property bool folderPopupOpenPending: false
+    property bool appGroupPopupCountedAsOpen: false
+    property bool appGroupPopupOpenPending: false
+    property string activeAppGroupId: ""
     property bool folderDropActive: false
     property url activeFolderUrl: configuredFolderUrl
     property bool desktopCreationPending: false
@@ -577,6 +599,66 @@ PlasmoidItem {
         }
     }
 
+    function toggleAppGroupPopup(groupId, visualParent) {
+        var group = appGroupById(groupId);
+        if (!group) {
+            return;
+        }
+        var sameTarget = activeAppGroupId === group.id;
+        if ((appGroupPopup.visible || appGroupPopupOpenPending)
+                && sameTarget) {
+            closeAppGroupPopup();
+            return;
+        }
+        closeFolderPopup();
+        if (appGroupPopup.visible) {
+            appGroupPopup.hidePopup();
+        }
+        activeAppGroupId = group.id;
+        appGroupPopup.groupId = group.id;
+        appGroupPopup.groupName = group.name;
+        appGroupPopup.members = groupRuntimeMembers(group);
+        appGroupPopup.visualParent = visualParent;
+        revealDock();
+        overlayOpen = true;
+        if (!appGroupPopupOpenPending) {
+            appGroupPopupOpenPending = true;
+            Qt.callLater(runScheduledAppGroupPopupOpen);
+        }
+    }
+
+    function runScheduledAppGroupPopupOpen() {
+        if (!appGroupPopupOpenPending) {
+            return;
+        }
+        appGroupPopupOpenPending = false;
+        if (appGroupById(activeAppGroupId)
+                && appGroupPopup.visualParent) {
+            appGroupPopup.showPopup();
+        }
+    }
+
+    function closeAppGroupPopup() {
+        appGroupPopupOpenPending = false;
+        if (appGroupPopup.visible) {
+            appGroupPopup.hidePopup();
+        }
+    }
+
+    function updateActiveAppGroupPopup() {
+        if (!activeAppGroupId) {
+            return;
+        }
+        var group = appGroupById(activeAppGroupId);
+        if (!group) {
+            closeAppGroupPopup();
+            activeAppGroupId = "";
+            return;
+        }
+        appGroupPopup.groupName = group.name;
+        appGroupPopup.members = groupRuntimeMembers(group);
+    }
+
     function updateTrashCount() {
         trashItemCount = trashModel.rowCount();
     }
@@ -714,6 +796,7 @@ PlasmoidItem {
     function closeTransientUi() {
         closeOpenContextMenu();
         closeFolderPopup();
+        closeAppGroupPopup();
         closeTaskPreviewsIn(baseRepeater);
         closeTaskPreviewsIn(overlayRepeater);
     }
@@ -1158,9 +1241,345 @@ PlasmoidItem {
         }
     }
 
+    function normalizedLauncherUrl(value) {
+        return AppGroupStore.normalizeLauncherUrl(value);
+    }
+
+    function parseAppGroups(serializedGroups) {
+        return AppGroupStore.parse(serializedGroups,
+            i18n("Application"), i18n("Group"));
+    }
+
+    function saveAppGroups(groups) {
+        Plasmoid.configuration.appGroups =
+            AppGroupStore.serialize(groups);
+        scheduleTaskLayoutRefresh();
+    }
+
+    function launcherUrlAtTaskRow(row) {
+        if (!taskModelReady || row < 0 || row >= taskCount) {
+            return "";
+        }
+        var index = modelIndex(row);
+        return normalizedLauncherUrl(
+            taskRole(index,
+                TaskManager.AbstractTasksModel.LauncherUrlWithoutIcon)
+            || taskRole(index, TaskManager.AbstractTasksModel.LauncherUrl)
+            || "");
+    }
+
+    function appGroupForLauncher(launcherUrl) {
+        return AppGroupStore.findGroupForLauncher(
+            appGroups, launcherUrl);
+    }
+
+    function appGroupById(groupId) {
+        return AppGroupStore.findGroupById(appGroups, groupId);
+    }
+
+    function appGroupForTask(row, launcherTarget) {
+        var launcher = normalizedLauncherUrl(launcherTarget);
+        if (!launcher) {
+            launcher = launcherUrlAtTaskRow(row);
+        }
+        return appGroupForLauncher(launcher);
+    }
+
+    function appGroupIdForTask(row) {
+        return row >= 0 && row < taskLayout.groupIdByRow.length
+            ? taskLayout.groupIdByRow[row] : "";
+    }
+
+    function stableVisualIndexForModelIndex(row) {
+        return row >= 0 && row < taskLayout.visualByRow.length
+            ? taskLayout.visualByRow[row] : -1;
+    }
+
+    function stableModelIndexForVisualIndex(visualIndex) {
+        return visualIndex >= 0
+            && visualIndex < taskLayout.modelByVisual.length
+            ? taskLayout.modelByVisual[visualIndex] : -1;
+    }
+
+    function isAppGroupLeaderTask(row, groupId) {
+        return AppGroupStore.isLeader(taskLayout, row, groupId);
+    }
+
+    function taskDelegateForRow(row) {
+        if (row < 0) {
+            return null;
+        }
+        return baseRepeater.itemAt(row) || overlayRepeater.itemAt(row);
+    }
+
+    function fallbackIconName(launcherUrl, appId) {
+        var iconName = String(appId || "").trim();
+        if (iconName) {
+            if (iconName.toLowerCase().endsWith(".desktop")) {
+                iconName = iconName.substring(0, iconName.length - 8);
+            }
+            return iconName;
+        }
+        var launcher = normalizedLauncherUrl(launcherUrl);
+        launcher = launcher.replace(/^application:\/\//, "")
+            .replace(/^applications:/, "");
+        var slashIndex = launcher.lastIndexOf("/");
+        if (slashIndex >= 0) {
+            launcher = launcher.substring(slashIndex + 1);
+        }
+        if (launcher.toLowerCase().endsWith(".desktop")) {
+            launcher = launcher.substring(0, launcher.length - 8);
+        }
+        return launcher || "application-x-executable";
+    }
+
+    function taskSnapshot(row) {
+        var delegate = taskDelegateForRow(row);
+        var launcher = delegate
+            ? normalizedLauncherUrl(delegate.launcherTarget)
+            : launcherUrlAtTaskRow(row);
+        if (!launcher) {
+            return null;
+        }
+        var appId = delegate ? String(delegate.taskAppId || "") : "";
+        return {
+            launcher: launcher,
+            name: delegate
+                ? String(delegate.originalAppName || i18n("Application"))
+                : i18n("Application"),
+            icon: fallbackIconName(launcher, appId),
+            appId: appId
+        };
+    }
+
+    function taskRowForLauncher(launcherUrl) {
+        var target = normalizedLauncherUrl(launcherUrl);
+        for (var row = 0; row < taskCount; ++row) {
+            if (launcherUrlAtTaskRow(row) === target) {
+                return row;
+            }
+        }
+        return -1;
+    }
+
+    function groupRuntimeMembers(group) {
+        void taskLayoutRevision;
+        var result = [];
+        if (!group || !group.members) {
+            return result;
+        }
+        for (var index = 0; index < group.members.length; ++index) {
+            var storedMember = group.members[index];
+            var row = taskRowForLauncher(storedMember.launcher);
+            var delegate = taskDelegateForRow(row);
+            result.push({
+                launcher: storedMember.launcher,
+                name: delegate
+                    ? String(delegate.originalAppName)
+                    : storedMember.name,
+                icon: delegate
+                    ? delegate.originalAppIcon
+                    : storedMember.icon,
+                appId: delegate
+                    ? String(delegate.taskAppId || "")
+                    : storedMember.appId,
+                running: delegate
+                    ? Boolean(delegate.runningTask) : false,
+                active: delegate
+                    ? Boolean(delegate.taskIsActive) : false
+            });
+        }
+        return result;
+    }
+
+    function groupPreviewItems(group) {
+        return groupRuntimeMembers(group).slice(0, 4);
+    }
+
+    function groupHasRuntimeState(group, stateName) {
+        var members = groupRuntimeMembers(group);
+        for (var index = 0; index < members.length; ++index) {
+            if (Boolean(members[index][stateName])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function groupProgress(group) {
+        // Keep the native progress state as explicit binding dependencies.
+        void progressController.appProgressState;
+        void progressController.unityState;
+        void progressController.appCompletionState;
+
+        var result = {
+            visible: false,
+            progress: 0,
+            indeterminate: false,
+            completing: false
+        };
+        var members = groupRuntimeMembers(group);
+        for (var index = 0; index < members.length; ++index) {
+            var member = members[index];
+            var progress = progressController.getAppProgress(
+                member.appId || "", member.launcher || "");
+            if (!progress.visible) {
+                continue;
+            }
+            result.visible = true;
+            result.progress = Math.max(result.progress,
+                Number(progress.progress || 0));
+            result.indeterminate = result.indeterminate
+                || Boolean(progress.indeterminate);
+            result.completing = result.completing
+                || Boolean(progress.completing);
+        }
+        return result;
+    }
+
+    function createOrExtendAppGroup(sourceRow, targetRow) {
+        var source = taskSnapshot(sourceRow);
+        var target = taskSnapshot(targetRow);
+        if (!source || !target || source.launcher === target.launcher) {
+            return false;
+        }
+
+        var targetGroup = appGroupForLauncher(target.launcher);
+        var sourceGroup = appGroupForLauncher(source.launcher);
+        if (sourceGroup
+                || (targetGroup && targetGroup.members.length >= 16)) {
+            return false;
+        }
+
+        var nextGroups = appGroups.slice();
+        if (targetGroup) {
+            for (var groupIndex = 0;
+                    groupIndex < nextGroups.length; ++groupIndex) {
+                if (nextGroups[groupIndex].id !== targetGroup.id) {
+                    continue;
+                }
+                var updatedMembers =
+                    nextGroups[groupIndex].members.slice();
+                updatedMembers.push(source);
+                nextGroups[groupIndex] = {
+                    version: 1,
+                    id: targetGroup.id,
+                    name: targetGroup.name,
+                    members: updatedMembers
+                };
+                break;
+            }
+        } else {
+            nextGroups.push({
+                version: 1,
+                id: "group-" + Date.now().toString(36)
+                    + "-" + Math.floor(Math.random() * 1679616).toString(36),
+                name: i18n("Group"),
+                members: [target, source]
+            });
+        }
+
+        if (tasksModel.launcherPosition(source.launcher) === -1) {
+            tasksModel.requestAddLauncher(source.launcher);
+        }
+        if (tasksModel.launcherPosition(target.launcher) === -1) {
+            tasksModel.requestAddLauncher(target.launcher);
+        }
+        saveAppGroups(nextGroups);
+        return true;
+    }
+
+    function renameAppGroup(groupId, name) {
+        var trimmedName = String(name || "").trim();
+        if (!trimmedName) {
+            return;
+        }
+        var nextGroups = appGroups.slice();
+        for (var index = 0; index < nextGroups.length; ++index) {
+            if (nextGroups[index].id !== groupId) {
+                continue;
+            }
+            nextGroups[index] = {
+                version: 1,
+                id: nextGroups[index].id,
+                name: trimmedName,
+                members: nextGroups[index].members.slice()
+            };
+            saveAppGroups(nextGroups);
+            return;
+        }
+    }
+
+    function removeAppFromGroup(groupId, launcherUrl) {
+        var targetLauncher = normalizedLauncherUrl(launcherUrl);
+        var nextGroups = [];
+        for (var groupIndex = 0;
+                groupIndex < appGroups.length; ++groupIndex) {
+            var group = appGroups[groupIndex];
+            if (group.id !== groupId) {
+                nextGroups.push(group);
+                continue;
+            }
+            var remainingMembers = [];
+            for (var memberIndex = 0;
+                    memberIndex < group.members.length; ++memberIndex) {
+                if (group.members[memberIndex].launcher
+                        !== targetLauncher) {
+                    remainingMembers.push(group.members[memberIndex]);
+                }
+            }
+            if (remainingMembers.length >= 2) {
+                nextGroups.push({
+                    version: 1,
+                    id: group.id,
+                    name: group.name,
+                    members: remainingMembers
+                });
+            }
+        }
+        saveAppGroups(nextGroups);
+        updateActiveAppGroupPopup();
+    }
+
+    function ungroupAppGroup(groupId) {
+        var nextGroups = [];
+        for (var index = 0; index < appGroups.length; ++index) {
+            if (appGroups[index].id !== groupId) {
+                nextGroups.push(appGroups[index]);
+            }
+        }
+        closeAppGroupPopup();
+        saveAppGroups(nextGroups);
+    }
+
+    function activateGroupMember(launcherUrl) {
+        var row = taskRowForLauncher(launcherUrl);
+        if (row < 0) {
+            return;
+        }
+        var index = modelIndex(row);
+        activateTask(row, Boolean(taskRole(index,
+            TaskManager.AbstractTasksModel.IsLauncher)));
+    }
+
+    function launchGroupMemberNewInstance(launcherUrl) {
+        var row = taskRowForLauncher(launcherUrl);
+        if (row >= 0) {
+            launchNewInstance(row);
+        }
+    }
+
+    function scheduleTaskLayoutRefresh() {
+        taskLayoutRefreshTimer.restart();
+    }
+
     property int dragOriginIndex: -1
     property int dragTargetIndex: -1
+    property int dragOriginVisualIndex: -1
+    property int groupDropCandidateIndex: -1
+    property int groupDropTargetIndex: -1
     property real dragStartSceneMain: 0
+    property real dragStartSceneCross: 0
     property real dragStartSlotCenterMain: 0
     property bool dragInOverlay: false
     property bool reorderAnimationActive: false
@@ -1176,7 +1595,12 @@ PlasmoidItem {
     }
 
     function moveTask(row, offset) {
-        if (moveTaskTo(row, row + offset)) {
+        var visualIndex = stableVisualIndexForModelIndex(row);
+        var targetVisualIndex = Math.max(0, Math.min(
+            taskVisualCount - 1, visualIndex + offset));
+        var targetRow =
+            stableModelIndexForVisualIndex(targetVisualIndex);
+        if (targetRow >= 0 && moveTaskTo(row, targetRow)) {
             reorderAnimationActive = true;
             reorderAnimationTimer.restart();
         }
@@ -1187,43 +1611,43 @@ PlasmoidItem {
     // keeps the grabbed delegate under the pointer instead of replacing or
     // reindexing it whenever another icon is crossed.
     function visualIndexForModelIndex(index) {
+        var stableIndex = stableVisualIndexForModelIndex(index);
         if (!taskDragActive || dragTargetIndex < 0) {
-            return index;
+            return stableIndex;
         }
-        if (index === dragOriginIndex) {
+        if (stableIndex === dragOriginVisualIndex) {
             return dragTargetIndex;
         }
-        if (dragTargetIndex > dragOriginIndex
-                && index > dragOriginIndex
-                && index <= dragTargetIndex) {
-            return index - 1;
+        if (dragTargetIndex > dragOriginVisualIndex
+                && stableIndex > dragOriginVisualIndex
+                && stableIndex <= dragTargetIndex) {
+            return stableIndex - 1;
         }
-        if (dragTargetIndex < dragOriginIndex
-                && index >= dragTargetIndex
-                && index < dragOriginIndex) {
-            return index + 1;
+        if (dragTargetIndex < dragOriginVisualIndex
+                && stableIndex >= dragTargetIndex
+                && stableIndex < dragOriginVisualIndex) {
+            return stableIndex + 1;
         }
-        return index;
+        return stableIndex;
     }
 
     function modelIndexForVisualIndex(index) {
+        var stableIndex = index;
         if (!taskDragActive || dragTargetIndex < 0) {
-            return index;
+            return stableModelIndexForVisualIndex(stableIndex);
         }
         if (index === dragTargetIndex) {
-            return dragOriginIndex;
-        }
-        if (dragTargetIndex > dragOriginIndex
-                && index >= dragOriginIndex
+            stableIndex = dragOriginVisualIndex;
+        } else if (dragTargetIndex > dragOriginVisualIndex
+                && index >= dragOriginVisualIndex
                 && index < dragTargetIndex) {
-            return index + 1;
-        }
-        if (dragTargetIndex < dragOriginIndex
+            stableIndex = index + 1;
+        } else if (dragTargetIndex < dragOriginVisualIndex
                 && index > dragTargetIndex
-                && index <= dragOriginIndex) {
-            return index - 1;
+                && index <= dragOriginVisualIndex) {
+            stableIndex = index - 1;
         }
-        return index;
+        return stableModelIndexForVisualIndex(stableIndex);
     }
 
     function dockIndexOffset(index) {
@@ -1277,7 +1701,7 @@ PlasmoidItem {
     }
 
     function baseIndexAtMainPosition(pos) {
-        var count = taskCount;
+        var count = taskVisualCount;
         if (count <= 0) {
             return -1;
         }
@@ -1296,9 +1720,18 @@ PlasmoidItem {
     }
 
     function handleTaskDragStarted(delegate, sceneX, sceneY) {
+        if (delegate.appGroupMember) {
+            return;
+        }
         dragOriginIndex = delegate.index;
-        dragTargetIndex = delegate.index;
+        dragOriginVisualIndex =
+            stableVisualIndexForModelIndex(delegate.index);
+        dragTargetIndex = dragOriginVisualIndex;
+        groupDropCandidateIndex = -1;
+        groupDropTargetIndex = -1;
+        groupDropHoverTimer.stop();
         dragInOverlay = delegate.inOverlay;
+        dragStartSceneCross = isVertical ? sceneX : sceneY;
 
         overlayCloseTimer.stop();
         dockHideTimer.stop();
@@ -1310,8 +1743,38 @@ PlasmoidItem {
         } else {
             dragStartSceneMain = isVertical ? sceneY : sceneX;
             dragStartSlotCenterMain = baseCenterForIndex(
-                taskDockStartIndex + delegate.index);
+                taskDockStartIndex + dragOriginVisualIndex);
         }
+    }
+
+    function canGroupTaskRows(sourceRow, targetRow) {
+        if (sourceRow < 0 || targetRow < 0 || sourceRow === targetRow) {
+            return false;
+        }
+        var sourceLauncher = launcherUrlAtTaskRow(sourceRow);
+        var targetLauncher = launcherUrlAtTaskRow(targetRow);
+        if (!sourceLauncher || !targetLauncher
+                || sourceLauncher === targetLauncher
+                || appGroupForLauncher(sourceLauncher)) {
+            return false;
+        }
+        var targetGroup = appGroupForLauncher(targetLauncher);
+        return !targetGroup || targetGroup.members.length < 16;
+    }
+
+    function updateGroupDropCandidate(targetRow) {
+        if (!canGroupTaskRows(dragOriginIndex, targetRow)) {
+            groupDropCandidateIndex = -1;
+            groupDropTargetIndex = -1;
+            groupDropHoverTimer.stop();
+            return;
+        }
+        if (groupDropCandidateIndex === targetRow) {
+            return;
+        }
+        groupDropCandidateIndex = targetRow;
+        groupDropTargetIndex = -1;
+        groupDropHoverTimer.restart();
     }
 
     function handleTaskDragMoved(delegate, sceneX, sceneY) {
@@ -1330,12 +1793,24 @@ PlasmoidItem {
             ? overlayContent.visualIndexAtMainPosition(dragTargetCenter)
             : baseIndexAtMainPosition(dragTargetCenter);
 
-        if (targetIndex >= 0 && targetIndex < taskCount
+        if (targetIndex >= 0 && targetIndex < taskVisualCount
                 && targetIndex !== dragTargetIndex) {
             dragTargetIndex = targetIndex;
             reorderAnimationActive = true;
             reorderAnimationTimer.restart();
         }
+        var currentSceneCross = isVertical ? sceneX : sceneY;
+        var targetSlotCenter = dragInOverlay
+            ? overlayContent.centerForVisualIndex(
+                taskDockStartIndex + targetIndex)
+            : baseCenterForIndex(taskDockStartIndex + targetIndex);
+        var centeredForGrouping = Math.abs(
+            dragTargetCenter - targetSlotCenter)
+                <= baseIconSize * 0.42
+            && Math.abs(currentSceneCross - dragStartSceneCross)
+                <= maximumIconSize * 0.7;
+        updateGroupDropCandidate(centeredForGrouping
+            ? stableModelIndexForVisualIndex(targetIndex) : -1);
 
         var currentSlotCenter = dragInOverlay
             ? overlayContent.centerForModelIndex(delegate.index)
@@ -1358,8 +1833,15 @@ PlasmoidItem {
         }
 
         var sourceIndex = dragOriginIndex;
-        var destinationIndex = dragTargetIndex;
-        if (sourceIndex !== destinationIndex) {
+        var destinationIndex =
+            stableModelIndexForVisualIndex(dragTargetIndex);
+        var groupTargetIndex = groupDropTargetIndex;
+        groupDropHoverTimer.stop();
+
+        if (groupTargetIndex >= 0) {
+            createOrExtendAppGroup(sourceIndex, groupTargetIndex);
+        } else if (sourceIndex !== destinationIndex
+                && destinationIndex >= 0) {
             moveTaskTo(sourceIndex, destinationIndex);
         } else {
             tasksModel.syncLaunchers();
@@ -1367,6 +1849,9 @@ PlasmoidItem {
 
         dragOriginIndex = -1;
         dragTargetIndex = -1;
+        dragOriginVisualIndex = -1;
+        groupDropCandidateIndex = -1;
+        groupDropTargetIndex = -1;
         reorderAnimationActive = true;
         reorderAnimationTimer.restart();
         scheduleOverlayClose();
@@ -1379,6 +1864,31 @@ PlasmoidItem {
         interval: 210
         repeat: false
         onTriggered: root.reorderAnimationActive = false
+    }
+
+    Timer {
+        id: groupDropHoverTimer
+
+        // Long enough to distinguish grouping from a quick reorder, short
+        // enough for the target's accept animation to feel immediate.
+        interval: 460
+        repeat: false
+        onTriggered: {
+            if (root.taskDragActive
+                    && root.canGroupTaskRows(root.dragOriginIndex,
+                        root.groupDropCandidateIndex)) {
+                root.groupDropTargetIndex =
+                    root.groupDropCandidateIndex;
+            }
+        }
+    }
+
+    Timer {
+        id: taskLayoutRefreshTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: ++root.taskLayoutRevision
     }
 
     // Nachzügler nach einem Fensterwechsel: die native Fläche eines gerade
@@ -1456,6 +1966,11 @@ PlasmoidItem {
         overlayOpen = false;
     }
 
+    onAppGroupsChanged: {
+        scheduleTaskLayoutRefresh();
+        updateActiveAppGroupPopup();
+    }
+
     onHasDockContentChanged: {
         if (!hasDockContent) {
             closeTransientUi();
@@ -1499,13 +2014,19 @@ PlasmoidItem {
     }
 
     onOverlayHoveredChanged: {
-        if (!folderPopup.visible || folderPopup.hovered) {
-            return;
+        if (folderPopup.visible && !folderPopup.hovered) {
+            if (overlayHovered) {
+                folderPopupCloseTimer.stop();
+            } else {
+                folderPopupCloseTimer.restart();
+            }
         }
-        if (overlayHovered) {
-            folderPopupCloseTimer.stop();
-        } else {
-            folderPopupCloseTimer.restart();
+        if (appGroupPopup.visible && !appGroupPopup.hovered) {
+            if (overlayHovered) {
+                appGroupPopupCloseTimer.stop();
+            } else {
+                appGroupPopupCloseTimer.restart();
+            }
         }
     }
 
@@ -1547,6 +2068,7 @@ PlasmoidItem {
         filterByActivity: false
 
         onLauncherListChanged: {
+            root.scheduleTaskLayoutRefresh();
             if (root.taskModelReady
                     && !root.sameStringList(launcherList,
                         Plasmoid.configuration.launchers)) {
@@ -1554,9 +2076,31 @@ PlasmoidItem {
             }
         }
 
+        onCountChanged: root.scheduleTaskLayoutRefresh()
+
         Component.onCompleted: {
             launcherList = Plasmoid.configuration.launchers || [];
             root.taskModelReady = true;
+            root.scheduleTaskLayoutRefresh();
+        }
+    }
+
+    Connections {
+        target: tasksModel
+
+        function onDataChanged(topLeft, bottomRight, roles) {
+            if (!roles || roles.length === 0
+                    || roles.indexOf(
+                        TaskManager.AbstractTasksModel.LauncherUrl) !== -1
+                    || roles.indexOf(
+                        TaskManager.AbstractTasksModel
+                            .LauncherUrlWithoutIcon) !== -1) {
+                root.scheduleTaskLayoutRefresh();
+            }
+        }
+
+        function onModelReset() {
+            root.scheduleTaskLayoutRefresh();
         }
     }
 
@@ -1691,6 +2235,11 @@ PlasmoidItem {
         required property var model
         property real displayScale: 1.0
         property real displayCrossExtent: root.baseIconSize
+        readonly property string originalAppName:
+            String(model.AppName || model.display || i18n("Application"))
+        readonly property var originalAppIcon:
+            model.decoration || "application-x-executable"
+        readonly property string taskAppId: String(model.AppId || "")
 
         readonly property bool launcherOnly: Boolean(model.IsLauncher)
         readonly property bool runningTask: !launcherOnly
@@ -1725,24 +2274,57 @@ PlasmoidItem {
             && root.anyTaskWindowCan(index,
                 TaskManager.AbstractTasksModel.IsClosable,
                 Boolean(model.IsClosable), Number(model.ChildCount))
+        readonly property bool taskIsActive:
+            runningTask && Boolean(model.IsActive)
+        readonly property var appGroup:
+            root.appGroupForTask(index, launcherTarget)
+        readonly property bool appGroupMember: Boolean(appGroup)
+        readonly property bool appGroupLeader: appGroupMember
+            && root.isAppGroupLeaderTask(index, appGroup.id)
+        readonly property bool hiddenAppGroupMember:
+            appGroupMember && !appGroupLeader
+        readonly property var appGroupPreviewItems: {
+            void root.taskLayoutRevision;
+            return appGroupLeader
+                ? root.groupPreviewItems(appGroup) : [];
+        }
 
-        appName: String(model.AppName || model.display || i18n("Application"))
-        appIcon: model.decoration || "application-x-executable"
+        appName: appGroupLeader ? appGroup.name : originalAppName
+        appIcon: originalAppIcon
         baseSize: root.baseIconSize
         currentScale: displayScale
         crossIconExtent: displayCrossExtent
         isVertical: root.isVertical
         location: root.dockLocation
         screenEdgeMargin: root.panelEdgeMargin
-        isRunning: runningTask
-        isActive: runningTask && Boolean(model.IsActive)
+        isRunning: appGroupLeader
+            ? root.groupHasRuntimeState(appGroup, "running")
+            : runningTask
+        isActive: appGroupLeader
+            ? root.groupHasRuntimeState(appGroup, "active")
+            : taskIsActive
         isStarting: Boolean(model.IsStartup)
         launchAnimation: root.launchAnimation
+        isAppGroup: appGroupLeader
+        groupPreviewItems: appGroupPreviewItems
+        dragEnabled: !appGroupMember
+        enabled: !hiddenAppGroupMember
+        opacity: hiddenAppGroupMember ? 0 : 1
+        dropTarget: root.groupDropTargetIndex === index
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 160
+                easing.type: Easing.OutCubic
+            }
+        }
 
         readonly property var progressInfo: root.showProgressIndicators
-            ? progressController.getAppProgress(
-                model.AppId || "",
-                model.LauncherUrlWithoutIcon || model.LauncherUrl || "")
+            ? (appGroupLeader
+                ? root.groupProgress(appGroup)
+                : progressController.getAppProgress(
+                    model.AppId || "",
+                    model.LauncherUrlWithoutIcon || model.LauncherUrl || ""))
             : ({
                 visible: false,
                 progress: 0.0,
@@ -1759,6 +2341,7 @@ PlasmoidItem {
             // Establish the property dependency explicitly. The native lookup
             // function itself cannot make a QML binding observe its data.
             if (root.recentKdeConnectShares === undefined
+                    || taskDelegate.appGroupMember
                     || !root.showKdeConnectRecentShares
                     || !kdeConnectMonitor.active) {
                 return null;
@@ -1807,8 +2390,9 @@ PlasmoidItem {
         property bool previewCountedAsOpen: false
         property bool geometryPublishPending: false
 
-        previewAvailable: runningTask
-        windowsList: (runningTask && (previewDataRequested || previewOpen))
+        previewAvailable: !appGroupMember && runningTask
+        windowsList: (!appGroupMember && runningTask
+                && (previewDataRequested || previewOpen))
             ? root.windowsInfoForTask(index, childCount) : []
 
         function publishGeometry() {
@@ -1835,9 +2419,14 @@ PlasmoidItem {
         onWidthChanged: scheduleGeometryPublish()
         onHeightChanged: scheduleGeometryPublish()
         onDisplayScaleChanged: scheduleGeometryPublish()
-        onRunningTaskChanged: scheduleGeometryPublish()
+        onRunningTaskChanged: {
+            scheduleGeometryPublish();
+        }
         onChildCountChanged: scheduleGeometryPublish()
-        Component.onCompleted: scheduleGeometryPublish()
+        Component.onCompleted: {
+            scheduleGeometryPublish();
+            root.scheduleTaskLayoutRefresh();
+        }
         Component.onDestruction: {
             if (previewCountedAsOpen) {
                 previewCountedAsOpen = false;
@@ -1874,16 +2463,35 @@ PlasmoidItem {
         }
 
         onClicked: {
-            triggerBounce();
-            root.activateTask(index, launcherOnly);
+            if (appGroupLeader) {
+                var popupParent = taskDelegate;
+                if (!inOverlay) {
+                    var overlayGroup = overlayRepeater.itemAt(index);
+                    if (overlayGroup) {
+                        popupParent = overlayGroup;
+                    }
+                }
+                root.toggleAppGroupPopup(appGroup.id, popupParent);
+            } else {
+                triggerBounce();
+                root.activateTask(index, launcherOnly);
+            }
         }
 
         onNewInstanceRequested: {
-            triggerBounce();
-            root.launchNewInstance(index);
+            if (!appGroupMember) {
+                triggerBounce();
+                root.launchNewInstance(index);
+            }
         }
 
-        onContextMenuRequested: taskMenu.popup()
+        onContextMenuRequested: {
+            if (appGroupLeader) {
+                appGroupMenu.popup();
+            } else {
+                taskMenu.popup();
+            }
+        }
         onDragStarted: (sx, sy) => root.handleTaskDragStarted(taskDelegate, sx, sy)
         onDragMoved: (sx, sy) => root.handleTaskDragMoved(taskDelegate, sx, sy)
         onDragEnded: root.handleTaskDragEnded(taskDelegate)
@@ -1952,7 +2560,8 @@ PlasmoidItem {
                 text: root.isVertical ? i18n("Move Up") : i18n("Move Left")
                 icon.name: root.isVertical ? "go-up" : "go-previous"
                 visible: taskDelegate.pinned
-                enabled: taskDelegate.index > 0
+                enabled: root.stableVisualIndexForModelIndex(
+                    taskDelegate.index) > 0
                 onTriggered: root.moveTask(taskDelegate.index, -1)
             }
 
@@ -1960,7 +2569,8 @@ PlasmoidItem {
                 text: root.isVertical ? i18n("Move Down") : i18n("Move Right")
                 icon.name: root.isVertical ? "go-down" : "go-next"
                 visible: taskDelegate.pinned
-                enabled: taskDelegate.index < root.taskCount - 1
+                enabled: root.stableVisualIndexForModelIndex(
+                    taskDelegate.index) < root.taskVisualCount - 1
                 onTriggered: root.moveTask(taskDelegate.index, 1)
             }
 
@@ -2015,6 +2625,24 @@ PlasmoidItem {
                 visible: taskDelegate.runningTask
                 enabled: windowActions.interactiveForceQuitAvailable
                 onTriggered: root.startInteractiveForceQuit()
+            }
+        }
+
+        TrackedMenu {
+            id: appGroupMenu
+
+            QQC2.MenuItem {
+                text: i18n("Open Group")
+                icon.name: "folder-open"
+                onTriggered: root.toggleAppGroupPopup(
+                    taskDelegate.appGroup.id, taskDelegate)
+            }
+
+            QQC2.MenuItem {
+                text: i18n("Ungroup")
+                icon.name: "edit-delete"
+                onTriggered: root.ungroupAppGroup(
+                    taskDelegate.appGroup.id)
             }
         }
     }
@@ -2703,6 +3331,67 @@ PlasmoidItem {
         }
     }
 
+    AppGroupPopup {
+        id: appGroupPopup
+
+        location: root.dockLocation
+        screenEdgeMargin: root.panelEdgeMargin
+        surfaceOpacity: Math.min(0.94, root.backgroundOpacity + 0.2)
+        useThemeColor: root.useThemeBackground
+        customColor: root.customBackgroundColor
+        requestedRadius: Math.max(17, root.cornerRadius)
+        borderOpacity: root.borderOpacity
+        shadowOpacity: root.shadowOpacity
+        showHighlight: root.showHighlight
+        blurEnabled: root.enableBlur
+
+        onMemberActivated: (launcherUrl) => {
+            root.closeAppGroupPopup();
+            root.activateGroupMember(launcherUrl);
+        }
+        onMemberNewInstanceRequested: (launcherUrl) => {
+            root.closeAppGroupPopup();
+            root.launchGroupMemberNewInstance(launcherUrl);
+        }
+        onMemberRemoved: (launcherUrl) =>
+            root.removeAppFromGroup(groupId, launcherUrl)
+        onGroupNameRequested: (name) =>
+            root.renameAppGroup(groupId, name)
+        onUngroupRequested: root.ungroupAppGroup(groupId)
+
+        onVisibleChanged: {
+            if (visible && !root.appGroupPopupCountedAsOpen) {
+                root.appGroupPopupCountedAsOpen = true;
+                root.previewOpened();
+            } else if (!visible
+                    && root.appGroupPopupCountedAsOpen) {
+                root.appGroupPopupCountedAsOpen = false;
+                root.previewClosed();
+            }
+        }
+
+        onHoveredChanged: {
+            if (hovered) {
+                appGroupPopupCloseTimer.stop();
+            } else {
+                appGroupPopupCloseTimer.restart();
+            }
+        }
+    }
+
+    Timer {
+        id: appGroupPopupCloseTimer
+
+        interval: 480
+        repeat: false
+        onTriggered: {
+            if (appGroupPopup.visible && !appGroupPopup.hovered
+                    && !root.overlayHovered) {
+                appGroupPopup.hidePopup();
+            }
+        }
+    }
+
     Window {
         id: baseWindow
 
@@ -3153,9 +3842,11 @@ PlasmoidItem {
                 var item = null;
                 if (index >= root.taskDockStartIndex
                         && index < root.taskDockStartIndex
-                            + root.taskCount) {
+                            + root.taskVisualCount) {
+                    var taskVisualIndex =
+                        index - root.taskDockStartIndex;
                     item = overlayRepeater.itemAt(
-                        index - root.taskDockStartIndex);
+                        root.modelIndexForVisualIndex(taskVisualIndex));
                 } else if (index >= root.folderDockIndex
                         && index < root.folderDockIndex
                             + root.folderItemCount) {
@@ -3179,17 +3870,6 @@ PlasmoidItem {
                 return Number.isFinite(scale) ? scale : 1.0;
             }
 
-            function dockIndexAtVisualIndex(index) {
-                if (index >= root.taskDockStartIndex
-                        && index < root.taskDockStartIndex
-                            + root.taskCount) {
-                    return root.taskDockStartIndex
-                        + root.modelIndexForVisualIndex(
-                            index - root.taskDockStartIndex);
-                }
-                return index;
-            }
-
             function calculateItemGeometry() {
                 var count = root.dockItemCount;
                 if (count <= 0) {
@@ -3206,8 +3886,8 @@ PlasmoidItem {
                         * root.utilitySectionGap;
                 var extents = [];
                 for (var index = 0; index < count; ++index) {
-                    var extent = root.baseIconSize * scaleAtDockIndex(
-                        dockIndexAtVisualIndex(index));
+                    var extent = root.baseIconSize
+                        * scaleAtDockIndex(index);
                     extents.push(extent);
                     iconMainLength += extent;
                 }
@@ -3297,7 +3977,7 @@ PlasmoidItem {
             }
 
             function visualIndexAtMainPosition(pos) {
-                var count = root.taskCount;
+                var count = root.taskVisualCount;
                 if (count <= 0) {
                     return -1;
                 }

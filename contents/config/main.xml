@@ -92,6 +92,13 @@
     <entry name="showKdeConnectRecentShares" type="Bool">
       <default>true</default>
     </entry>
+    <!--
+      Each entry is a versioned JSON object. Keeping groups separate from the
+      TaskManager launcher list preserves Plasma's native task activation and
+      window tracking while allowing several launcher rows to share one visual
+      Dock slot.
+    -->
+    <entry name="appGroups" type="StringList"/>
     <entry name="launchers" type="StringList"/>
   </group>
 </kcfg>

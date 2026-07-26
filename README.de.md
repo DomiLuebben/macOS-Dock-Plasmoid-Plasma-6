@@ -9,6 +9,9 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 
 - flüssige macOS-artige Vergrößerung beim Überfahren der Symbole
 - Verschieben und Anordnen der Starter per Drag-and-Drop mit der Maus
+- App-Gruppen im Android-Stil: Eine App kurz mittig über einer anderen halten,
+  um sie zu gruppieren; die animierte Liste dient zum Starten, Umbenennen,
+  Entfernen einzelner Apps oder Auflösen der Gruppe
 - optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; weitere
   Ordner lassen sich direkt aus dem Dateimanager auf das Dock ziehen
 - optionale Fortschrittsringe für Plasma-Aufträge und Unity-kompatible
@@ -77,6 +80,11 @@ minimale Desktop-Plasmoid speichert nur die Einstellungen, während das Dock in
 einem eigenen transparenten Fenster läuft. In den Einstellungen kannst du
 unten, links oder rechts wählen; am ausgewählten Bildschirmrand bleibt das
 Dock immer mittig ausgerichtet.
+
+Zum Erstellen einer App-Gruppe ziehst du eine App mittig auf eine andere und
+hältst sie dort kurz, bis sich das Ziel vergrößert. Dann lässt du los. Eine
+schnelle Ziehbewegung ordnet das Dock weiterhin nur neu. Gruppierte Apps
+behalten Plasmas natives Verhalten für laufende Tasks und Minimieranimationen.
 
 Wenn du von einer älteren Version aktualisierst, entferne das Dock zuerst aus
 der bisherigen Plasma-Leiste. Falls diese Leiste ausschließlich für das Dock

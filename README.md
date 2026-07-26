@@ -10,6 +10,8 @@ color scheme.
 
 - Smooth macOS-style icon magnification on hover
 - Drag-and-drop reordering of launchers and starters with mouse interaction
+- Android-style app groups: hold one app over another to combine them, then
+  open the animated group list to launch, rename, remove, or ungroup its apps
 - Optional Downloads/folder stacks with a macOS-style file popover; drag
   folders from the file manager onto the Dock to add more
 - Optional progress rings for Plasma jobs and Unity-compatible downloads on
@@ -75,6 +77,10 @@ through the widget picker. Do not put it in a Plasma panel: the minimal,
 invisible desktop widget only stores settings, while the Dock runs in its own
 transparent window. Choose bottom, left, or right in the widget settings; the
 Dock stays centered along the selected screen edge.
+
+To create an app group, drag an app onto another app and hold it centered
+briefly until the target expands, then release. A quick drag still reorders the
+Dock. Grouped apps keep Plasma's native running-task and minimize behavior.
 
 When upgrading from an older version, first remove the Dock from its previous
 Plasma panel. If that panel was created only for the Dock, remove the entire

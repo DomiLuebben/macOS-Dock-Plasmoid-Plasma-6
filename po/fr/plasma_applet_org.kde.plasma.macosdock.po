@@ -1,7 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.9.5\n"
-"PO-Revision-Date: 2026-07-23 00:00+0200\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.10.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-26 10:33+0200\n"
+"PO-Revision-Date: 2026-07-26 00:00+0200\n"
 "Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
 "Language-Team: French\n"
 "Language: fr\n"
@@ -10,392 +12,550 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-msgid " px"
-msgstr " px"
-
-msgid "Activate"
-msgstr "Activer"
-
-msgid "Appearance"
-msgstr "Apparence"
-
-msgid "Dock position:"
-msgstr "Position du Dock :"
-
-msgid "Bottom"
-msgstr "Bas"
-
-msgid "Application"
-msgstr "Application"
-
-msgid "Applications"
-msgstr "Applications"
-
-msgid "Automatically hide when a window is maximized"
-msgstr "Masquer automatiquement lorsqu’une fenêtre est maximisée"
-
-msgid "Background opacity:"
-msgstr "Opacité de l’arrière-plan :"
-
-msgid "Background:"
-msgstr "Arrière-plan :"
-
-msgid "Blur the background"
-msgstr "Flouter l’arrière-plan"
-
-msgid "Border strength:"
-msgstr "Intensité de la bordure :"
-
-msgid "Bounce"
-msgstr "Rebond"
-
-msgid "Close"
-msgstr "Fermer"
-
-msgid "Close All Windows"
-msgstr "Fermer toutes les fenêtres"
-
-msgid "Choose Dock Background Color"
-msgstr "Choisir la couleur d’arrière-plan du Dock"
-
-msgid "Configure Dock…"
-msgstr "Configurer le Dock…"
-
-msgid "Corner radius:"
-msgstr "Rayon des coins :"
-
-msgid "Custom background color:"
-msgstr "Couleur d’arrière-plan personnalisée :"
-
-msgid "Distance from screen edge:"
-msgstr "Distance du bord de l’écran :"
-
-msgid "Dock content:"
-msgstr "Contenu du Dock :"
-
-msgid "Effects:"
-msgstr "Effets :"
-
-msgid "Force Quit Application…"
-msgstr "Forcer à quitter l’application…"
-
+#: contents/config/config.qml:6
 msgid "General"
 msgstr "Général"
 
-msgid "Icon size:"
-msgstr "Taille des icônes :"
+#: contents/ui/AppGroupPopup.qml:312
+msgid "Group name"
+msgstr "Nom du groupe"
 
-msgid "Keep in Dock"
-msgstr "Conserver dans le Dock"
+#: contents/ui/AppGroupPopup.qml:325 contents/ui/main.qml:2636
+msgid "Ungroup"
+msgstr "Dissocier"
 
-msgid "Launch animation:"
-msgstr "Animation de lancement :"
+#: contents/ui/AppGroupPopup.qml:361 contents/ui/AppGroupPopup.qml:414
+#: contents/ui/main.qml:1250 contents/ui/main.qml:1348
+#: contents/ui/main.qml:1349 contents/ui/main.qml:2232
+msgid "Application"
+msgstr "Application"
 
-msgid "Launcher"
-msgstr "Lanceur"
-
-msgid "Left/right margin:"
-msgstr "Marge gauche/droite :"
-
-msgid "Magnification and animation"
-msgstr "Agrandissement et animation"
-
-msgid "Magnification radius:"
-msgstr "Rayon d’agrandissement :"
-
-msgid "Maximum magnification:"
-msgstr "Agrandissement maximal :"
-
-msgid "Maximize"
-msgstr "Maximiser"
-
-msgid "Maximize All"
-msgstr "Tout maximiser"
-
-msgid "Minimize"
-msgstr "Réduire"
-
-msgid "Minimize All"
-msgstr "Tout réduire"
-
-msgid "Move Down"
-msgstr "Déplacer vers le bas"
-
-msgid "Move Left"
-msgstr "Déplacer vers la gauche"
-
-msgid "Move Right"
-msgstr "Déplacer vers la droite"
-
-msgid "Move Up"
-msgstr "Déplacer vers le haut"
-
-msgid "None"
-msgstr "Aucune"
-
-msgid "Open"
-msgstr "Ouvrir"
-
-msgid "Open New Window"
-msgstr "Ouvrir une nouvelle fenêtre"
-
-msgid "Standalone placement:"
-msgstr "Placement autonome :"
-
-msgid "Preview:"
-msgstr "Aperçu :"
-
-msgid "Preview unavailable"
-msgstr "Aperçu indisponible"
-
-msgid "Restore"
-msgstr "Restaurer"
-
-msgid "Restore All"
-msgstr "Tout restaurer"
-
+#: contents/ui/AppGroupPopup.qml:363 contents/ui/AppGroupPopup.qml:422
+#: contents/ui/DockItem.qml:86
 msgid "Running"
 msgstr "En cours d’exécution"
 
-msgid "Shadow strength:"
-msgstr "Intensité de l’ombre :"
+#: contents/ui/AppGroupPopup.qml:363 contents/ui/DockItem.qml:86
+msgid "Launcher"
+msgstr "Lanceur"
 
-msgid "Show glass highlight"
-msgstr "Afficher le reflet vitré"
+#: contents/ui/AppGroupPopup.qml:437
+msgid "Remove from Group"
+msgstr "Retirer du groupe"
 
-msgid "Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers."
-msgstr "Les applications en cours d’exécution apparaissent automatiquement. Faites un clic droit sur une icône pour la conserver dans le Dock, la détacher ou la déplacer. Le composant graphique ne contient aucun lanceur prédéfini."
+#: contents/ui/ConfigGeneral.qml:66
+msgid "Appearance"
+msgstr "Apparence"
 
-msgid "Place this widget directly on the Plasma desktop, not inside a panel. The invisible desktop widget only stores settings; the Dock itself uses a separate transparent window anchored to the selected screen edge and centered along it. BetterBlur can blur that window directly."
-msgstr "Placez ce composant directement sur le bureau Plasma, et non dans un panneau. Le composant de bureau invisible conserve uniquement les réglages ; le Dock utilise sa propre fenêtre transparente ancrée au bord d’écran sélectionné et centrée le long de celui-ci. BetterBlur peut flouter directement cette fenêtre."
+#: contents/ui/ConfigGeneral.qml:72
+msgid "Dock position:"
+msgstr "Position du Dock :"
 
-msgid "Top/bottom margin:"
-msgstr "Marge supérieure/inférieure :"
+#: contents/ui/ConfigGeneral.qml:73
+msgid "Bottom"
+msgstr "Bas"
 
-msgid "Unpin from Dock"
-msgstr "Détacher du Dock"
-
-msgid "Use color from the Plasma theme"
-msgstr "Utiliser la couleur du thème Plasma"
-
-msgid "Window behavior:"
-msgstr "Comportement des fenêtres :"
-
-msgid "Dock items"
-msgstr "Éléments du Dock"
-
-msgid "Utilities:"
-msgstr "Utilitaires :"
-
-msgid "Show folder view"
-msgstr "Afficher la vue du dossier"
-
-msgid "Folder view mode:"
-msgstr "Mode d’affichage du dossier :"
-
-msgid "List View"
-msgstr "Vue en liste"
-
-msgid "Grid View"
-msgstr "Vue en grille"
-
-msgid "Fan / Stack View"
-msgstr "Vue en éventail / pile"
-
-msgid "Show Trash"
-msgstr "Afficher la corbeille"
-
-msgid "Show desktop switcher"
-msgstr "Afficher le sélecteur de bureaux"
-
-msgid "Show power button"
-msgstr "Afficher le bouton d’alimentation"
-
-msgid "Power button position:"
-msgstr "Position du bouton d’alimentation :"
-
-msgid "Power / Session"
-msgstr "Alimentation / Session"
-
-msgid "Sleep / Standby"
-msgstr "Mise en veille"
-
-msgid "Restart…"
-msgstr "Redémarrer…"
-
-msgid "Shut Down…"
-msgstr "Éteindre…"
-
-msgid "Lock Screen"
-msgstr "Verrouiller l’écran"
-
-msgid "Log Out…"
-msgstr "Se déconnecter…"
-
-msgid "Desktop switcher position:"
-msgstr "Position du sélecteur de bureaux :"
-
+#: contents/ui/ConfigGeneral.qml:73 contents/ui/ConfigGeneral.qml:378
+#: contents/ui/ConfigGeneral.qml:387
 msgid "Left"
 msgstr "Gauche"
 
+#: contents/ui/ConfigGeneral.qml:73 contents/ui/ConfigGeneral.qml:378
+#: contents/ui/ConfigGeneral.qml:387
 msgid "Right"
 msgstr "Droite"
 
-msgid "Desktop labels:"
-msgstr "Libellés des bureaux :"
+#: contents/ui/ConfigGeneral.qml:77
+msgid "Icon size:"
+msgstr "Taille des icônes :"
 
-msgid "Numbers"
-msgstr "Numéros"
+#: contents/ui/ConfigGeneral.qml:89 contents/ui/ConfigGeneral.qml:106
+#: contents/ui/ConfigGeneral.qml:123 contents/ui/ConfigGeneral.qml:140
+#: contents/ui/ConfigGeneral.qml:190 contents/ui/ConfigGeneral.qml:317
+msgid " px"
+msgstr " px"
 
-msgid "Desktop names"
-msgstr "Noms des bureaux"
+#: contents/ui/ConfigGeneral.qml:94
+msgid "Left/right margin:"
+msgstr "Marge gauche/droite :"
 
-msgid "Desktop names:"
-msgstr "Noms des bureaux :"
+#: contents/ui/ConfigGeneral.qml:111
+msgid "Top/bottom margin:"
+msgstr "Marge supérieure/inférieure :"
 
-msgid "The names configured in Plasma, including custom names, are shown."
-msgstr "Les noms configurés dans Plasma, y compris les noms personnalisés, sont affichés."
+#: contents/ui/ConfigGeneral.qml:128
+msgid "Distance from screen edge:"
+msgstr "Distance du bord de l’écran :"
 
-msgid "Default folder:"
-msgstr "Dossier par défaut :"
+#: contents/ui/ConfigGeneral.qml:145
+msgid "Background opacity:"
+msgstr "Opacité de l’arrière-plan :"
 
-msgid "Choose…"
-msgstr "Choisir…"
+#: contents/ui/ConfigGeneral.qml:164
+msgid "Background:"
+msgstr "Arrière-plan :"
 
-msgid "Choose folder"
-msgstr "Choisir un dossier"
+#: contents/ui/ConfigGeneral.qml:165
+msgid "Use color from the Plasma theme"
+msgstr "Utiliser la couleur du thème Plasma"
 
-msgid "Folder view:"
-msgstr "Vue du dossier :"
+#: contents/ui/ConfigGeneral.qml:171
+msgid "Custom background color:"
+msgstr "Couleur d’arrière-plan personnalisée :"
 
-msgid "If no folder is selected, the Downloads folder is used. Drag folders from the file manager onto the Dock to add more stacks."
-msgstr "Si aucun dossier n’est sélectionné, le dossier Téléchargements est utilisé. Faites glisser d’autres dossiers depuis le gestionnaire de fichiers sur le Dock pour ajouter des piles."
+#: contents/ui/ConfigGeneral.qml:174
+msgid "Choose Dock Background Color"
+msgstr "Choisir la couleur d’arrière-plan du Dock"
 
-msgid "Choose Folder for the Dock"
-msgstr "Choisir le dossier du Dock"
+#: contents/ui/ConfigGeneral.qml:178
+msgid "Corner radius:"
+msgstr "Rayon des coins :"
 
-msgid "Folder"
-msgstr "Dossier"
+#: contents/ui/ConfigGeneral.qml:195
+msgid "Border strength:"
+msgstr "Intensité de la bordure :"
 
-msgid "Trash"
-msgstr "Corbeille"
+#: contents/ui/ConfigGeneral.qml:212
+msgid "Shadow strength:"
+msgstr "Intensité de l’ombre :"
 
-msgid "Desktop %1"
-msgstr "Bureau %1"
+#: contents/ui/ConfigGeneral.qml:229
+msgid "Effects:"
+msgstr "Effets :"
 
-msgid "Current desktop"
-msgstr "Bureau actuel"
+#: contents/ui/ConfigGeneral.qml:233
+msgid "Blur the background"
+msgstr "Flouter l’arrière-plan"
 
-msgid "Switch desktop"
-msgstr "Changer de bureau"
+#: contents/ui/ConfigGeneral.qml:238
+msgid "Show glass highlight"
+msgstr "Afficher le reflet vitré"
 
-msgid "Add desktop"
-msgstr "Ajouter un bureau"
+#: contents/ui/ConfigGeneral.qml:243
+msgid "Preview:"
+msgstr "Aperçu :"
 
-msgid "Open Folder"
-msgstr "Ouvrir le dossier"
+#: contents/ui/ConfigGeneral.qml:265
+msgid "Window behavior:"
+msgstr "Comportement des fenêtres :"
 
-msgid "Remove Folder from Dock"
-msgstr "Retirer le dossier du Dock"
+#: contents/ui/ConfigGeneral.qml:266
+msgid "Automatically hide when a window is maximized"
+msgstr "Masquer automatiquement lorsqu’une fenêtre est maximisée"
 
-msgid "Open Trash"
-msgstr "Ouvrir la corbeille"
-
-msgid "Empty Trash"
-msgstr "Vider la corbeille"
-
-msgid "Back"
-msgstr "Retour"
-
-msgid "Open in File Manager"
-msgstr "Ouvrir dans le gestionnaire de fichiers"
-
-msgid "Name"
-msgstr "Nom"
-
-msgid "Date"
-msgstr "Date"
-
-msgid "Size"
-msgstr "Taille"
-
-msgid "Type"
-msgstr "Type"
-
-msgid "Descending"
-msgstr "Décroissant"
-
-msgid "Ascending"
-msgstr "Croissant"
-
-msgid "Hide hidden files"
-msgstr "Masquer les fichiers cachés"
-
-msgid "Show hidden files"
-msgstr "Afficher les fichiers cachés"
-
-msgid "This folder is empty"
-msgstr "Ce dossier est vide"
-
+#: contents/ui/ConfigGeneral.qml:272
 msgid "Integrations:"
 msgstr "Intégrations :"
 
+#: contents/ui/ConfigGeneral.qml:273
 msgid "Show download and job progress indicators"
 msgstr "Afficher les indicateurs de progression des téléchargements et des tâches"
 
+#: contents/ui/ConfigGeneral.qml:279
 msgid "Show KDE Connect recent shares"
 msgstr "Afficher les partages récents KDE Connect"
 
-msgid "Open again from %1"
-msgstr "Rouvrir depuis %1"
+#: contents/ui/ConfigGeneral.qml:284
+msgid "Magnification and animation"
+msgstr "Agrandissement et animation"
 
-msgid "Recent share from %1"
-msgstr "Partage récent depuis %1"
+#: contents/ui/ConfigGeneral.qml:288
+msgid "Maximum magnification:"
+msgstr "Agrandissement maximal :"
 
+#: contents/ui/ConfigGeneral.qml:305
+msgid "Magnification radius:"
+msgstr "Rayon d’agrandissement :"
+
+#: contents/ui/ConfigGeneral.qml:324
+msgid "Launch animation:"
+msgstr "Animation de lancement :"
+
+#: contents/ui/ConfigGeneral.qml:326
+msgid "None"
+msgstr "Aucune"
+
+#: contents/ui/ConfigGeneral.qml:326
+msgid "Bounce"
+msgstr "Rebond"
+
+#: contents/ui/ConfigGeneral.qml:331
+msgid "Dock items"
+msgstr "Éléments du Dock"
+
+#: contents/ui/ConfigGeneral.qml:335
+msgid "Utilities:"
+msgstr "Utilitaires :"
+
+#: contents/ui/ConfigGeneral.qml:339
+msgid "Show folder view"
+msgstr "Afficher la vue du dossier"
+
+#: contents/ui/ConfigGeneral.qml:344
+msgid "Show Trash"
+msgstr "Afficher la corbeille"
+
+#: contents/ui/ConfigGeneral.qml:349
 msgid "Show removable drives"
 msgstr "Afficher les lecteurs amovibles"
 
+#: contents/ui/ConfigGeneral.qml:354
+msgid "Show desktop switcher"
+msgstr "Afficher le sélecteur de bureaux"
+
+#: contents/ui/ConfigGeneral.qml:359
+msgid "Show power button"
+msgstr "Afficher le bouton d’alimentation"
+
+#: contents/ui/ConfigGeneral.qml:366
+msgid "Folder view mode:"
+msgstr "Mode d’affichage du dossier :"
+
+#: contents/ui/ConfigGeneral.qml:369 contents/ui/FolderPopup.qml:359
+msgid "List View"
+msgstr "Vue en liste"
+
+#: contents/ui/ConfigGeneral.qml:369 contents/ui/FolderPopup.qml:374
+msgid "Grid View"
+msgstr "Vue en grille"
+
+#: contents/ui/ConfigGeneral.qml:369 contents/ui/FolderPopup.qml:389
+msgid "Fan / Stack View"
+msgstr "Vue en éventail / pile"
+
+#: contents/ui/ConfigGeneral.qml:375
+msgid "Power button position:"
+msgstr "Position du bouton d’alimentation :"
+
+#: contents/ui/ConfigGeneral.qml:384
+msgid "Desktop switcher position:"
+msgstr "Position du sélecteur de bureaux :"
+
+#: contents/ui/ConfigGeneral.qml:393
+msgid "Desktop labels:"
+msgstr "Libellés des bureaux :"
+
+#: contents/ui/ConfigGeneral.qml:396
+msgid "Numbers"
+msgstr "Numéros"
+
+#: contents/ui/ConfigGeneral.qml:396
+msgid "Desktop names"
+msgstr "Noms des bureaux"
+
+#: contents/ui/ConfigGeneral.qml:400
+msgid "Desktop names:"
+msgstr "Noms des bureaux :"
+
+#: contents/ui/ConfigGeneral.qml:405
+msgid "The names configured in Plasma, including custom names, are shown."
+msgstr "Les noms configurés dans Plasma, y compris les noms personnalisés, sont affichés."
+
+#: contents/ui/ConfigGeneral.qml:410
+msgid "Default folder:"
+msgstr "Dossier par défaut :"
+
+#: contents/ui/ConfigGeneral.qml:425
+msgid "Choose…"
+msgstr "Choisir…"
+
+#: contents/ui/ConfigGeneral.qml:429
+msgid "Choose folder"
+msgstr "Choisir un dossier"
+
+#: contents/ui/ConfigGeneral.qml:434
+msgid "Folder view:"
+msgstr "Vue du dossier :"
+
+#: contents/ui/ConfigGeneral.qml:438
+msgid "If no folder is selected, the Downloads folder is used. Drag folders from the file manager onto the Dock to add more stacks."
+msgstr "Si aucun dossier n’est sélectionné, le dossier Téléchargements est utilisé. Faites glisser d’autres dossiers depuis le gestionnaire de fichiers sur le Dock pour ajouter des piles."
+
+#: contents/ui/ConfigGeneral.qml:445
+msgid "Choose Folder for the Dock"
+msgstr "Choisir le dossier du Dock"
+
+#: contents/ui/ConfigGeneral.qml:454
+msgid "Applications"
+msgstr "Applications"
+
+#: contents/ui/ConfigGeneral.qml:458
+msgid "Dock content:"
+msgstr "Contenu du Dock :"
+
+#: contents/ui/ConfigGeneral.qml:461
+msgid "Running applications appear automatically. Right-click an icon to keep it in the Dock, unpin it, or move it. The widget does not include fixed launchers."
+msgstr "Les applications en cours d’exécution apparaissent automatiquement. Faites un clic droit sur une icône pour la conserver dans le Dock, la détacher ou la déplacer. Le composant graphique ne contient aucun lanceur prédéfini."
+
+#: contents/ui/ConfigGeneral.qml:466
+msgid "Standalone placement:"
+msgstr "Placement autonome :"
+
+#: contents/ui/ConfigGeneral.qml:469
+msgid "Place this widget directly on the Plasma desktop, not inside a panel. The invisible desktop widget only stores settings; the Dock itself uses a separate transparent window anchored to the selected screen edge and centered along it. BetterBlur can blur that window directly."
+msgstr "Placez ce composant directement sur le bureau Plasma, et non dans un panneau. Le composant de bureau invisible conserve uniquement les réglages ; le Dock utilise sa propre fenêtre transparente ancrée au bord d’écran sélectionné et centrée le long de celui-ci. BetterBlur peut flouter directement cette fenêtre."
+
+#: contents/ui/FolderPopup.qml:111 contents/ui/main.qml:459
+msgid "Folder"
+msgstr "Dossier"
+
+#: contents/ui/FolderPopup.qml:293
+msgid "Back"
+msgstr "Retour"
+
+#: contents/ui/FolderPopup.qml:324
+msgid "Open in File Manager"
+msgstr "Ouvrir dans le gestionnaire de fichiers"
+
+#: contents/ui/FolderPopup.qml:404
+msgid "Name"
+msgstr "Nom"
+
+#: contents/ui/FolderPopup.qml:404
+msgid "Date"
+msgstr "Date"
+
+#: contents/ui/FolderPopup.qml:405
+msgid "Size"
+msgstr "Taille"
+
+#: contents/ui/FolderPopup.qml:405
+msgid "Type"
+msgstr "Type"
+
+#: contents/ui/FolderPopup.qml:419
+msgid "Descending"
+msgstr "Décroissant"
+
+#: contents/ui/FolderPopup.qml:419
+msgid "Ascending"
+msgstr "Croissant"
+
+#: contents/ui/FolderPopup.qml:431
+msgid "Hide hidden files"
+msgstr "Masquer les fichiers cachés"
+
+#: contents/ui/FolderPopup.qml:432
+msgid "Show hidden files"
+msgstr "Afficher les fichiers cachés"
+
+#: contents/ui/FolderPopup.qml:720
+msgid "This folder is empty"
+msgstr "Ce dossier est vide"
+
+#: contents/ui/RecentShareBadge.qml:22 contents/ui/RecentShareBadge.qml:75
+#: contents/ui/RecentShareBadge.qml:76
+msgid "Recent share from %1"
+msgstr "Partage récent depuis %1"
+
+#: contents/ui/WindowPreviewToolTip.qml:210
+msgid "Preview unavailable"
+msgstr "Aperçu indisponible"
+
+#: contents/ui/WindowPreviewToolTip.qml:281 contents/ui/main.qml:2605
+msgid "Close"
+msgstr "Fermer"
+
+#: contents/ui/main.qml:377
+msgid "Desktop %1"
+msgstr "Bureau %1"
+
+#: contents/ui/main.qml:1250 contents/ui/main.qml:1477
+msgid "Group"
+msgstr "Groupe"
+
+#: contents/ui/main.qml:2517
+msgid "Activate"
+msgstr "Activer"
+
+#: contents/ui/main.qml:2517
+msgid "Open"
+msgstr "Ouvrir"
+
+#: contents/ui/main.qml:2524
+msgid "Open New Window"
+msgstr "Ouvrir une nouvelle fenêtre"
+
+#: contents/ui/main.qml:2532 contents/ui/main.qml:3055
+msgid "Open again from %1"
+msgstr "Rouvrir depuis %1"
+
+#: contents/ui/main.qml:2547
+msgid "Unpin from Dock"
+msgstr "Détacher du Dock"
+
+#: contents/ui/main.qml:2547
+msgid "Keep in Dock"
+msgstr "Conserver dans le Dock"
+
+#: contents/ui/main.qml:2554
+msgid "Move Up"
+msgstr "Déplacer vers le haut"
+
+#: contents/ui/main.qml:2554
+msgid "Move Left"
+msgstr "Déplacer vers la gauche"
+
+#: contents/ui/main.qml:2563
+msgid "Move Down"
+msgstr "Déplacer vers le bas"
+
+#: contents/ui/main.qml:2563
+msgid "Move Right"
+msgstr "Déplacer vers la droite"
+
+#: contents/ui/main.qml:2578 contents/ui/main.qml:2592
+msgid "Restore All"
+msgstr "Tout restaurer"
+
+#: contents/ui/main.qml:2578 contents/ui/main.qml:2592
+msgid "Restore"
+msgstr "Restaurer"
+
+#: contents/ui/main.qml:2580
+msgid "Minimize All"
+msgstr "Tout réduire"
+
+#: contents/ui/main.qml:2580
+msgid "Minimize"
+msgstr "Réduire"
+
+#: contents/ui/main.qml:2594
+msgid "Maximize All"
+msgstr "Tout maximiser"
+
+#: contents/ui/main.qml:2594
+msgid "Maximize"
+msgstr "Maximiser"
+
+#: contents/ui/main.qml:2605
+msgid "Close All Windows"
+msgstr "Fermer toutes les fenêtres"
+
+#: contents/ui/main.qml:2617
+msgid "Force Quit Application…"
+msgstr "Forcer à quitter l’application…"
+
+#: contents/ui/main.qml:2629
+msgid "Open Group"
+msgstr "Ouvrir le groupe"
+
+#: contents/ui/main.qml:2687
+msgid "Current desktop"
+msgstr "Bureau actuel"
+
+#: contents/ui/main.qml:2687
+msgid "Switch desktop"
+msgstr "Changer de bureau"
+
+#: contents/ui/main.qml:2783 contents/ui/main.qml:2832
+msgid "Add desktop"
+msgstr "Ajouter un bureau"
+
+#: contents/ui/main.qml:2972
+msgid "Trash"
+msgstr "Corbeille"
+
+#: contents/ui/main.qml:3041
+msgid "Open Folder"
+msgstr "Ouvrir le dossier"
+
+#: contents/ui/main.qml:3041
+msgid "Open Trash"
+msgstr "Ouvrir la corbeille"
+
+#: contents/ui/main.qml:3068
+msgid "Remove Folder from Dock"
+msgstr "Retirer le dossier du Dock"
+
+#: contents/ui/main.qml:3076
+msgid "Empty Trash"
+msgstr "Vider la corbeille"
+
+#: contents/ui/main.qml:3085
+msgid "Power / Session"
+msgstr "Alimentation / Session"
+
+#: contents/ui/main.qml:3095
+msgid "Sleep / Standby"
+msgstr "Mise en veille"
+
+#: contents/ui/main.qml:3102
+msgid "Restart…"
+msgstr "Redémarrer…"
+
+#: contents/ui/main.qml:3110
+msgid "Shut Down…"
+msgstr "Éteindre…"
+
+#: contents/ui/main.qml:3120
+msgid "Lock Screen"
+msgstr "Verrouiller l’écran"
+
+#: contents/ui/main.qml:3127
+msgid "Log Out…"
+msgstr "Se déconnecter…"
+
+#: contents/ui/main.qml:3216
 msgid "Open Volume"
 msgstr "Ouvrir le volume"
 
-msgid "Unmount Volume"
-msgstr "Démonter le volume"
-
-msgid "Eject Disc"
-msgstr "Éjecter le disque"
-
-msgid "Unmounting…"
-msgstr "Démontage…"
-
-msgid "Ejecting…"
-msgstr "Éjection…"
-
-msgid "Failed to unmount volume."
-msgstr "Échec du démontage du volume."
-
-msgid "Failed to eject optical disc."
-msgstr "Échec de l'éjection du disque optique."
-
-msgid "Could not initiate unmounting."
-msgstr "Impossible d'initier le démontage."
-
-msgid "Could not initiate eject."
-msgstr "Impossible d'initier l'éjection."
-
-msgid "Removable Drive"
-msgstr "Lecteur amovible"
-
-msgid "Failed to open volume."
-msgstr "Impossible d'ouvrir le volume."
-
-msgid "Mount Volume"
-msgstr "Monter le volume"
-
+#: contents/ui/main.qml:3218
 msgid "Mounting…"
 msgstr "Montage…"
 
+#: contents/ui/main.qml:3219
+msgid "Mount Volume"
+msgstr "Monter le volume"
+
+#: contents/ui/main.qml:3228
+msgid "Ejecting…"
+msgstr "Éjection…"
+
+#: contents/ui/main.qml:3230
+msgid "Unmounting…"
+msgstr "Démontage…"
+
+#: contents/ui/main.qml:3232
+msgid "Eject Disc"
+msgstr "Éjecter le disque"
+
+#: contents/ui/main.qml:3233
+msgid "Unmount Volume"
+msgstr "Démonter le volume"
+
+#: contents/ui/main.qml:4094
+msgid "Configure Dock…"
+msgstr "Configurer le Dock…"
+
+#: native/removablevolumesmodel.cpp:177
+msgid "Removable Drive"
+msgstr "Lecteur amovible"
+
+#: native/removablevolumesmodel.cpp:421
+msgid "Failed to unmount volume."
+msgstr "Échec du démontage du volume."
+
+#: native/removablevolumesmodel.cpp:453
+msgid "Failed to eject optical disc."
+msgstr "Échec de l'éjection du disque optique."
+
+#: native/removablevolumesmodel.cpp:514
 msgid "Could not initiate mounting."
 msgstr "Impossible d'initier le montage."
 
+#: native/removablevolumesmodel.cpp:536
 msgid "Failed to mount volume."
 msgstr "Échec du montage du volume."
+
+#: native/removablevolumesmodel.cpp:578
+msgid "Failed to open volume."
+msgstr "Impossible d'ouvrir le volume."
+
+#: native/removablevolumesmodel.cpp:643
+msgid "Could not initiate eject."
+msgstr "Impossible d'initier l'éjection."
+
+#: native/removablevolumesmodel.cpp:664
+msgid "Could not initiate unmounting."
+msgstr "Impossible d'initier le démontage."

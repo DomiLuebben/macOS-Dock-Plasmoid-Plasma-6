@@ -23,6 +23,8 @@ Item {
     property bool dragEnabled: true
     property int launchAnimation: 1
     property bool previewAvailable: isRunning
+    property bool isAppGroup: false
+    property var groupPreviewItems: []
 
     property bool progressVisible: false
     property real progressValue: 0.0
@@ -500,6 +502,17 @@ Item {
             source: root.appIcon || "application-x-executable"
             roundToIconSize: false
             smooth: true
+            visible: !root.isAppGroup
+        }
+
+        Loader {
+            anchors.fill: parent
+            active: root.isAppGroup
+            sourceComponent: Component {
+                AppGroupIcon {
+                    previewItems: root.groupPreviewItems
+                }
+            }
         }
 
         Loader {

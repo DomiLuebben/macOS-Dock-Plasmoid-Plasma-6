@@ -76,7 +76,14 @@ if(BUILD_TESTING)
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_removablevolumedrag.qml"
     )
-    set_tests_properties(removablevolumedragqmltest PROPERTIES
+    add_test(NAME appgroupstoreqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_appgroupstore.qml"
+    )
+    set_tests_properties(
+        removablevolumedragqmltest
+        appgroupstoreqmltest
+        PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )
 endif()
