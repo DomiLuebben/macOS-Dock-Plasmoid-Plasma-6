@@ -13,7 +13,8 @@ couleurs du thème Qt.
 - Groupes d’applications de style Android : déposez une application au centre
   d’une autre pour les regrouper, puis utilisez la grille ou la liste
   animée pour lancer, renommer, retirer ou dissocier les applications ; les
-  lanceurs épinglés fonctionnent, que l’application soit ouverte ou fermée
+  lanceurs épinglés fonctionnent, que l’application soit ouverte ou fermée,
+  y compris pour les fenêtres `.exe` de Wine/Proton
 - Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
   macOS ; d’autres dossiers peuvent être glissés directement depuis le
   gestionnaire de fichiers, avec une disposition en liste, grille ou éventail

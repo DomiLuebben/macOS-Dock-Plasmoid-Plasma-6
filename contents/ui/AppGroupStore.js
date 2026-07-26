@@ -26,12 +26,19 @@ function normalizeAppId(value) {
     var appId = normalizeLauncherUrl(value);
     appId = appId.replace(/^application:\/\//, "")
         .replace(/^applications:/, "");
+    appId = appId.replace(/\\/g, "/");
     var slashIndex = appId.lastIndexOf("/");
     if (slashIndex >= 0) {
         appId = appId.substring(slashIndex + 1);
     }
     if (appId.toLowerCase().endsWith(".desktop")) {
         appId = appId.substring(0, appId.length - 8);
+    }
+    if (appId.toLowerCase().endsWith(".exe")) {
+        // Wine and Proton windows commonly expose the executable as AppId or
+        // WM_CLASS while their pinned launcher uses the same basename with a
+        // .desktop suffix.
+        appId = appId.substring(0, appId.length - 4);
     }
     return appId.toLowerCase();
 }

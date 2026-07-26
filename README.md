@@ -12,7 +12,8 @@ color scheme.
 - Drag-and-drop reordering of launchers and starters with mouse interaction
 - Android-style app groups: drop one app onto the center of another, then open
   the animated grid or list to launch, rename, remove, or ungroup its apps;
-  pinned launchers work whether their applications are open or closed
+  pinned launchers work whether their applications are open or closed,
+  including matching Wine/Proton `.exe` windows to their desktop launchers
 - Optional Downloads/folder stacks with a macOS-style file popover; drag
   folders from the file manager onto the Dock to add more, and select list,
   grid, or fan layout in the widget settings

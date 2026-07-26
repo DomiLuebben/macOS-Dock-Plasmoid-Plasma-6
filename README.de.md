@@ -12,7 +12,8 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 - App-Gruppen im Android-Stil: Eine App mittig auf einer anderen ablegen, um
   sie zu gruppieren; Raster oder Liste dienen zum Starten, Umbenennen,
   Entfernen einzelner Apps oder Auflösen der Gruppe; angeheftete Starter
-  funktionieren unabhängig davon, ob ihre App geöffnet oder geschlossen ist
+  funktionieren unabhängig davon, ob ihre App geöffnet oder geschlossen ist,
+  einschließlich der Zuordnung von Wine-/Proton-`.exe`-Fenstern
 - optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; weitere
   Ordner lassen sich direkt aus dem Dateimanager auf das Dock ziehen; Liste,
   Raster oder Fächer werden in den Dock-Einstellungen ausgewählt

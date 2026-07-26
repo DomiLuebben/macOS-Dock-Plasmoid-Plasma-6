@@ -134,6 +134,38 @@ TestCase {
             [duplicateIdentity], "Application", "Group").length, 0);
     }
 
+    function test_wineExecutableMatchesDesktopLauncher() {
+        var groups = AppGroupStore.parse([
+            JSON.stringify({
+                id: "creative",
+                members: [
+                    {
+                        launcher: "applications:Affinity.desktop",
+                        appId: "Affinity.desktop"
+                    },
+                    {
+                        launcher: "applications:org.kde.krita.desktop",
+                        appId: "org.kde.krita"
+                    }
+                ]
+            })
+        ], "Application", "Group");
+
+        var runningLayout = AppGroupStore.buildLayout([
+            "application://affinity.exe",
+            "applications:org.kde.krita.desktop"
+        ], groups, ["affinity.exe", "org.kde.krita"]);
+
+        compare(runningLayout.modelByVisual.length, 1);
+        compare(AppGroupStore.findGroupForIdentity(groups,
+            "application://affinity.exe", "affinity.exe").id,
+            "creative");
+        compare(AppGroupStore.normalizeAppId(
+            "C:\\Program Files\\Affinity\\Affinity.EXE"), "affinity");
+        compare(AppGroupStore.normalizeAppId(
+            "applications:Affinity.exe.desktop"), "affinity");
+    }
+
     function test_duplicateAndSingleMemberGroupsAreRejected() {
         var duplicateGroup = JSON.stringify({
             id: "invalid",

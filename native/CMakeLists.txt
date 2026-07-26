@@ -55,6 +55,10 @@ if(BUILD_TESTING)
         removablevolumesmodel.cpp
         removablevolumesmodel.h
     )
+    add_executable(desktopidutilstest
+        tests/desktopidutilstest.cpp
+        desktopidutils.h
+    )
     target_compile_definitions(removablevolumesmodeltest PRIVATE
         TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/tests/data/removable-volumes.xml"
     )
@@ -68,9 +72,19 @@ if(BUILD_TESTING)
         KF6::I18n
         KF6::KIOGui
     )
+    target_include_directories(desktopidutilstest PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(desktopidutilstest PRIVATE
+        Qt6::Core
+        Qt6::Test
+    )
 
     add_test(NAME removablevolumesmodeltest
         COMMAND removablevolumesmodeltest
+    )
+    add_test(NAME desktopidutilstest
+        COMMAND desktopidutilstest
     )
     add_test(NAME removablevolumedragqmltest
         COMMAND Qt6::qmltestrunner

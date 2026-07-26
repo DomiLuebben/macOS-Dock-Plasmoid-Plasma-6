@@ -34,6 +34,11 @@ inline QString normalize(const QString &rawId)
     if (desktopId.endsWith(QLatin1String(".desktop"), Qt::CaseInsensitive)) {
         desktopId.chop(8);
     }
+    if (desktopId.endsWith(QLatin1String(".exe"), Qt::CaseInsensitive)) {
+        // Wine/Proton window classes often use foo.exe for a foo.desktop
+        // launcher. Treat both forms as the same application identity.
+        desktopId.chop(4);
+    }
     return desktopId.toLower();
 }
 }
