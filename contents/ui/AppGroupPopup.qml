@@ -25,25 +25,45 @@ Window {
     property real shadowOpacity: 0.42
     property bool showHighlight: true
     property bool blurEnabled: true
+    readonly property int listViewMode: 0
+    readonly property int gridViewMode: 1
+    property int viewMode: gridViewMode
 
     readonly property bool isVertical:
         location === PlasmaCore.Types.LeftEdge
         || location === PlasmaCore.Types.RightEdge
     readonly property bool hovered: popupHover.hovered
+    readonly property bool gridViewActive: viewMode === gridViewMode
+    readonly property int memberCount: members ? members.length : 0
     readonly property int visibleMemberCount:
-        Math.min(7, members ? members.length : 0)
+        Math.min(7, memberCount)
+    readonly property int gridColumnCount: 3
+    readonly property int visibleGridRowCount: Math.min(3,
+        Math.ceil(memberCount / gridColumnCount))
     property string expandedLauncher: ""
-    readonly property int expandedWindowCount: {
+    readonly property var expandedMember: {
         var source = members || [];
         for (var index = 0; index < source.length; ++index) {
             if (String(source[index].launcher || "")
                     === expandedLauncher) {
-                var windows = source[index].windows || [];
-                return windows.length;
+                return source[index];
             }
         }
-        return 0;
+        return null;
     }
+    readonly property var expandedWindows:
+        expandedMember ? expandedMember.windows || [] : []
+    readonly property int expandedWindowCount: expandedWindows.length
+    readonly property real maximumPopupHeight: screen
+        ? Math.max(180, screen.height - 48) : 500
+    readonly property real preferredListHeight:
+        74 + visibleMemberCount * 52
+            + Math.max(0, visibleMemberCount - 1) * 3
+            + Math.min(6, expandedWindowCount) * 39
+    readonly property real preferredGridHeight:
+        82 + Math.max(1, visibleGridRowCount) * 98
+            + (expandedWindowCount > 1
+                ? Math.min(4, expandedWindowCount) * 39 + 10 : 0)
     property real openProgress: 0
     property bool positionPending: false
     property real placementLeft: 0
@@ -59,11 +79,107 @@ Window {
     signal groupNameRequested(string name)
     signal ungroupRequested()
 
-    width: 306
-    height: Math.max(150, Math.min(480,
-        74 + visibleMemberCount * 52
-            + Math.max(0, visibleMemberCount - 1) * 3
-            + Math.min(6, expandedWindowCount) * 39))
+    component WindowChoiceRow: Item {
+        id: windowChoice
+
+        required property var windowData
+        property var appIcon: "window"
+        property string appName: ""
+
+        signal activateRequested(var modelIndex)
+        signal closeRequested(var modelIndex)
+
+        width: parent ? parent.width : 0
+        height: 36
+        activeFocusOnTab: true
+        Accessible.role: Accessible.Button
+        Accessible.name: String(
+            windowData.title || appName || i18n("Application"))
+        Accessible.description: i18n("Activate")
+        Accessible.onPressAction:
+            windowChoice.activateRequested(windowData.modelIndex)
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.leftMargin: 42
+            radius: 9
+            color: windowChoiceHover.hovered
+                    || Boolean(windowChoice.windowData.isActive)
+                ? Kirigami.Theme.highlightColor
+                : Kirigami.Theme.alternateBackgroundColor
+            opacity: windowChoiceHover.hovered ? 0.22
+                : (Boolean(windowChoice.windowData.isActive)
+                    ? 0.16 : 0.38)
+        }
+
+        Kirigami.Icon {
+            anchors.left: parent.left
+            anchors.leftMargin: 50
+            anchors.verticalCenter: parent.verticalCenter
+            width: 20
+            height: 20
+            source: Boolean(windowChoice.windowData.isMinimized)
+                ? "window-minimize" : windowChoice.appIcon
+        }
+
+        QQC2.Label {
+            anchors.left: parent.left
+            anchors.leftMargin: 76
+            anchors.right: closeWindowButton.left
+            anchors.rightMargin: Kirigami.Units.smallSpacing
+            anchors.verticalCenter: parent.verticalCenter
+            text: String(windowChoice.windowData.title
+                || windowChoice.appName || i18n("Application"))
+            font.pixelSize: 12
+            elide: Text.ElideRight
+            opacity: Boolean(windowChoice.windowData.isMinimized)
+                ? 0.68 : 0.9
+        }
+
+        HoverHandler {
+            id: windowChoiceHover
+            cursorShape: Qt.PointingHandCursor
+        }
+
+        MouseArea {
+            anchors.left: parent.left
+            anchors.right: closeWindowButton.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            acceptedButtons: Qt.LeftButton
+            cursorShape: Qt.PointingHandCursor
+            onClicked: windowChoice.activateRequested(
+                windowChoice.windowData.modelIndex)
+        }
+
+        QQC2.ToolButton {
+            id: closeWindowButton
+
+            anchors.right: parent.right
+            anchors.rightMargin: 2
+            anchors.verticalCenter: parent.verticalCenter
+            width: 30
+            height: 30
+            opacity: windowChoiceHover.hovered || activeFocus ? 1 : 0
+            text: i18n("Close")
+            icon.name: "window-close"
+            display: QQC2.AbstractButton.IconOnly
+            onClicked: windowChoice.closeRequested(
+                windowChoice.windowData.modelIndex)
+
+            Behavior on opacity {
+                NumberAnimation { duration: 100 }
+            }
+
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.text: text
+        }
+    }
+
+    width: gridViewActive ? 352 : 306
+    height: Math.max(gridViewActive ? 180 : 150,
+        Math.min(maximumPopupHeight,
+            gridViewActive ? preferredGridHeight : preferredListHeight))
     flags: Qt.FramelessWindowHint
     color: "transparent"
     visible: false
@@ -229,6 +345,7 @@ Window {
     onScreenChanged: if (visible) schedulePositionPopup()
     onLocationChanged: if (visible) schedulePositionPopup()
     onScreenEdgeMarginChanged: if (visible) schedulePositionPopup()
+    onViewModeChanged: expandedLauncher = ""
     onMembersChanged: {
         var keepExpanded = false;
         var source = members || [];
@@ -381,9 +498,11 @@ Window {
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                visible: root.viewMode === root.listViewMode
                 clip: true
                 spacing: 3
-                model: root.members || []
+                model: root.visible && visible
+                    ? root.members || [] : []
                 boundsBehavior: Flickable.StopAtBounds
                 reuseItems: true
                 cacheBuffer: 104
@@ -589,126 +708,248 @@ Window {
                         Repeater {
                             model: memberDelegate.memberWindows
 
-                            delegate: Item {
-                                id: windowDelegate
-
-                                required property int index
+                            delegate: WindowChoiceRow {
                                 required property var modelData
 
-                                width: parent.width
-                                height: 36
-                                activeFocusOnTab: true
-                                Accessible.role: Accessible.Button
-                                Accessible.name: String(
-                                    modelData.title
-                                        || memberDelegate.modelData.name
-                                        || i18n("Application"))
-                                Accessible.description: i18n("Activate")
-                                Accessible.onPressAction:
-                                    root.memberWindowActivated(
-                                        modelData.modelIndex)
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 42
-                                    radius: 9
-                                    color: windowHover.hovered
-                                            || Boolean(
-                                                windowDelegate.modelData
-                                                    .isActive)
-                                        ? Kirigami.Theme.highlightColor
-                                        : Kirigami.Theme
-                                            .alternateBackgroundColor
-                                    opacity: windowHover.hovered ? 0.22
-                                        : (Boolean(
-                                            windowDelegate.modelData.isActive)
-                                            ? 0.16 : 0.38)
-                                }
-
-                                Kirigami.Icon {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 50
-                                    anchors.verticalCenter:
-                                        parent.verticalCenter
-                                    width: 20
-                                    height: 20
-                                    source: Boolean(
-                                        windowDelegate.modelData.isMinimized)
-                                        ? "window-minimize"
-                                        : memberDelegate.modelData.icon
-                                            || "window"
-                                }
-
-                                QQC2.Label {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 76
-                                    anchors.right: closeWindowButton.left
-                                    anchors.rightMargin:
-                                        Kirigami.Units.smallSpacing
-                                    anchors.verticalCenter:
-                                        parent.verticalCenter
-                                    text: String(
-                                        windowDelegate.modelData.title
-                                            || memberDelegate.modelData.name
-                                            || i18n("Application"))
-                                    font.pixelSize: 12
-                                    elide: Text.ElideRight
-                                    opacity: Boolean(
-                                        windowDelegate.modelData.isMinimized)
-                                        ? 0.68 : 0.9
-                                }
-
-                                HoverHandler {
-                                    id: windowHover
-                                    cursorShape: Qt.PointingHandCursor
-                                }
-
-                                MouseArea {
-                                    anchors.left: parent.left
-                                    anchors.right:
-                                        closeWindowButton.left
-                                    anchors.top: parent.top
-                                    anchors.bottom: parent.bottom
-                                    acceptedButtons: Qt.LeftButton
-                                    cursorShape:
-                                        Qt.PointingHandCursor
-                                    onClicked:
-                                        root.memberWindowActivated(
-                                            windowDelegate.modelData
-                                                .modelIndex)
-                                }
-
-                                QQC2.ToolButton {
-                                    id: closeWindowButton
-
-                                    anchors.right: parent.right
-                                    anchors.rightMargin: 2
-                                    anchors.verticalCenter:
-                                        parent.verticalCenter
-                                    width: 30
-                                    height: 30
-                                    opacity: windowHover.hovered
-                                        || activeFocus ? 1 : 0
-                                    text: i18n("Close")
-                                    icon.name: "window-close"
-                                    display:
-                                        QQC2.AbstractButton.IconOnly
-                                    onClicked: root.memberWindowClosed(
-                                        windowDelegate.modelData.modelIndex)
-
-                                    Behavior on opacity {
-                                        NumberAnimation { duration: 100 }
-                                    }
-
-                                    QQC2.ToolTip.visible: hovered
-                                    QQC2.ToolTip.text: text
-                                }
+                                windowData: modelData
+                                appIcon: memberDelegate.modelData.icon
+                                    || "window"
+                                appName: String(
+                                    memberDelegate.modelData.name || "")
+                                onActivateRequested: (modelIndex) =>
+                                    root.memberWindowActivated(modelIndex)
+                                onCloseRequested: (modelIndex) =>
+                                    root.memberWindowClosed(modelIndex)
                             }
                         }
                     }
                 }
 
                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+            }
+
+            GridView {
+                id: memberGrid
+
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: root.gridViewActive
+                clip: true
+                cellWidth: width / root.gridColumnCount
+                cellHeight: 98
+                model: root.visible && visible
+                    ? root.members || [] : []
+                boundsBehavior: Flickable.StopAtBounds
+                reuseItems: true
+                cacheBuffer: 196
+
+                delegate: Item {
+                    id: gridMember
+
+                    required property int index
+                    required property var modelData
+                    readonly property string launcher:
+                        String(modelData.launcher || "")
+                    readonly property var memberWindows:
+                        modelData.windows || []
+                    readonly property bool windowsExpanded:
+                        memberWindows.length > 1
+                        && root.expandedLauncher === launcher
+                    readonly property real revealProgress: Math.max(0,
+                        Math.min(1, (root.openProgress
+                            - index * 0.045) / 0.72))
+
+                    width: GridView.view.cellWidth
+                    height: GridView.view.cellHeight
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: String(
+                        modelData.name || i18n("Application"))
+                    Accessible.description: Boolean(modelData.running)
+                        ? i18n("Running") : i18n("Launcher")
+                    Accessible.onPressAction:
+                        root.activateMember(modelData)
+                    opacity: revealProgress
+                    scale: 0.78 + revealProgress * 0.22
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        radius: 16
+                        color: gridMemberHover.hovered
+                                || gridMember.windowsExpanded
+                            ? Kirigami.Theme.highlightColor
+                            : Kirigami.Theme.alternateBackgroundColor
+                        opacity: gridMemberHover.hovered ? 0.28
+                            : (gridMember.windowsExpanded ? 0.2 : 0.46)
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 100 }
+                        }
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 8
+                        anchors.rightMargin: 8
+                        anchors.topMargin: 8
+                        anchors.bottomMargin: 6
+                        spacing: 3
+
+                        Item {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.preferredWidth: 50
+                            Layout.preferredHeight: 50
+
+                            Kirigami.Icon {
+                                anchors.centerIn: parent
+                                width: 46
+                                height: 46
+                                source: gridMember.modelData.icon
+                                    || "application-x-executable"
+                            }
+
+                            Rectangle {
+                                visible: Boolean(
+                                    gridMember.modelData.running)
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: Kirigami.Theme.highlightColor
+                                border.color: popupBackground.effectiveColor
+                                border.width: 1
+                            }
+                        }
+
+                        QQC2.Label {
+                            Layout.fillWidth: true
+                            text: gridMember.modelData.name
+                                || i18n("Application")
+                            font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                            horizontalAlignment: Text.AlignHCenter
+                            maximumLineCount: 2
+                            wrapMode: Text.Wrap
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    Rectangle {
+                        visible: gridMember.memberWindows.length > 1
+                        anchors.left: parent.left
+                        anchors.leftMargin: 7
+                        anchors.top: parent.top
+                        anchors.topMargin: 7
+                        width: 24
+                        height: 20
+                        radius: 7
+                        color: Kirigami.Theme.highlightColor
+                        opacity: 0.82
+
+                        QQC2.Label {
+                            anchors.centerIn: parent
+                            text: String(
+                                gridMember.memberWindows.length)
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            color: Kirigami.Theme.highlightedTextColor
+                        }
+                    }
+
+                    QQC2.ToolButton {
+                        id: removeGridMemberButton
+
+                        anchors.right: parent.right
+                        anchors.rightMargin: 4
+                        anchors.top: parent.top
+                        anchors.topMargin: 4
+                        width: 28
+                        height: 28
+                        z: 2
+                        opacity: gridMemberHover.hovered
+                            || activeFocus ? 1 : 0
+                        text: i18n("Remove from Group")
+                        icon.name: "list-remove"
+                        display: QQC2.AbstractButton.IconOnly
+                        onClicked: root.memberRemoved(
+                            gridMember.launcher)
+
+                        Behavior on opacity {
+                            NumberAnimation { duration: 100 }
+                        }
+
+                        QQC2.ToolTip.visible: hovered
+                        QQC2.ToolTip.text: text
+                    }
+
+                    HoverHandler {
+                        id: gridMemberHover
+                        cursorShape: Qt.PointingHandCursor
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons:
+                            Qt.LeftButton | Qt.MiddleButton
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: (mouse) => {
+                            if (mouse.button === Qt.MiddleButton) {
+                                root.memberNewInstanceRequested(
+                                    gridMember.launcher);
+                            } else {
+                                root.activateMember(
+                                    gridMember.modelData);
+                            }
+                        }
+                    }
+                }
+
+                QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+            }
+
+            Rectangle {
+                id: gridWindowChoices
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible
+                    ? Math.min(4, root.expandedWindowCount) * 39 + 8 : 0
+                visible: root.gridViewActive
+                    && root.expandedWindowCount > 1
+                radius: 11
+                color: Kirigami.Theme.alternateBackgroundColor
+                opacity: 0.78
+                clip: true
+
+                ListView {
+                    anchors.fill: parent
+                    anchors.margins: 4
+                    model: gridWindowChoices.visible
+                        ? root.expandedWindows : []
+                    spacing: 3
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    reuseItems: true
+                    cacheBuffer: 156
+
+                    delegate: WindowChoiceRow {
+                        required property var modelData
+
+                        windowData: modelData
+                        appIcon: root.expandedMember
+                            ? root.expandedMember.icon || "window"
+                            : "window"
+                        appName: root.expandedMember
+                            ? String(root.expandedMember.name || "") : ""
+                        onActivateRequested: (modelIndex) =>
+                            root.memberWindowActivated(modelIndex)
+                        onCloseRequested: (modelIndex) =>
+                            root.memberWindowClosed(modelIndex)
+                    }
+
+                    QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+                }
             }
         }
     }

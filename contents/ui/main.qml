@@ -81,6 +81,8 @@ PlasmoidItem {
             ? true : Boolean(Plasmoid.configuration.showFolderView)
     readonly property int folderViewMode: Math.round(boundedNumber(
         Plasmoid.configuration.folderViewMode, 0, 0, 2))
+    readonly property int appGroupViewMode: Math.round(boundedNumber(
+        Plasmoid.configuration.appGroupViewMode, 1, 0, 1))
     readonly property bool showTrash:
         Plasmoid.configuration.showTrash === undefined
             ? true : Boolean(Plasmoid.configuration.showTrash)
@@ -3394,12 +3396,6 @@ PlasmoidItem {
         blurEnabled: root.enableBlur
         viewMode: root.folderViewMode
 
-        onViewModeRequested: (mode) => {
-            if (Plasmoid.configuration.folderViewMode !== mode) {
-                Plasmoid.configuration.folderViewMode = mode;
-            }
-        }
-
         onOpenFolderRequested: (folderUrl) =>
             Folder.AppLauncher.openUrl(folderUrl)
 
@@ -3449,6 +3445,7 @@ PlasmoidItem {
         shadowOpacity: root.shadowOpacity
         showHighlight: root.showHighlight
         blurEnabled: root.enableBlur
+        viewMode: root.appGroupViewMode
 
         onMemberActivated: (launcherUrl) => {
             root.closeAppGroupPopup();

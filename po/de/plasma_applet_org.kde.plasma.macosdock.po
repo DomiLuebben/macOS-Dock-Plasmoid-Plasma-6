@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.10.1\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.11.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-26 10:41+0200\n"
 "PO-Revision-Date: 2026-07-26 00:00+0200\n"
@@ -206,6 +206,14 @@ msgstr "Desktopumschalter anzeigen"
 #: contents/ui/ConfigGeneral.qml:359
 msgid "Show power button"
 msgstr "Ausschaltknopf anzeigen"
+
+#: contents/ui/ConfigGeneral.qml:366
+msgid "View layouts"
+msgstr "Ansichtslayouts"
+
+#: contents/ui/ConfigGeneral.qml:372
+msgid "App group layout:"
+msgstr "Layout der App-Gruppen:"
 
 #: contents/ui/ConfigGeneral.qml:366
 msgid "Folder view mode:"

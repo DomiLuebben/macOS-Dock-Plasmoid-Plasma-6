@@ -31,6 +31,7 @@ KCM.SimpleKCM {
     property alias cfg_launchAnimation: launchAnimationCombo.currentIndex
     property alias cfg_showFolderView: showFolderViewCheckBox.checked
     property alias cfg_folderViewMode: folderViewModeCombo.currentIndex
+    property alias cfg_appGroupViewMode: appGroupViewModeCombo.currentIndex
     property alias cfg_folderUrl: folderUrlField.text
     property var cfg_folderUrls: []
     property alias cfg_showTrash: showTrashCheckBox.checked
@@ -358,6 +359,19 @@ KCM.SimpleKCM {
                 id: showPowerButtonCheckBox
                 text: i18n("Show power button")
             }
+        }
+
+        Item {
+            Kirigami.FormData.isSection: true
+            Kirigami.FormData.label: i18n("View layouts")
+        }
+
+        QQC2.ComboBox {
+            id: appGroupViewModeCombo
+
+            Kirigami.FormData.label: i18n("App group layout:")
+            Layout.fillWidth: true
+            model: [i18n("List View"), i18n("Grid View")]
         }
 
         QQC2.ComboBox {

@@ -64,6 +64,9 @@
     <entry name="folderViewMode" type="Int">
       <default>0</default>
     </entry>
+    <entry name="appGroupViewMode" type="Int">
+      <default>1</default>
+    </entry>
     <entry name="folderUrls" type="StringList"/>
     <entry name="showTrash" type="Bool">
       <default>true</default>

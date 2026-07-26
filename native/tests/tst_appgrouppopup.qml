@@ -14,6 +14,8 @@ TestCase {
     function test_singleWindowActivatesMember() {
         var popup = createTemporaryObject(popupComponent, this);
         verify(popup);
+        compare(popup.viewMode, popup.gridViewMode);
+        compare(popup.width, 352);
 
         var activatedLauncher = "";
         popup.memberActivated.connect(function(launcher) {
@@ -29,7 +31,17 @@ TestCase {
         compare(popup.expandedLauncher, "");
     }
 
-    function test_multipleWindowsToggleNestedList() {
+    function test_viewModeKeepsListAvailable() {
+        var popup = createTemporaryObject(popupComponent, this);
+        verify(popup);
+
+        popup.viewMode = popup.listViewMode;
+        compare(popup.width, 306);
+        popup.viewMode = popup.gridViewMode;
+        compare(popup.width, 352);
+    }
+
+    function test_multipleWindowsToggleWindowChoices() {
         var popup = createTemporaryObject(popupComponent, this);
         verify(popup);
 

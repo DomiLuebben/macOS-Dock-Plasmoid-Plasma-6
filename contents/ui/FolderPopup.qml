@@ -46,7 +46,6 @@ Window {
     property bool positionPending: false
 
     signal openFolderRequested(url folderUrl)
-    signal viewModeRequested(int mode)
 
     width: root.viewMode === root.gridViewMode
         ? 420 : (root.viewMode === root.fanViewMode ? 380 : 356)
@@ -127,13 +126,6 @@ Window {
         } else {
             folderModel.run(index);
             close();
-        }
-    }
-
-    function requestViewMode(mode) {
-        if (mode >= listViewMode && mode <= fanViewMode
-                && mode !== viewMode) {
-            viewModeRequested(mode);
         }
     }
 
@@ -336,67 +328,6 @@ Window {
                 anchors.leftMargin: Math.max(2, Kirigami.Units.smallSpacing / 2)
                 anchors.rightMargin: Math.max(2, Kirigami.Units.smallSpacing / 2)
                 spacing: Kirigami.Units.smallSpacing
-
-                Rectangle {
-                    Layout.preferredWidth: 108
-                    Layout.preferredHeight: 28
-                    radius: 6
-                    color: Kirigami.Theme.backgroundColor
-                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
-                        Kirigami.Theme.textColor.g,
-                        Kirigami.Theme.textColor.b, 0.16)
-                    border.width: 1
-
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 0
-
-                        QQC2.ToolButton {
-                            id: listViewButton
-
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            text: i18n("List View")
-                            display: QQC2.AbstractButton.IconOnly
-                            icon.name: "view-list-details"
-                            checked: root.viewMode === root.listViewMode
-                            onClicked: root.requestViewMode(root.listViewMode)
-
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: listViewButton.text
-                        }
-
-                        QQC2.ToolButton {
-                            id: gridViewButton
-
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            text: i18n("Grid View")
-                            display: QQC2.AbstractButton.IconOnly
-                            icon.name: "view-grid"
-                            checked: root.viewMode === root.gridViewMode
-                            onClicked: root.requestViewMode(root.gridViewMode)
-
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: gridViewButton.text
-                        }
-
-                        QQC2.ToolButton {
-                            id: fanViewButton
-
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            text: i18n("Fan / Stack View")
-                            display: QQC2.AbstractButton.IconOnly
-                            icon.name: "view-list-icons"
-                            checked: root.viewMode === root.fanViewMode
-                            onClicked: root.requestViewMode(root.fanViewMode)
-
-                            QQC2.ToolTip.visible: hovered
-                            QQC2.ToolTip.text: fanViewButton.text
-                        }
-                    }
-                }
 
                 QQC2.ComboBox {
                     id: sortCombo

@@ -11,11 +11,13 @@ couleurs du thème Qt.
 - Agrandissement fluide des icônes au survol
 - Réorganisation par glisser-déposer des lanceurs à la souris
 - Groupes d’applications de style Android : déposez une application au centre
-  d’une autre pour les regrouper, puis utilisez la liste
+  d’une autre pour les regrouper, puis utilisez la grille ou la liste
   animée pour lancer, renommer, retirer ou dissocier les applications ; les
   lanceurs épinglés fonctionnent, que l’application soit ouverte ou fermée
 - Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
-  macOS ; d’autres dossiers peuvent être glissés directement depuis le gestionnaire de fichiers
+  macOS ; d’autres dossiers peuvent être glissés directement depuis le
+  gestionnaire de fichiers, avec une disposition en liste, grille ou éventail
+  sélectionnée dans les réglages
 - Anneaux de progression facultatifs pour les tâches Plasma et les
   téléchargements compatibles Unity sur les applications et les piles de dossiers correspondantes
 - Badges KDE Connect facultatifs pour les liens et fichiers reçus récemment ;
@@ -87,6 +89,8 @@ deux icônes continue de simplement réorganiser le Dock. Les applications
 groupées conservent le suivi natif des tâches et les animations de réduction de
 Plasma. Lorsqu’une application groupée possède plusieurs fenêtres, son entrée
 ouvre une liste de fenêtres imbriquée au lieu de réduire une fenêtre arbitraire.
+La grille de style Android ou la liste compacte se sélectionne dans les
+réglages du Dock.
 
 Lors d’une mise à niveau depuis une ancienne version, retirez d’abord le Dock
 de son ancien panneau Plasma. Si ce panneau a été créé uniquement pour le Dock,
