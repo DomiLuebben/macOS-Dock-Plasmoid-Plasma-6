@@ -569,6 +569,7 @@ PlasmoidItem {
         var targetUrl = String(folderUrl || configuredFolderUrl);
         var sameTarget = comparableFolderUrl(activeFolderUrl)
             === comparableFolderUrl(targetUrl);
+        closeAppGroupPopup();
         if ((folderPopup.visible || folderPopupOpenPending) && sameTarget) {
             closeFolderPopup();
             return;
@@ -1405,28 +1406,8 @@ PlasmoidItem {
     }
 
     function taskRowForLauncher(launcherUrl, appId) {
-        var target = normalizedLauncherUrl(launcherUrl);
-        for (var row = 0; row < taskCount; ++row) {
-            if (launcherUrlAtTaskRow(row) === target) {
-                return row;
-            }
-        }
-        var targetAppId = AppGroupStore.normalizeAppId(
-            appId || target);
-        if (!targetAppId) {
-            return -1;
-        }
-        for (var appRow = 0; appRow < taskCount; ++appRow) {
-            var rowAppId = taskRole(modelIndex(appRow),
-                TaskManager.AbstractTasksModel.AppId);
-            var rowLauncher = launcherUrlAtTaskRow(appRow);
-            if (AppGroupStore.normalizeAppId(
-                    rowAppId || rowLauncher)
-                    === targetAppId) {
-                return appRow;
-            }
-        }
-        return -1;
+        return AppGroupStore.rowForIdentity(
+            taskLayout, launcherUrl, appId);
     }
 
     function groupRuntimeMembers(group, includeWindows) {

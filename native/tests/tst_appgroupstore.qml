@@ -166,6 +166,27 @@ TestCase {
             "applications:Affinity.exe.desktop"), "affinity");
     }
 
+    function test_runtimeRowLookupUsesCachedIdentities() {
+        var layout = AppGroupStore.buildLayout([
+            "applications:org.kde.dolphin.desktop",
+            "application://affinity.exe",
+            "applications:org.kde.krita.desktop"
+        ], [], [
+            "org.kde.dolphin",
+            "affinity.exe",
+            "org.kde.krita"
+        ]);
+
+        compare(AppGroupStore.rowForIdentity(layout,
+            "application://affinity.exe", "affinity.exe"), 1);
+        compare(AppGroupStore.rowForIdentity(layout,
+            "applications:Affinity.desktop", "Affinity.desktop"), 1);
+        compare(AppGroupStore.rowForIdentity(layout,
+            "applications:org.kde.krita.desktop", ""), 2);
+        compare(AppGroupStore.rowForIdentity(layout,
+            "applications:missing.desktop", "missing"), -1);
+    }
+
     function test_duplicateAndSingleMemberGroupsAreRejected() {
         var duplicateGroup = JSON.stringify({
             id: "invalid",

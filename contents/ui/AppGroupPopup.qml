@@ -594,10 +594,11 @@ Window {
                             anchors.left: parent.left
                             anchors.leftMargin:
                                 Kirigami.Units.smallSpacing + 42
-                            anchors.right: windowCountBadge.visible
-                                ? windowCountBadge.left : removeButton.left
+                            anchors.right: parent.right
                             anchors.rightMargin:
-                                Kirigami.Units.smallSpacing
+                                Kirigami.Units.smallSpacing + 36
+                                + (memberDelegate.hasWindowChoices
+                                    ? 31 : 0)
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 1
 

@@ -98,10 +98,20 @@ if(BUILD_TESTING)
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_appgrouppopup.qml"
     )
+    add_test(NAME progresscontrollerqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_progresscontroller.qml"
+    )
+    add_test(NAME configgeneralqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_configgeneral.qml"
+    )
     set_tests_properties(
         removablevolumedragqmltest
         appgroupstoreqmltest
         appgrouppopupqmltest
+        progresscontrollerqmltest
+        configgeneralqmltest
         PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )

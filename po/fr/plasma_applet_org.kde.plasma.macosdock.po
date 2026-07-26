@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.11.1\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.11.2\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-07-26 10:41+0200\n"
 "PO-Revision-Date: 2026-07-26 00:00+0200\n"

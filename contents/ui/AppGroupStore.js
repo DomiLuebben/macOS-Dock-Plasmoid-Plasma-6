@@ -200,17 +200,29 @@ function buildLayout(launcherUrls, groups, appIds) {
     var modelByVisual = [];
     var groupIdByRow = [];
     var leaderRowByGroup = {};
+    var rowByLauncher = {};
+    var rowByAppId = {};
     var seenGroups = {};
     var visualIndex = -1;
 
     for (var row = 0; row < launcherUrls.length; ++row) {
-        var groupId = groupIdByLauncher[
-            launcherKey(launcherUrls[row])] || "";
+        var rowLauncherKey = launcherKey(launcherUrls[row]);
+        var rowAppId = appIds && row < appIds.length
+            ? appIds[row] : "";
+        var rowAppIdKey = identityAppIdKey(
+            launcherUrls[row], rowAppId);
+        if (rowLauncherKey !== launcherKey("")
+                && rowByLauncher[rowLauncherKey] === undefined) {
+            rowByLauncher[rowLauncherKey] = row;
+        }
+        if (rowAppIdKey
+                && rowByAppId[rowAppIdKey] === undefined) {
+            rowByAppId[rowAppIdKey] = row;
+        }
+
+        var groupId = groupIdByLauncher[rowLauncherKey] || "";
         if (!groupId) {
-            var rowAppId = appIds && row < appIds.length
-                ? appIds[row] : "";
-            groupId = groupIdByAppId[identityAppIdKey(
-                launcherUrls[row], rowAppId)] || "";
+            groupId = groupIdByAppId[rowAppIdKey] || "";
         }
         var keyedGroupId = groupKey(groupId);
         groupIdByRow.push(groupId);
@@ -232,8 +244,28 @@ function buildLayout(launcherUrls, groups, appIds) {
         visualByRow: visualByRow,
         modelByVisual: modelByVisual,
         groupIdByRow: groupIdByRow,
-        leaderRowByGroup: leaderRowByGroup
+        leaderRowByGroup: leaderRowByGroup,
+        rowByLauncher: rowByLauncher,
+        rowByAppId: rowByAppId
     };
+}
+
+function rowForIdentity(layout, launcherUrl, appId) {
+    if (!layout) {
+        return -1;
+    }
+    var targetLauncherKey = launcherKey(launcherUrl);
+    if (targetLauncherKey !== launcherKey("")
+            && layout.rowByLauncher
+            && layout.rowByLauncher[targetLauncherKey] !== undefined) {
+        return Number(layout.rowByLauncher[targetLauncherKey]);
+    }
+    var targetAppIdKey = identityAppIdKey(launcherUrl, appId);
+    if (targetAppIdKey && layout.rowByAppId
+            && layout.rowByAppId[targetAppIdKey] !== undefined) {
+        return Number(layout.rowByAppId[targetAppIdKey]);
+    }
+    return -1;
 }
 
 function isLeader(layout, row, groupId) {

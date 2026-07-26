@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQml.Models
 import org.kde.notificationmanager as NotificationManager
+import "AppGroupStore.js" as AppGroupStore
 import "effects" as DockEffects
 
 Item {
@@ -101,37 +102,9 @@ Item {
     }
 
     function normalizeDesktopId(rawId) {
-        if (!rawId) {
-            return "";
-        }
-
-        var desktopId = String(rawId).trim();
-        var queryIndex = desktopId.indexOf("?");
-        if (queryIndex !== -1) {
-            desktopId = desktopId.substring(0, queryIndex);
-        }
-
-        if (desktopId.startsWith("application://")) {
-            desktopId = desktopId.substring(14);
-        } else if (desktopId.startsWith("applications:")) {
-            desktopId = desktopId.substring(13);
-        } else if (desktopId.startsWith("file:")) {
-            try {
-                desktopId = decodeURIComponent(desktopId);
-            } catch (error) {
-                // Keep the encoded value; it is still safe to compare.
-            }
-        }
-
-        desktopId = desktopId.replace(/\\/g, "/");
-        var slashIndex = desktopId.lastIndexOf("/");
-        if (slashIndex !== -1) {
-            desktopId = desktopId.substring(slashIndex + 1);
-        }
-        if (desktopId.toLowerCase().endsWith(".desktop")) {
-            desktopId = desktopId.substring(0, desktopId.length - 8);
-        }
-        return desktopId.toLowerCase();
+        // Launcher, group and progress matching must share one identity rule.
+        // This also maps Wine/Proton executable IDs to their desktop launcher.
+        return AppGroupStore.normalizeAppId(rawId);
     }
 
     function normalizeUrl(rawUrl) {

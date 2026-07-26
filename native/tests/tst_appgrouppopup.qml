@@ -41,6 +41,40 @@ TestCase {
         compare(popup.width, 352);
     }
 
+    function test_listDelegatesSurviveModelChurnWithoutWarnings() {
+        failOnWarning(/Cannot read property .* of null/);
+
+        var popup = createTemporaryObject(popupComponent, this, {
+            viewMode: 0,
+            members: [{
+                launcher: "applications:single.desktop",
+                name: "Single",
+                icon: "applications-other",
+                windows: []
+            }, {
+                launcher: "applications:multi.desktop",
+                name: "Multi",
+                icon: "applications-other",
+                windows: [{}, {}]
+            }],
+            visible: true,
+            openProgress: 1
+        });
+        verify(popup);
+        wait(1);
+
+        popup.members = [{
+            launcher: "applications:single.desktop",
+            name: "Single",
+            icon: "applications-other",
+            windows: [{}, {}]
+        }];
+        wait(1);
+        popup.visible = false;
+        popup.members = [];
+        wait(1);
+    }
+
     function test_multipleWindowsToggleWindowChoices() {
         var popup = createTemporaryObject(popupComponent, this);
         verify(popup);

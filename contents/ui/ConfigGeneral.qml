@@ -51,6 +51,7 @@ KCM.SimpleKCM {
     property alias cfg_showKdeConnectRecentShares:
         showKdeConnectRecentSharesCheckBox.checked
     property var cfg_launchers: []
+    property var cfg_appGroups: []
 
     // Accepted for compatibility with the configuration page instance that
     // existed before 1.3 and with Plasma's standard applet page properties.
