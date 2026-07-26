@@ -105,4 +105,21 @@ TestCase {
         compare(groups.length, 1);
         compare(groups[0].id, "first");
     }
+
+    function test_centeredGroupDropKeepsBothSlotsStable() {
+        // Claude (14) is dragged left onto Codex (13). During grouping,
+        // Codex must not be shifted away by the normal reorder preview.
+        compare(AppGroupStore.visualIndexForDrag(
+            14, 14, 13, true), 14);
+        compare(AppGroupStore.visualIndexForDrag(
+            13, 14, 13, true), 13);
+        compare(AppGroupStore.stableIndexForDragVisual(
+            13, 14, 13, true), 13);
+
+        // The same path outside the centered drop zone remains a reorder.
+        compare(AppGroupStore.visualIndexForDrag(
+            14, 14, 13, false), 13);
+        compare(AppGroupStore.visualIndexForDrag(
+            13, 14, 13, false), 14);
+    }
 }

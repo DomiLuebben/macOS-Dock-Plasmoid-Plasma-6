@@ -171,3 +171,47 @@ function isLeader(layout, row, groupId) {
     return Boolean(groupId)
         && layout.leaderRowByGroup[groupKey(groupId)] === row;
 }
+
+function visualIndexForDrag(stableIndex, originIndex, targetIndex,
+        groupingActive) {
+    // A centered group drop is an overlay gesture: both launcher slots stay
+    // in place while the dragged icon moves via its pointer offset.
+    if (groupingActive || targetIndex < 0) {
+        return stableIndex;
+    }
+    if (stableIndex === originIndex) {
+        return targetIndex;
+    }
+    if (targetIndex > originIndex
+            && stableIndex > originIndex
+            && stableIndex <= targetIndex) {
+        return stableIndex - 1;
+    }
+    if (targetIndex < originIndex
+            && stableIndex >= targetIndex
+            && stableIndex < originIndex) {
+        return stableIndex + 1;
+    }
+    return stableIndex;
+}
+
+function stableIndexForDragVisual(visualIndex, originIndex, targetIndex,
+        groupingActive) {
+    if (groupingActive || targetIndex < 0) {
+        return visualIndex;
+    }
+    if (visualIndex === targetIndex) {
+        return originIndex;
+    }
+    if (targetIndex > originIndex
+            && visualIndex >= originIndex
+            && visualIndex < targetIndex) {
+        return visualIndex + 1;
+    }
+    if (targetIndex < originIndex
+            && visualIndex > targetIndex
+            && visualIndex <= originIndex) {
+        return visualIndex - 1;
+    }
+    return visualIndex;
+}

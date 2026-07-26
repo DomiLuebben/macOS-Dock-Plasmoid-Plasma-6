@@ -1606,46 +1606,27 @@ PlasmoidItem {
         }
     }
 
-    // Keep the model stable for the whole gesture. Only the visual slots are
-    // rearranged while dragging; the actual model move happens on drop. This
-    // keeps the grabbed delegate under the pointer instead of replacing or
-    // reindexing it whenever another icon is crossed.
+    // Reordering previews move visual slots without mutating TaskManager.
+    // Centered group drops deliberately keep both slots stable so the target
+    // remains underneath the dragged icon and can show its accept animation.
     function visualIndexForModelIndex(index) {
         var stableIndex = stableVisualIndexForModelIndex(index);
         if (!taskDragActive || dragTargetIndex < 0) {
             return stableIndex;
         }
-        if (stableIndex === dragOriginVisualIndex) {
-            return dragTargetIndex;
-        }
-        if (dragTargetIndex > dragOriginVisualIndex
-                && stableIndex > dragOriginVisualIndex
-                && stableIndex <= dragTargetIndex) {
-            return stableIndex - 1;
-        }
-        if (dragTargetIndex < dragOriginVisualIndex
-                && stableIndex >= dragTargetIndex
-                && stableIndex < dragOriginVisualIndex) {
-            return stableIndex + 1;
-        }
-        return stableIndex;
+        return AppGroupStore.visualIndexForDrag(stableIndex,
+            dragOriginVisualIndex, dragTargetIndex,
+            groupDropCandidateIndex >= 0);
     }
 
     function modelIndexForVisualIndex(index) {
-        var stableIndex = index;
+        var stableIndex;
         if (!taskDragActive || dragTargetIndex < 0) {
-            return stableModelIndexForVisualIndex(stableIndex);
-        }
-        if (index === dragTargetIndex) {
-            stableIndex = dragOriginVisualIndex;
-        } else if (dragTargetIndex > dragOriginVisualIndex
-                && index >= dragOriginVisualIndex
-                && index < dragTargetIndex) {
-            stableIndex = index + 1;
-        } else if (dragTargetIndex < dragOriginVisualIndex
-                && index > dragTargetIndex
-                && index <= dragOriginVisualIndex) {
-            stableIndex = index - 1;
+            stableIndex = index;
+        } else {
+            stableIndex = AppGroupStore.stableIndexForDragVisual(
+                index, dragOriginVisualIndex, dragTargetIndex,
+                groupDropCandidateIndex >= 0);
         }
         return stableModelIndexForVisualIndex(stableIndex);
     }
@@ -1729,7 +1710,6 @@ PlasmoidItem {
         dragTargetIndex = dragOriginVisualIndex;
         groupDropCandidateIndex = -1;
         groupDropTargetIndex = -1;
-        groupDropHoverTimer.stop();
         dragInOverlay = delegate.inOverlay;
         dragStartSceneCross = isVertical ? sceneX : sceneY;
 
@@ -1766,15 +1746,13 @@ PlasmoidItem {
         if (!canGroupTaskRows(dragOriginIndex, targetRow)) {
             groupDropCandidateIndex = -1;
             groupDropTargetIndex = -1;
-            groupDropHoverTimer.stop();
             return;
         }
         if (groupDropCandidateIndex === targetRow) {
             return;
         }
         groupDropCandidateIndex = targetRow;
-        groupDropTargetIndex = -1;
-        groupDropHoverTimer.restart();
+        groupDropTargetIndex = targetRow;
     }
 
     function handleTaskDragMoved(delegate, sceneX, sceneY) {
@@ -1836,7 +1814,6 @@ PlasmoidItem {
         var destinationIndex =
             stableModelIndexForVisualIndex(dragTargetIndex);
         var groupTargetIndex = groupDropTargetIndex;
-        groupDropHoverTimer.stop();
 
         if (groupTargetIndex >= 0) {
             createOrExtendAppGroup(sourceIndex, groupTargetIndex);
@@ -1864,23 +1841,6 @@ PlasmoidItem {
         interval: 210
         repeat: false
         onTriggered: root.reorderAnimationActive = false
-    }
-
-    Timer {
-        id: groupDropHoverTimer
-
-        // Long enough to distinguish grouping from a quick reorder, short
-        // enough for the target's accept animation to feel immediate.
-        interval: 460
-        repeat: false
-        onTriggered: {
-            if (root.taskDragActive
-                    && root.canGroupTaskRows(root.dragOriginIndex,
-                        root.groupDropCandidateIndex)) {
-                root.groupDropTargetIndex =
-                    root.groupDropCandidateIndex;
-            }
-        }
     }
 
     Timer {

@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.10.0\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.10.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 10:33+0200\n"
+"POT-Creation-Date: 2026-07-26 10:41+0200\n"
 "PO-Revision-Date: 2026-07-26 00:00+0200\n"
 "Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
 "Language-Team: German\n"
@@ -20,13 +20,13 @@ msgstr "Allgemein"
 msgid "Group name"
 msgstr "Gruppenname"
 
-#: contents/ui/AppGroupPopup.qml:325 contents/ui/main.qml:2636
+#: contents/ui/AppGroupPopup.qml:325 contents/ui/main.qml:2602
 msgid "Ungroup"
 msgstr "Gruppe auflösen"
 
 #: contents/ui/AppGroupPopup.qml:361 contents/ui/AppGroupPopup.qml:414
 #: contents/ui/main.qml:1250 contents/ui/main.qml:1348
-#: contents/ui/main.qml:1349 contents/ui/main.qml:2232
+#: contents/ui/main.qml:1349 contents/ui/main.qml:2199
 msgid "Application"
 msgstr "Anwendung"
 
@@ -352,7 +352,7 @@ msgstr "Kürzlich von %1 geteilt"
 msgid "Preview unavailable"
 msgstr "Vorschau nicht verfügbar"
 
-#: contents/ui/WindowPreviewToolTip.qml:281 contents/ui/main.qml:2605
+#: contents/ui/WindowPreviewToolTip.qml:281 contents/ui/main.qml:2571
 msgid "Close"
 msgstr "Schließen"
 
@@ -364,167 +364,167 @@ msgstr "Desktop %1"
 msgid "Group"
 msgstr "Gruppe"
 
-#: contents/ui/main.qml:2517
+#: contents/ui/main.qml:2483
 msgid "Activate"
 msgstr "Aktivieren"
 
-#: contents/ui/main.qml:2517
+#: contents/ui/main.qml:2483
 msgid "Open"
 msgstr "Öffnen"
 
-#: contents/ui/main.qml:2524
+#: contents/ui/main.qml:2490
 msgid "Open New Window"
 msgstr "Neues Fenster öffnen"
 
-#: contents/ui/main.qml:2532 contents/ui/main.qml:3055
+#: contents/ui/main.qml:2498 contents/ui/main.qml:3021
 msgid "Open again from %1"
 msgstr "Erneut von %1 öffnen"
 
-#: contents/ui/main.qml:2547
+#: contents/ui/main.qml:2513
 msgid "Unpin from Dock"
 msgstr "Vom Dock lösen"
 
-#: contents/ui/main.qml:2547
+#: contents/ui/main.qml:2513
 msgid "Keep in Dock"
 msgstr "Im Dock behalten"
 
-#: contents/ui/main.qml:2554
+#: contents/ui/main.qml:2520
 msgid "Move Up"
 msgstr "Nach oben"
 
-#: contents/ui/main.qml:2554
+#: contents/ui/main.qml:2520
 msgid "Move Left"
 msgstr "Nach links"
 
-#: contents/ui/main.qml:2563
+#: contents/ui/main.qml:2529
 msgid "Move Down"
 msgstr "Nach unten"
 
-#: contents/ui/main.qml:2563
+#: contents/ui/main.qml:2529
 msgid "Move Right"
 msgstr "Nach rechts"
 
-#: contents/ui/main.qml:2578 contents/ui/main.qml:2592
+#: contents/ui/main.qml:2544 contents/ui/main.qml:2558
 msgid "Restore All"
 msgstr "Alle wiederherstellen"
 
-#: contents/ui/main.qml:2578 contents/ui/main.qml:2592
+#: contents/ui/main.qml:2544 contents/ui/main.qml:2558
 msgid "Restore"
 msgstr "Wiederherstellen"
 
-#: contents/ui/main.qml:2580
+#: contents/ui/main.qml:2546
 msgid "Minimize All"
 msgstr "Alle minimieren"
 
-#: contents/ui/main.qml:2580
+#: contents/ui/main.qml:2546
 msgid "Minimize"
 msgstr "Minimieren"
 
-#: contents/ui/main.qml:2594
+#: contents/ui/main.qml:2560
 msgid "Maximize All"
 msgstr "Alle maximieren"
 
-#: contents/ui/main.qml:2594
+#: contents/ui/main.qml:2560
 msgid "Maximize"
 msgstr "Maximieren"
 
-#: contents/ui/main.qml:2605
+#: contents/ui/main.qml:2571
 msgid "Close All Windows"
 msgstr "Alle Fenster schließen"
 
-#: contents/ui/main.qml:2617
+#: contents/ui/main.qml:2583
 msgid "Force Quit Application…"
 msgstr "Anwendung sofort beenden …"
 
-#: contents/ui/main.qml:2629
+#: contents/ui/main.qml:2595
 msgid "Open Group"
 msgstr "Gruppe öffnen"
 
-#: contents/ui/main.qml:2687
+#: contents/ui/main.qml:2653
 msgid "Current desktop"
 msgstr "Aktueller Desktop"
 
-#: contents/ui/main.qml:2687
+#: contents/ui/main.qml:2653
 msgid "Switch desktop"
 msgstr "Desktop wechseln"
 
-#: contents/ui/main.qml:2783 contents/ui/main.qml:2832
+#: contents/ui/main.qml:2749 contents/ui/main.qml:2798
 msgid "Add desktop"
 msgstr "Desktop hinzufügen"
 
-#: contents/ui/main.qml:2972
+#: contents/ui/main.qml:2938
 msgid "Trash"
 msgstr "Papierkorb"
 
-#: contents/ui/main.qml:3041
+#: contents/ui/main.qml:3007
 msgid "Open Folder"
 msgstr "Ordner öffnen"
 
-#: contents/ui/main.qml:3041
+#: contents/ui/main.qml:3007
 msgid "Open Trash"
 msgstr "Papierkorb öffnen"
 
-#: contents/ui/main.qml:3068
+#: contents/ui/main.qml:3034
 msgid "Remove Folder from Dock"
 msgstr "Ordner aus Dock entfernen"
 
-#: contents/ui/main.qml:3076
+#: contents/ui/main.qml:3042
 msgid "Empty Trash"
 msgstr "Papierkorb leeren"
 
-#: contents/ui/main.qml:3085
+#: contents/ui/main.qml:3051
 msgid "Power / Session"
 msgstr "Energie / Sitzung"
 
-#: contents/ui/main.qml:3095
+#: contents/ui/main.qml:3061
 msgid "Sleep / Standby"
 msgstr "Energiesparmodus"
 
-#: contents/ui/main.qml:3102
+#: contents/ui/main.qml:3068
 msgid "Restart…"
 msgstr "Neu starten …"
 
-#: contents/ui/main.qml:3110
+#: contents/ui/main.qml:3076
 msgid "Shut Down…"
 msgstr "Herunterfahren …"
 
-#: contents/ui/main.qml:3120
+#: contents/ui/main.qml:3086
 msgid "Lock Screen"
 msgstr "Bildschirm sperren"
 
-#: contents/ui/main.qml:3127
+#: contents/ui/main.qml:3093
 msgid "Log Out…"
 msgstr "Abmelden …"
 
-#: contents/ui/main.qml:3216
+#: contents/ui/main.qml:3182
 msgid "Open Volume"
 msgstr "Volume öffnen"
 
-#: contents/ui/main.qml:3218
+#: contents/ui/main.qml:3184
 msgid "Mounting…"
 msgstr "Einhängen …"
 
-#: contents/ui/main.qml:3219
+#: contents/ui/main.qml:3185
 msgid "Mount Volume"
 msgstr "Volume einhängen"
 
-#: contents/ui/main.qml:3228
+#: contents/ui/main.qml:3194
 msgid "Ejecting…"
 msgstr "Auswerfen …"
 
-#: contents/ui/main.qml:3230
+#: contents/ui/main.qml:3196
 msgid "Unmounting…"
 msgstr "Aushängen …"
 
-#: contents/ui/main.qml:3232
+#: contents/ui/main.qml:3198
 msgid "Eject Disc"
 msgstr "Medium auswerfen"
 
-#: contents/ui/main.qml:3233
+#: contents/ui/main.qml:3199
 msgid "Unmount Volume"
 msgstr "Volume aushängen"
 
-#: contents/ui/main.qml:4094
+#: contents/ui/main.qml:4060
 msgid "Configure Dock…"
 msgstr "Dock einrichten …"
 
