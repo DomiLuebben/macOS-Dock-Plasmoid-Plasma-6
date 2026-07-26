@@ -41,6 +41,13 @@ function appIdKey(value) {
     return appId ? "app:" + appId : "";
 }
 
+function identityAppIdKey(launcherUrl, appId) {
+    // Closed launcher rows do not consistently expose AppId. The desktop file
+    // name is the same stable identity, regardless of whether Plasma reports
+    // it as applications:foo.desktop or file:///.../foo.desktop.
+    return appIdKey(appId) || appIdKey(launcherUrl);
+}
+
 function groupKey(value) {
     return "group:" + String(value || "");
 }
@@ -74,7 +81,8 @@ function parse(serializedGroups, defaultApplicationName, defaultGroupName) {
             var launcher = normalizeLauncherUrl(
                 sourceMember.launcher || "");
             var key = launcherKey(launcher);
-            var sourceAppIdKey = appIdKey(sourceMember.appId);
+            var sourceAppIdKey = identityAppIdKey(
+                launcher, sourceMember.appId);
             if (!launcher || seenLaunchers[key]
                     || claimedLaunchers[key]
                     || (sourceAppIdKey
@@ -104,7 +112,8 @@ function parse(serializedGroups, defaultApplicationName, defaultGroupName) {
             var claimedMember = members[claimedIndex];
             claimedLaunchers[launcherKey(
                 claimedMember.launcher)] = true;
-            var claimedAppIdKey = appIdKey(claimedMember.appId);
+            var claimedAppIdKey = identityAppIdKey(
+                claimedMember.launcher, claimedMember.appId);
             if (claimedAppIdKey) {
                 claimedAppIds[claimedAppIdKey] = true;
             }
@@ -133,7 +142,7 @@ function findGroupForLauncher(groups, launcherUrl) {
 
 function findGroupForIdentity(groups, launcherUrl, appId) {
     var targetLauncherKey = launcherKey(launcherUrl);
-    var targetAppIdKey = appIdKey(appId);
+    var targetAppIdKey = identityAppIdKey(launcherUrl, appId);
     if (targetLauncherKey === launcherKey("") && !targetAppIdKey) {
         return null;
     }
@@ -144,7 +153,8 @@ function findGroupForIdentity(groups, launcherUrl, appId) {
             var member = group.members[memberIndex];
             if (launcherKey(member.launcher) === targetLauncherKey
                     || (targetAppIdKey
-                        && appIdKey(member.appId) === targetAppIdKey)) {
+                        && identityAppIdKey(member.launcher,
+                            member.appId) === targetAppIdKey)) {
                 return group;
             }
         }
@@ -171,7 +181,8 @@ function buildLayout(launcherUrls, groups, appIds) {
                 memberIndex < group.members.length; ++memberIndex) {
             var member = group.members[memberIndex];
             groupIdByLauncher[launcherKey(member.launcher)] = group.id;
-            var memberAppIdKey = appIdKey(member.appId);
+            var memberAppIdKey = identityAppIdKey(
+                member.launcher, member.appId);
             if (memberAppIdKey) {
                 groupIdByAppId[memberAppIdKey] = group.id;
             }
@@ -188,8 +199,11 @@ function buildLayout(launcherUrls, groups, appIds) {
     for (var row = 0; row < launcherUrls.length; ++row) {
         var groupId = groupIdByLauncher[
             launcherKey(launcherUrls[row])] || "";
-        if (!groupId && appIds && row < appIds.length) {
-            groupId = groupIdByAppId[appIdKey(appIds[row])] || "";
+        if (!groupId) {
+            var rowAppId = appIds && row < appIds.length
+                ? appIds[row] : "";
+            groupId = groupIdByAppId[identityAppIdKey(
+                launcherUrls[row], rowAppId)] || "";
         }
         var keyedGroupId = groupKey(groupId);
         groupIdByRow.push(groupId);

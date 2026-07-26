@@ -83,14 +83,16 @@ TestCase {
             })
         ], "Application", "Group");
 
+        // A closed LauncherTasksModel row can expose only the resolved desktop
+        // file URL and no AppId at all.
         var closedLayout = AppGroupStore.buildLayout([
-            "applications:Codex.desktop",
-            "applications:com.anthropic.Claude.desktop"
-        ], groups, [
-            "Codex.desktop",
-            "com.anthropic.Claude.desktop"
-        ]);
+            "file:///usr/share/applications/Codex.desktop",
+            "file:///usr/share/applications/com.anthropic.Claude.desktop"
+        ], groups, ["", ""]);
         compare(closedLayout.modelByVisual.length, 1);
+        compare(AppGroupStore.findGroupForIdentity(groups,
+            "file:///usr/share/applications/Codex.desktop", "").id,
+            "assistants");
 
         // Plasma may expose another launcher URL after replacing a pinned,
         // closed launcher row with the running task. The desktop app ID stays

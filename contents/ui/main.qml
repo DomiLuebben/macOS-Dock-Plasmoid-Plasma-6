@@ -1233,8 +1233,9 @@ PlasmoidItem {
         return url.length > 0 && tasksModel.launcherPosition(url) !== -1;
     }
 
-    function pinnedLauncherForAppId(appId) {
-        var targetAppId = AppGroupStore.normalizeAppId(appId);
+    function pinnedLauncherForIdentity(launcherUrl, appId) {
+        var targetAppId = AppGroupStore.normalizeAppId(
+            appId || launcherUrl);
         if (!targetAppId) {
             return "";
         }
@@ -1376,14 +1377,18 @@ PlasmoidItem {
             ? String(delegate.taskAppId || "")
             : String(taskRole(index,
                 TaskManager.AbstractTasksModel.AppId) || "");
-        var launcher = pinnedLauncherForAppId(appId)
-            || launcherUrlAtTaskRow(row);
-        if (!launcher && delegate) {
-            launcher = normalizedLauncherUrl(delegate.launcherTarget);
+        var runtimeLauncher = launcherUrlAtTaskRow(row);
+        if (!runtimeLauncher && delegate) {
+            runtimeLauncher =
+                normalizedLauncherUrl(delegate.launcherTarget);
         }
+        var launcher = pinnedLauncherForIdentity(runtimeLauncher, appId)
+            || runtimeLauncher;
         if (!launcher) {
             return null;
         }
+        var stableAppId = appId
+            || AppGroupStore.normalizeAppId(launcher);
         var name = delegate
             ? String(delegate.originalAppName || "")
             : String(taskRole(index,
@@ -1392,8 +1397,8 @@ PlasmoidItem {
         return {
             launcher: launcher,
             name: name || i18n("Application"),
-            icon: fallbackIconName(launcher, appId),
-            appId: appId
+            icon: fallbackIconName(launcher, stableAppId),
+            appId: stableAppId
         };
     }
 
@@ -1404,14 +1409,17 @@ PlasmoidItem {
                 return row;
             }
         }
-        var targetAppId = AppGroupStore.normalizeAppId(appId);
+        var targetAppId = AppGroupStore.normalizeAppId(
+            appId || target);
         if (!targetAppId) {
             return -1;
         }
         for (var appRow = 0; appRow < taskCount; ++appRow) {
             var rowAppId = taskRole(modelIndex(appRow),
                 TaskManager.AbstractTasksModel.AppId);
-            if (AppGroupStore.normalizeAppId(rowAppId)
+            var rowLauncher = launcherUrlAtTaskRow(appRow);
+            if (AppGroupStore.normalizeAppId(
+                    rowAppId || rowLauncher)
                     === targetAppId) {
                 return appRow;
             }
@@ -1506,8 +1514,10 @@ PlasmoidItem {
         if (!source || !target || source.launcher === target.launcher) {
             return false;
         }
-        var sourceAppId = AppGroupStore.normalizeAppId(source.appId);
-        var targetAppId = AppGroupStore.normalizeAppId(target.appId);
+        var sourceAppId = AppGroupStore.normalizeAppId(
+            source.appId || source.launcher);
+        var targetAppId = AppGroupStore.normalizeAppId(
+            target.appId || target.launcher);
         if (sourceAppId && sourceAppId === targetAppId) {
             return false;
         }
@@ -2179,6 +2189,22 @@ PlasmoidItem {
         }
 
         function onModelReset() {
+            root.scheduleTaskLayoutRefresh();
+        }
+
+        function onRowsInserted() {
+            root.scheduleTaskLayoutRefresh();
+        }
+
+        function onRowsRemoved() {
+            root.scheduleTaskLayoutRefresh();
+        }
+
+        function onRowsMoved() {
+            root.scheduleTaskLayoutRefresh();
+        }
+
+        function onLayoutChanged() {
             root.scheduleTaskLayoutRefresh();
         }
     }
