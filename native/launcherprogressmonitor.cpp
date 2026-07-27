@@ -200,13 +200,21 @@ void LauncherProgressMonitor::update(const QString &appUri,
         entry.visible = properties.value(QStringLiteral("progress_visible")).toBool();
     }
 
+    // Werte sichern, BEVOR associatePublisher() erneut in m_entries schreibt.
+    // m_entries ist ein QHash; ein Rehash wuerde jede Referenz darauf
+    // ungueltig machen. Aktuell greift operator[] dort nur auf einen bereits
+    // vorhandenen Schluessel zu und loest deshalb keinen Rehash aus - darauf
+    // darf sich diese Funktion aber nicht verlassen.
+    const double newProgress = entry.progress;
+    const bool newVisible = entry.visible;
+
     if (calledFromDBus()) {
         associatePublisher(message().service(), desktopId);
     }
 
-    if (!qFuzzyCompare(oldProgress + 1.0, entry.progress + 1.0)
-            || oldVisible != entry.visible) {
-        Q_EMIT progressUpdated(desktopId, entry.progress, entry.visible);
+    if (!qFuzzyCompare(oldProgress + 1.0, newProgress + 1.0)
+            || oldVisible != newVisible) {
+        Q_EMIT progressUpdated(desktopId, newProgress, newVisible);
     }
 }
 
