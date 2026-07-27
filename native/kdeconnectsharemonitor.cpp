@@ -458,7 +458,14 @@ void KdeConnectShareMonitor::addShareEntry(const QString &deviceId,
         m_shares.removeLast();
     }
 
-    m_expirationTimer->start();
+    // Nur starten, wenn der Timer nicht ohnehin schon laeuft. QTimer::start()
+    // setzt einen aktiven Einmal-Timer zurueck: Treffen Freigaben haeufiger als
+    // im 60-Sekunden-Takt ein, wurde die Aufraeumrunde dadurch immer weiter
+    // verschoben und abgelaufene Eintraege blieben ueber ihre 15 Minuten hinaus
+    // in der Liste stehen.
+    if (!m_expirationTimer->isActive()) {
+        m_expirationTimer->start();
+    }
     Q_EMIT recentSharesChanged();
 }
 

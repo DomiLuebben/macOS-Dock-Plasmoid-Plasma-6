@@ -269,6 +269,12 @@ function rowForIdentity(layout, launcherUrl, appId) {
 }
 
 function isLeader(layout, row, groupId) {
+    // Layout kann null sein, solange das Modell noch nicht aufgebaut ist.
+    // rowForIdentity() faengt das ab, isLeader() lief bisher in einen
+    // TypeError - beide Funktionen werden aus denselben Delegaten gerufen.
+    if (!layout || !layout.leaderRowByGroup) {
+        return false;
+    }
     return Boolean(groupId)
         && layout.leaderRowByGroup[groupKey(groupId)] === row;
 }

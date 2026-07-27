@@ -508,12 +508,24 @@ void RemovableVolumesModel::mount(const QString &udi)
     emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
 
     if (!access->setup()) {
-        item.busy = false;
-        item.operation = QStringLiteral("idle");
-        item.openOnMount = false;
-        item.errorText = i18n("Could not initiate mounting.");
-        emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
-        emit operationFailed(udi, item.errorText);
+        // Zeile neu bestimmen: emit dataChanged() ruft synchron QML auf, und
+        // Solid kann waehrend setup() ein deviceRemoved nachziehen. Beides kann
+        // m_items umbauen, wodurch die oben gehaltene Referenz und der Index
+        // ungueltig werden - Schreiben darauf waere undefiniertes Verhalten.
+        const int currentRow = findRowByUdi(udi);
+        if (currentRow == -1) {
+            emit operationFailed(udi, i18n("Could not initiate mounting."));
+            return;
+        }
+        VolumeItem &currentItem = m_items[currentRow];
+        currentItem.busy = false;
+        currentItem.operation = QStringLiteral("idle");
+        currentItem.openOnMount = false;
+        currentItem.errorText = i18n("Could not initiate mounting.");
+        const QModelIndex currentIdx = createIndex(currentRow, 0);
+        emit dataChanged(currentIdx, currentIdx,
+                         {BusyRole, OperationRole, ErrorTextRole});
+        emit operationFailed(udi, currentItem.errorText);
     }
 }
 
@@ -638,11 +650,21 @@ void RemovableVolumesModel::remove(const QString &udi)
         emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
 
         if (!optical->eject()) {
-            item.busy = false;
-            item.operation = QStringLiteral("idle");
-            item.errorText = i18n("Could not initiate eject.");
-            emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
-            emit operationFailed(udi, item.errorText);
+            // Siehe mount(): nach dem Solid-Aufruf darf die alte Referenz nicht
+            // weiterbenutzt werden, das Auswerfen kann das Geraet entfernen.
+            const int currentRow = findRowByUdi(udi);
+            if (currentRow == -1) {
+                emit operationFailed(udi, i18n("Could not initiate eject."));
+                return;
+            }
+            VolumeItem &currentItem = m_items[currentRow];
+            currentItem.busy = false;
+            currentItem.operation = QStringLiteral("idle");
+            currentItem.errorText = i18n("Could not initiate eject.");
+            const QModelIndex currentIdx = createIndex(currentRow, 0);
+            emit dataChanged(currentIdx, currentIdx,
+                             {BusyRole, OperationRole, ErrorTextRole});
+            emit operationFailed(udi, currentItem.errorText);
         }
         return;
     }
@@ -659,10 +681,19 @@ void RemovableVolumesModel::remove(const QString &udi)
     emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
 
     if (!access->teardown()) {
-        item.busy = false;
-        item.operation = QStringLiteral("idle");
-        item.errorText = i18n("Could not initiate unmounting.");
-        emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
-        emit operationFailed(udi, item.errorText);
+        // Siehe mount(): Aushaengen kann das Geraet verschwinden lassen.
+        const int currentRow = findRowByUdi(udi);
+        if (currentRow == -1) {
+            emit operationFailed(udi, i18n("Could not initiate unmounting."));
+            return;
+        }
+        VolumeItem &currentItem = m_items[currentRow];
+        currentItem.busy = false;
+        currentItem.operation = QStringLiteral("idle");
+        currentItem.errorText = i18n("Could not initiate unmounting.");
+        const QModelIndex currentIdx = createIndex(currentRow, 0);
+        emit dataChanged(currentIdx, currentIdx,
+                         {BusyRole, OperationRole, ErrorTextRole});
+        emit operationFailed(udi, currentItem.errorText);
     }
 }
