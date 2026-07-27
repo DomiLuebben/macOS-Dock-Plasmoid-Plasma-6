@@ -55,6 +55,33 @@
     <entry name="launchAnimation" type="Int">
       <default>1</default>
     </entry>
+    <entry name="magnificationSpring" type="Double">
+      <default>10.0</default>
+    </entry>
+    <entry name="magnificationDamping" type="Double">
+      <default>0.8</default>
+    </entry>
+    <entry name="clickBounceHeight" type="Int">
+      <default>4</default>
+    </entry>
+    <entry name="launchBounceHeight" type="Int">
+      <default>8</default>
+    </entry>
+    <entry name="dockRevealDuration" type="Int">
+      <default>240</default>
+    </entry>
+    <entry name="dockHideDuration" type="Int">
+      <default>280</default>
+    </entry>
+    <entry name="appGroupPopupDuration" type="Int">
+      <default>260</default>
+    </entry>
+    <entry name="appGroupPopupOvershoot" type="Double">
+      <default>1.35</default>
+    </entry>
+    <entry name="folderHoverScale" type="Double">
+      <default>1.06</default>
+    </entry>
     <entry name="showFolderView" type="Bool">
       <default>true</default>
     </entry>

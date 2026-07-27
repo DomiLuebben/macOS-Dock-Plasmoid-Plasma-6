@@ -25,6 +25,8 @@ Window {
     property real shadowOpacity: 0.42
     property bool showHighlight: true
     property bool blurEnabled: true
+    property int openDuration: 260
+    property real openOvershoot: 1.35
     readonly property int listViewMode: 0
     readonly property int gridViewMode: 1
     property int viewMode: gridViewMode
@@ -402,9 +404,9 @@ Window {
             property: "openProgress"
             from: 0
             to: 1
-            duration: 260
+            duration: root.openDuration
             easing.type: Easing.OutBack
-            easing.overshoot: 1.35
+            easing.overshoot: root.openOvershoot
         }
     }
 

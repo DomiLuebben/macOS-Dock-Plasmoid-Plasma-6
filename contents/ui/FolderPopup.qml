@@ -24,6 +24,7 @@ Window {
     property real shadowOpacity: 0.42
     property bool showHighlight: true
     property bool blurEnabled: true
+    property real hoverScale: 1.06
     readonly property int listViewMode: 0
     readonly property int gridViewMode: 1
     readonly property int fanViewMode: 2
@@ -574,11 +575,10 @@ Window {
                                 : Qt.rgba(255, 255, 255, 0.1)
                             border.width: 1
 
-                            // 1.02 war praktisch unsichtbar. Etwas mehr Hub und
-                            // eine leicht federnde Kurve machen aus der
-                            // Hervorhebung eine spuerbare Reaktion, ohne dass
-                            // die Kachel im Raster zu springen anfaengt.
-                            scale: fanHover.hovered ? 1.06 : 1.0
+                            // Die Voreinstellung 1.06 ist sichtbar, ohne dass
+                            // die Kachel im Raster springt. Der Hub ist in den
+                            // Dock-Einstellungen anpassbar.
+                            scale: fanHover.hovered ? root.hoverScale : 1.0
                             Behavior on scale {
                                 SpringAnimation {
                                     spring: 4.0

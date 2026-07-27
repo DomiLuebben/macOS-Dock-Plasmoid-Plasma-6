@@ -22,6 +22,8 @@ Item {
     property bool isStarting: false
     property bool dragEnabled: true
     property int launchAnimation: 1
+    property real clickBounceHeight: 4
+    property real launchBounceHeight: 8
     property bool previewAvailable: isRunning
     property bool isAppGroup: false
     property var groupPreviewItems: []
@@ -373,7 +375,7 @@ Item {
         NumberAnimation {
             target: iconContainer
             property: "bounceOffset"
-            to: 4
+            to: root.clickBounceHeight
             duration: 90
             easing.type: Easing.OutQuad
         }
@@ -407,7 +409,7 @@ Item {
         NumberAnimation {
             target: iconContainer
             property: "bounceOffset"
-            to: 8
+            to: root.launchBounceHeight
             duration: 160
             easing.type: Easing.OutQuad
         }

@@ -9,6 +9,9 @@ color scheme.
 ## Features
 
 - Smooth macOS-style icon magnification on hover
+- Fine-grained animation settings for magnification response and damping,
+  click and launch bounce height, Dock reveal/hide timing, group popup bounce,
+  and folder hover zoom
 - Drag-and-drop reordering of launchers and starters with mouse interaction
 - Android-style app groups: drop one app onto the center of another, then open
   the animated grid or list to launch, rename, remove, or ungroup its apps;

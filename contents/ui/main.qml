@@ -76,6 +76,24 @@ PlasmoidItem {
             ? true : Boolean(Plasmoid.configuration.hideOnMaximized)
     readonly property int launchAnimation: Math.round(boundedNumber(
         Plasmoid.configuration.launchAnimation, 1, 0, 1))
+    readonly property real magnificationSpring: boundedNumber(
+        Plasmoid.configuration.magnificationSpring, 10.0, 2.0, 20.0)
+    readonly property real magnificationDamping: boundedNumber(
+        Plasmoid.configuration.magnificationDamping, 0.8, 0.2, 1.0)
+    readonly property real clickBounceHeight: boundedNumber(
+        Plasmoid.configuration.clickBounceHeight, 4, 0, 16)
+    readonly property real launchBounceHeight: boundedNumber(
+        Plasmoid.configuration.launchBounceHeight, 8, 0, 24)
+    readonly property int dockRevealDuration: Math.round(boundedNumber(
+        Plasmoid.configuration.dockRevealDuration, 240, 80, 600))
+    readonly property int dockHideDuration: Math.round(boundedNumber(
+        Plasmoid.configuration.dockHideDuration, 280, 80, 600))
+    readonly property int appGroupPopupDuration: Math.round(boundedNumber(
+        Plasmoid.configuration.appGroupPopupDuration, 260, 80, 600))
+    readonly property real appGroupPopupOvershoot: boundedNumber(
+        Plasmoid.configuration.appGroupPopupOvershoot, 1.35, 0, 3)
+    readonly property real folderHoverScale: boundedNumber(
+        Plasmoid.configuration.folderHoverScale, 1.06, 1.0, 1.2)
     readonly property bool showFolderView:
         Plasmoid.configuration.showFolderView === undefined
             ? true : Boolean(Plasmoid.configuration.showFolderView)
@@ -319,7 +337,8 @@ PlasmoidItem {
         // einer beschleunigenden Kurve, damit das Dock zuegig verschwindet
         // statt traege wegzukriechen.
         NumberAnimation {
-            duration: root.dockRequestedVisible ? 240 : 280
+            duration: root.dockRequestedVisible
+                ? root.dockRevealDuration : root.dockHideDuration
             easing.type: root.dockRequestedVisible
                 ? Easing.OutQuint : Easing.InQuad
         }
@@ -2398,6 +2417,8 @@ PlasmoidItem {
             : taskIsActive
         isStarting: Boolean(model.IsStartup)
         launchAnimation: root.launchAnimation
+        clickBounceHeight: root.clickBounceHeight
+        launchBounceHeight: root.launchBounceHeight
         isAppGroup: appGroupLeader
         groupPreviewItems: appGroupPreviewItems
         dragEnabled: !appGroupMember
@@ -2464,9 +2485,13 @@ PlasmoidItem {
             // durch. Die starke Daempfung haelt sie frei von Nachwippen; die
             // Vergroesserung soll folgen, nicht schaukeln.
             SpringAnimation {
-                spring: 5.0
-                damping: 0.7
-                epsilon: 0.005
+                // spring = Steifigkeit (hoeher = zieht schneller zum Ziel),
+                // damping = Reibung (hoeher = weniger Nachwippen, aber traeger).
+                // Die Voreinstellung reagiert schneller als die urspruengliche
+                // Feder; beide Werte sind in den Dock-Einstellungen anpassbar.
+                spring: root.magnificationSpring
+                damping: root.magnificationDamping
+                epsilon: 0.01
             }
         }
 
@@ -3016,6 +3041,8 @@ PlasmoidItem {
         location: root.dockLocation
         screenEdgeMargin: root.panelEdgeMargin
         launchAnimation: root.launchAnimation
+        clickBounceHeight: root.clickBounceHeight
+        launchBounceHeight: root.launchBounceHeight
         dragEnabled: false
 
         Behavior on currentScale {
@@ -3028,9 +3055,13 @@ PlasmoidItem {
             // durch. Die starke Daempfung haelt sie frei von Nachwippen; die
             // Vergroesserung soll folgen, nicht schaukeln.
             SpringAnimation {
-                spring: 5.0
-                damping: 0.7
-                epsilon: 0.005
+                // spring = Steifigkeit (hoeher = zieht schneller zum Ziel),
+                // damping = Reibung (hoeher = weniger Nachwippen, aber traeger).
+                // Die Voreinstellung reagiert schneller als die urspruengliche
+                // Feder; beide Werte sind in den Dock-Einstellungen anpassbar.
+                spring: root.magnificationSpring
+                damping: root.magnificationDamping
+                epsilon: 0.01
             }
         }
     }
@@ -3398,6 +3429,7 @@ PlasmoidItem {
         shadowOpacity: root.shadowOpacity
         showHighlight: root.showHighlight
         blurEnabled: root.enableBlur
+        hoverScale: root.folderHoverScale
         viewMode: root.folderViewMode
 
         onOpenFolderRequested: (folderUrl) =>
@@ -3449,6 +3481,8 @@ PlasmoidItem {
         shadowOpacity: root.shadowOpacity
         showHighlight: root.showHighlight
         blurEnabled: root.enableBlur
+        openDuration: root.appGroupPopupDuration
+        openOvershoot: root.appGroupPopupOvershoot
         viewMode: root.appGroupViewMode
 
         onMemberActivated: (launcherUrl) => {

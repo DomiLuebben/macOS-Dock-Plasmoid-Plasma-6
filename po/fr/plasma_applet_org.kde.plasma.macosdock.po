@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.11.2\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.13.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 10:41+0200\n"
-"PO-Revision-Date: 2026-07-26 00:00+0200\n"
+"POT-Creation-Date: 2026-07-27 14:54+0200\n"
+"PO-Revision-Date: 2026-07-27 14:54+0200\n"
 "Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
 "Language-Team: French\n"
 "Language: fr\n"
@@ -178,6 +178,46 @@ msgstr "Aucune"
 #: contents/ui/ConfigGeneral.qml:326
 msgid "Bounce"
 msgstr "Rebond"
+
+msgid "Magnification dynamics:"
+msgstr "Dynamique d’agrandissement :"
+
+msgid ""
+"Response controls speed; damping controls how firmly the magnification "
+"settles without oscillating."
+msgstr ""
+"La réactivité contrôle la vitesse ; l’amortissement détermine la fermeté "
+"avec laquelle l’agrandissement se stabilise sans osciller."
+
+msgid "Magnification response:"
+msgstr "Réactivité de l’agrandissement :"
+
+msgid "Magnification damping:"
+msgstr "Amortissement de l’agrandissement :"
+
+msgid "Click bounce height:"
+msgstr "Hauteur du rebond au clic :"
+
+msgid "Launch bounce height:"
+msgstr "Hauteur du rebond au lancement :"
+
+msgid "Show Dock duration:"
+msgstr "Durée d’affichage du Dock :"
+
+msgid "Hide Dock duration:"
+msgstr "Durée de masquage du Dock :"
+
+msgid "Group popup duration:"
+msgstr "Durée de la fenêtre de groupe :"
+
+msgid "Group popup bounce:"
+msgstr "Rebond de la fenêtre de groupe :"
+
+msgid "Folder hover zoom:"
+msgstr "Zoom au survol des dossiers :"
+
+msgid " ms"
+msgstr " ms"
 
 #: contents/ui/ConfigGeneral.qml:331
 msgid "Dock items"

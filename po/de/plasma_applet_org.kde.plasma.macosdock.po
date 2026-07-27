@@ -1,9 +1,9 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.11.2\n"
+"Project-Id-Version: macOS Dock Plasmoid Plasma 6 1.13.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 10:41+0200\n"
-"PO-Revision-Date: 2026-07-26 00:00+0200\n"
+"POT-Creation-Date: 2026-07-27 14:54+0200\n"
+"PO-Revision-Date: 2026-07-27 14:54+0200\n"
 "Last-Translator: Dominik Lübben <dominikluebben@googlemail.com>\n"
 "Language-Team: German\n"
 "Language: de\n"
@@ -178,6 +178,46 @@ msgstr "Keine"
 #: contents/ui/ConfigGeneral.qml:326
 msgid "Bounce"
 msgstr "Springen"
+
+msgid "Magnification dynamics:"
+msgstr "Vergrößerungsdynamik:"
+
+msgid ""
+"Response controls speed; damping controls how firmly the magnification "
+"settles without oscillating."
+msgstr ""
+"Reaktion steuert das Tempo; Dämpfung steuert, wie stark sich die "
+"Vergrößerung ohne Nachschwingen stabilisiert."
+
+msgid "Magnification response:"
+msgstr "Reaktionsgeschwindigkeit:"
+
+msgid "Magnification damping:"
+msgstr "Dämpfung der Vergrößerung:"
+
+msgid "Click bounce height:"
+msgstr "Sprunghöhe beim Klicken:"
+
+msgid "Launch bounce height:"
+msgstr "Sprunghöhe beim Start:"
+
+msgid "Show Dock duration:"
+msgstr "Dauer beim Einblenden:"
+
+msgid "Hide Dock duration:"
+msgstr "Dauer beim Ausblenden:"
+
+msgid "Group popup duration:"
+msgstr "Dauer des Gruppen-Popups:"
+
+msgid "Group popup bounce:"
+msgstr "Federung des Gruppen-Popups:"
+
+msgid "Folder hover zoom:"
+msgstr "Ordner-Hover-Vergrößerung:"
+
+msgid " ms"
+msgstr " ms"
 
 #: contents/ui/ConfigGeneral.qml:331
 msgid "Dock items"

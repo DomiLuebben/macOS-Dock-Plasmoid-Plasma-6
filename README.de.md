@@ -8,6 +8,9 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
 ## Funktionen
 
 - flüssige macOS-artige Vergrößerung beim Überfahren der Symbole
+- detaillierte Animationseinstellungen für Reaktion und Dämpfung der
+  Vergrößerung, Klick- und Start-Sprunghöhe, Ein-/Ausblenddauer des Docks,
+  Gruppen-Popup-Federung und Ordner-Hover-Vergrößerung
 - Verschieben und Anordnen der Starter per Drag-and-Drop mit der Maus
 - App-Gruppen im Android-Stil: Eine App mittig auf einer anderen ablegen, um
   sie zu gruppieren; Raster oder Liste dienen zum Starten, Umbenennen,

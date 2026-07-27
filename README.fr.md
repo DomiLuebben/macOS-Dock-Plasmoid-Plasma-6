@@ -9,6 +9,9 @@ couleurs du thème Qt.
 ## Fonctionnalités
 
 - Agrandissement fluide des icônes au survol
+- Réglages détaillés des animations pour la réactivité et l’amortissement de
+  l’agrandissement, la hauteur des rebonds au clic et au lancement, les durées
+  d’affichage/masquage du Dock, le rebond des groupes et le zoom des dossiers
 - Réorganisation par glisser-déposer des lanceurs à la souris
 - Groupes d’applications de style Android : déposez une application au centre
   d’une autre pour les regrouper, puis utilisez la grille ou la liste

@@ -29,6 +29,17 @@ KCM.SimpleKCM {
     property alias cfg_enableBlur: enableBlurCheckBox.checked
     property alias cfg_hideOnMaximized: hideOnMaximizedCheckBox.checked
     property alias cfg_launchAnimation: launchAnimationCombo.currentIndex
+    property alias cfg_magnificationSpring: magnificationSpringSlider.value
+    property alias cfg_magnificationDamping: magnificationDampingSlider.value
+    property alias cfg_clickBounceHeight: clickBounceHeightSlider.value
+    property alias cfg_launchBounceHeight: launchBounceHeightSlider.value
+    property alias cfg_dockRevealDuration: dockRevealDurationSlider.value
+    property alias cfg_dockHideDuration: dockHideDurationSlider.value
+    property alias cfg_appGroupPopupDuration:
+        appGroupPopupDurationSlider.value
+    property alias cfg_appGroupPopupOvershoot:
+        appGroupPopupOvershootSlider.value
+    property alias cfg_folderHoverScale: folderHoverScaleSlider.value
     property alias cfg_showFolderView: showFolderViewCheckBox.checked
     property alias cfg_folderViewMode: folderViewModeCombo.currentIndex
     property alias cfg_appGroupViewMode: appGroupViewModeCombo.currentIndex
@@ -77,6 +88,15 @@ KCM.SimpleKCM {
     property bool cfg_enableBlurDefault: true
     property bool cfg_hideOnMaximizedDefault: true
     property int cfg_launchAnimationDefault: 1
+    property real cfg_magnificationSpringDefault: 10.0
+    property real cfg_magnificationDampingDefault: 0.8
+    property int cfg_clickBounceHeightDefault: 4
+    property int cfg_launchBounceHeightDefault: 8
+    property int cfg_dockRevealDurationDefault: 240
+    property int cfg_dockHideDurationDefault: 280
+    property int cfg_appGroupPopupDurationDefault: 260
+    property real cfg_appGroupPopupOvershootDefault: 1.35
+    property real cfg_folderHoverScaleDefault: 1.06
     property bool cfg_showFolderViewDefault: true
     property string cfg_folderUrlDefault: ""
     property int cfg_folderViewModeDefault: 0
@@ -367,6 +387,169 @@ KCM.SimpleKCM {
             Kirigami.FormData.label: i18n("Launch animation:")
             Layout.fillWidth: true
             model: [i18n("None"), i18n("Bounce")]
+        }
+
+        QQC2.Label {
+            Kirigami.FormData.label: i18n("Magnification dynamics:")
+            Layout.fillWidth: true
+            wrapMode: Text.WordWrap
+            text: i18n("Response controls speed; damping controls how firmly the magnification settles without oscillating.")
+            opacity: 0.78
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Magnification response:")
+
+            QQC2.Slider {
+                id: magnificationSpringSlider
+                Layout.fillWidth: true
+                from: 2.0
+                to: 20.0
+                stepSize: 0.5
+                live: true
+            }
+
+            QQC2.Label {
+                text: magnificationSpringSlider.value.toFixed(1)
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Magnification damping:")
+
+            QQC2.Slider {
+                id: magnificationDampingSlider
+                Layout.fillWidth: true
+                from: 0.2
+                to: 1.0
+                stepSize: 0.05
+                live: true
+            }
+
+            QQC2.Label {
+                text: magnificationDampingSlider.value.toFixed(2)
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Click bounce height:")
+
+            QQC2.Slider {
+                id: clickBounceHeightSlider
+                Layout.fillWidth: true
+                from: 0
+                to: 16
+                stepSize: 1
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(clickBounceHeightSlider.value) + i18n(" px")
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Launch bounce height:")
+
+            QQC2.Slider {
+                id: launchBounceHeightSlider
+                Layout.fillWidth: true
+                from: 0
+                to: 24
+                stepSize: 1
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(launchBounceHeightSlider.value) + i18n(" px")
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Show Dock duration:")
+
+            QQC2.Slider {
+                id: dockRevealDurationSlider
+                Layout.fillWidth: true
+                from: 80
+                to: 600
+                stepSize: 10
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(dockRevealDurationSlider.value) + i18n(" ms")
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Hide Dock duration:")
+
+            QQC2.Slider {
+                id: dockHideDurationSlider
+                Layout.fillWidth: true
+                from: 80
+                to: 600
+                stepSize: 10
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(dockHideDurationSlider.value) + i18n(" ms")
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Group popup duration:")
+
+            QQC2.Slider {
+                id: appGroupPopupDurationSlider
+                Layout.fillWidth: true
+                from: 80
+                to: 600
+                stepSize: 10
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round(appGroupPopupDurationSlider.value)
+                    + i18n(" ms")
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Group popup bounce:")
+
+            QQC2.Slider {
+                id: appGroupPopupOvershootSlider
+                Layout.fillWidth: true
+                from: 0.0
+                to: 3.0
+                stepSize: 0.05
+                live: true
+            }
+
+            QQC2.Label {
+                text: appGroupPopupOvershootSlider.value.toFixed(2)
+            }
+        }
+
+        RowLayout {
+            Kirigami.FormData.label: i18n("Folder hover zoom:")
+
+            QQC2.Slider {
+                id: folderHoverScaleSlider
+                Layout.fillWidth: true
+                from: 1.0
+                to: 1.2
+                stepSize: 0.01
+                live: true
+            }
+
+            QQC2.Label {
+                text: Math.round((folderHoverScaleSlider.value - 1) * 100)
+                    + "%"
+            }
         }
 
         Item {
