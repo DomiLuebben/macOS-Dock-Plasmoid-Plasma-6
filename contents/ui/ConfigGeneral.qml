@@ -88,13 +88,13 @@ KCM.SimpleKCM {
     property bool cfg_enableBlurDefault: true
     property bool cfg_hideOnMaximizedDefault: true
     property int cfg_launchAnimationDefault: 1
-    property real cfg_magnificationSpringDefault: 10.0
-    property real cfg_magnificationDampingDefault: 0.8
+    property real cfg_magnificationSpringDefault: 50.0
+    property real cfg_magnificationDampingDefault: 1.0
     property int cfg_clickBounceHeightDefault: 4
     property int cfg_launchBounceHeightDefault: 8
-    property int cfg_dockRevealDurationDefault: 240
-    property int cfg_dockHideDurationDefault: 280
-    property int cfg_appGroupPopupDurationDefault: 260
+    property int cfg_dockRevealDurationDefault: 140
+    property int cfg_dockHideDurationDefault: 160
+    property int cfg_appGroupPopupDurationDefault: 180
     property real cfg_appGroupPopupOvershootDefault: 1.35
     property real cfg_folderHoverScaleDefault: 1.06
     property bool cfg_showFolderViewDefault: true
@@ -403,9 +403,9 @@ KCM.SimpleKCM {
             QQC2.Slider {
                 id: magnificationSpringSlider
                 Layout.fillWidth: true
-                from: 2.0
-                to: 20.0
-                stepSize: 0.5
+                from: 20.0
+                to: 60.0
+                stepSize: 1.0
                 live: true
             }
 
@@ -471,8 +471,8 @@ KCM.SimpleKCM {
             QQC2.Slider {
                 id: dockRevealDurationSlider
                 Layout.fillWidth: true
-                from: 80
-                to: 600
+                from: 60
+                to: 400
                 stepSize: 10
                 live: true
             }
@@ -488,8 +488,8 @@ KCM.SimpleKCM {
             QQC2.Slider {
                 id: dockHideDurationSlider
                 Layout.fillWidth: true
-                from: 80
-                to: 600
+                from: 60
+                to: 400
                 stepSize: 10
                 live: true
             }
@@ -505,8 +505,8 @@ KCM.SimpleKCM {
             QQC2.Slider {
                 id: appGroupPopupDurationSlider
                 Layout.fillWidth: true
-                from: 80
-                to: 600
+                from: 60
+                to: 400
                 stepSize: 10
                 live: true
             }

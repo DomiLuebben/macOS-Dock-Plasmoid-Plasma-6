@@ -376,14 +376,14 @@ Item {
             target: iconContainer
             property: "bounceOffset"
             to: root.clickBounceHeight
-            duration: 90
+            duration: 70
             easing.type: Easing.OutQuad
         }
         NumberAnimation {
             target: iconContainer
             property: "bounceOffset"
             to: 0
-            duration: 240
+            duration: 120
             easing.type: Easing.OutBounce
         }
     }
@@ -410,7 +410,7 @@ Item {
             target: iconContainer
             property: "bounceOffset"
             to: root.launchBounceHeight
-            duration: 160
+            duration: 100
             easing.type: Easing.OutQuad
         }
 
@@ -418,11 +418,11 @@ Item {
             target: iconContainer
             property: "bounceOffset"
             to: 0
-            duration: 300
+            duration: 180
             easing.type: Easing.OutBounce
         }
 
-        PauseAnimation { duration: 140 }
+        PauseAnimation { duration: 70 }
     }
 
     Item {

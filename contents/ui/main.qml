@@ -77,19 +77,19 @@ PlasmoidItem {
     readonly property int launchAnimation: Math.round(boundedNumber(
         Plasmoid.configuration.launchAnimation, 1, 0, 1))
     readonly property real magnificationSpring: boundedNumber(
-        Plasmoid.configuration.magnificationSpring, 10.0, 2.0, 20.0)
+        Plasmoid.configuration.magnificationSpring, 50.0, 20.0, 60.0)
     readonly property real magnificationDamping: boundedNumber(
-        Plasmoid.configuration.magnificationDamping, 0.8, 0.2, 1.0)
+        Plasmoid.configuration.magnificationDamping, 1.0, 0.2, 1.0)
     readonly property real clickBounceHeight: boundedNumber(
         Plasmoid.configuration.clickBounceHeight, 4, 0, 16)
     readonly property real launchBounceHeight: boundedNumber(
         Plasmoid.configuration.launchBounceHeight, 8, 0, 24)
     readonly property int dockRevealDuration: Math.round(boundedNumber(
-        Plasmoid.configuration.dockRevealDuration, 240, 80, 600))
+        Plasmoid.configuration.dockRevealDuration, 140, 60, 400))
     readonly property int dockHideDuration: Math.round(boundedNumber(
-        Plasmoid.configuration.dockHideDuration, 280, 80, 600))
+        Plasmoid.configuration.dockHideDuration, 160, 60, 400))
     readonly property int appGroupPopupDuration: Math.round(boundedNumber(
-        Plasmoid.configuration.appGroupPopupDuration, 260, 80, 600))
+        Plasmoid.configuration.appGroupPopupDuration, 180, 60, 400))
     readonly property real appGroupPopupOvershoot: boundedNumber(
         Plasmoid.configuration.appGroupPopupOvershoot, 1.35, 0, 3)
     readonly property real folderHoverScale: boundedNumber(
