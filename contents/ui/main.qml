@@ -313,10 +313,15 @@ PlasmoidItem {
         ? overlayWindowHeight / 2 : overlayWindowWidth / 2
 
     Behavior on dockRevealProgress {
+        // Beim Aufdecken bewegt sich mit OutQuint der Grossteil des Weges
+        // sofort und laeuft dann lange weich aus - dieselbe Dauer wie zuvor,
+        // aber deutlich gleitender als OutCubic. Beim Verbergen bleibt es bei
+        // einer beschleunigenden Kurve, damit das Dock zuegig verschwindet
+        // statt traege wegzukriechen.
         NumberAnimation {
-            duration: root.dockRequestedVisible ? 240 : 300
+            duration: root.dockRequestedVisible ? 240 : 280
             easing.type: root.dockRequestedVisible
-                ? Easing.OutCubic : Easing.InCubic
+                ? Easing.OutQuint : Easing.InQuad
         }
     }
 
@@ -2450,9 +2455,18 @@ PlasmoidItem {
         }
 
         Behavior on currentScale {
-            NumberAnimation {
-                duration: 75
-                easing.type: Easing.OutCubic
+            // Die Vergroesserung folgt dem Zeiger kontinuierlich: Bei jeder
+            // Mausbewegung wird currentScale neu gesetzt. Eine zeitbasierte
+            // Kurve startet dabei jedes Mal von vorn und verliert die bereits
+            // aufgebaute Geschwindigkeit - bei schnellen Bewegungen wirkt das
+            // stufig und hinkt dem Zeiger hinterher. Eine Feder traegt ihre
+            // Geschwindigkeit ueber die Neuberechnungen hinweg und laeuft
+            // durch. Die starke Daempfung haelt sie frei von Nachwippen; die
+            // Vergroesserung soll folgen, nicht schaukeln.
+            SpringAnimation {
+                spring: 5.0
+                damping: 0.7
+                epsilon: 0.005
             }
         }
 
@@ -3005,9 +3019,18 @@ PlasmoidItem {
         dragEnabled: false
 
         Behavior on currentScale {
-            NumberAnimation {
-                duration: 75
-                easing.type: Easing.OutCubic
+            // Die Vergroesserung folgt dem Zeiger kontinuierlich: Bei jeder
+            // Mausbewegung wird currentScale neu gesetzt. Eine zeitbasierte
+            // Kurve startet dabei jedes Mal von vorn und verliert die bereits
+            // aufgebaute Geschwindigkeit - bei schnellen Bewegungen wirkt das
+            // stufig und hinkt dem Zeiger hinterher. Eine Feder traegt ihre
+            // Geschwindigkeit ueber die Neuberechnungen hinweg und laeuft
+            // durch. Die starke Daempfung haelt sie frei von Nachwippen; die
+            // Vergroesserung soll folgen, nicht schaukeln.
+            SpringAnimation {
+                spring: 5.0
+                damping: 0.7
+                epsilon: 0.005
             }
         }
     }

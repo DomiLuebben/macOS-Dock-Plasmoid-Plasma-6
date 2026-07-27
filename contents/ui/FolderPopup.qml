@@ -574,9 +574,17 @@ Window {
                                 : Qt.rgba(255, 255, 255, 0.1)
                             border.width: 1
 
-                            scale: fanHover.hovered ? 1.02 : 1.0
+                            // 1.02 war praktisch unsichtbar. Etwas mehr Hub und
+                            // eine leicht federnde Kurve machen aus der
+                            // Hervorhebung eine spuerbare Reaktion, ohne dass
+                            // die Kachel im Raster zu springen anfaengt.
+                            scale: fanHover.hovered ? 1.06 : 1.0
                             Behavior on scale {
-                                NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+                                SpringAnimation {
+                                    spring: 4.0
+                                    damping: 0.45
+                                    epsilon: 0.002
+                                }
                             }
                             Behavior on opacity {
                                 NumberAnimation { duration: 100 }

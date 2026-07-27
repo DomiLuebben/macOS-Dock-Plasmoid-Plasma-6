@@ -366,19 +366,23 @@ Item {
     SequentialAnimation {
         id: clickBounceAnimation
 
+        // Hoch mit abbremsender Kurve wie ein Absprung, zurueck mit OutBounce:
+        // Das Symbol setzt nicht hart auf, sondern federt mit zwei immer
+        // kleineren Nachhuepfern aus. Das vorherige InQuad liess es einfach
+        // stumpf zurueckfallen.
         NumberAnimation {
             target: iconContainer
             property: "bounceOffset"
-            to: 3
-            duration: 100
+            to: 4
+            duration: 90
             easing.type: Easing.OutQuad
         }
         NumberAnimation {
             target: iconContainer
             property: "bounceOffset"
             to: 0
-            duration: 140
-            easing.type: Easing.InQuad
+            duration: 240
+            easing.type: Easing.OutBounce
         }
     }
 
@@ -396,11 +400,15 @@ Item {
             }
         }
 
+        // Der Startvorgang soll auffallen - deshalb deutlich hoeher als der
+        // Klick-Bounce und mit demselben ausfedernden Aufsetzen. Die Pause
+        // dazwischen trennt die Spruenge sichtbar voneinander, statt sie zu
+        // einem Zappeln zu verschmelzen.
         NumberAnimation {
             target: iconContainer
             property: "bounceOffset"
-            to: 4
-            duration: 120
+            to: 8
+            duration: 160
             easing.type: Easing.OutQuad
         }
 
@@ -408,11 +416,11 @@ Item {
             target: iconContainer
             property: "bounceOffset"
             to: 0
-            duration: 170
-            easing.type: Easing.InQuad
+            duration: 300
+            easing.type: Easing.OutBounce
         }
 
-        PauseAnimation { duration: 110 }
+        PauseAnimation { duration: 140 }
     }
 
     Item {

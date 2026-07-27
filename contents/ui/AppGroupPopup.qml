@@ -393,13 +393,18 @@ Window {
     ParallelAnimation {
         id: openAnimation
 
+        // OutBack schiesst kurz ueber 1 hinaus. Da openProgress die Skalierung
+        // treibt (0.72 + 0.28 * openProgress), entsteht daraus ein kleines
+        // Aufpoppen statt eines blossen Einblendens. Die Deckkraft haengt an
+        // derselben Groesse; Werte ueber 1 begrenzt Qt von selbst.
         NumberAnimation {
             target: root
             property: "openProgress"
             from: 0
             to: 1
-            duration: 250
-            easing.type: Easing.OutCubic
+            duration: 260
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.35
         }
     }
 
