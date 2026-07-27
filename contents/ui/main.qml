@@ -327,6 +327,7 @@ PlasmoidItem {
     property bool desktopCreationPending: false
     property int trashItemCount: 0
     property var openContextMenu: null
+    property string pendingLauncherToggle: ""
     property real lastPointerMain: isVertical
         ? overlayWindowHeight / 2 : overlayWindowWidth / 2
 
@@ -1276,8 +1277,27 @@ PlasmoidItem {
         return "";
     }
 
-    function toggleLauncher(task) {
-        var url = launcherUrl(task);
+    function scheduleLauncherToggle(url) {
+        var stableUrl = String(url || "");
+        if (stableUrl.length === 0) {
+            return;
+        }
+
+        // A launcher-only row disappears synchronously when it is unpinned.
+        // Its context menu is owned by the same delegate and, on Qt 6.8+,
+        // lives in a separate transient window. Removing the row from inside
+        // MenuItem.onTriggered destroys both while Qt Quick is still
+        // dispatching and polishing that window, which can crash plasmashell.
+        // Close the transient UI first and let a root-owned timer mutate the
+        // model in the next event turn using a copied URL.
+        pendingLauncherToggle = stableUrl;
+        closeOpenContextMenu();
+        launcherToggleTimer.restart();
+    }
+
+    function applyPendingLauncherToggle() {
+        var url = pendingLauncherToggle;
+        pendingLauncherToggle = "";
         if (url.length === 0) {
             return;
         }
@@ -1287,6 +1307,14 @@ PlasmoidItem {
         } else {
             tasksModel.requestAddLauncher(url);
         }
+    }
+
+    Timer {
+        id: launcherToggleTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: root.applyPendingLauncherToggle()
     }
 
     function normalizedLauncherUrl(value) {
@@ -2680,7 +2708,8 @@ PlasmoidItem {
                     ? i18n("Unpin from Dock") : i18n("Keep in Dock")
                 icon.name: taskDelegate.pinned ? "list-remove" : "bookmark-new"
                 enabled: taskDelegate.launcherTarget.length > 0
-                onTriggered: root.toggleLauncher(taskDelegate.model)
+                onTriggered:
+                    root.scheduleLauncherToggle(taskDelegate.launcherTarget)
             }
 
             QQC2.MenuItem {
