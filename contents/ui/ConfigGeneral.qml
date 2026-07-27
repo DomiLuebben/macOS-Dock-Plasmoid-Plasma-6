@@ -53,6 +53,47 @@ KCM.SimpleKCM {
     property var cfg_launchers: []
     property var cfg_appGroups: []
 
+    // Plasma setzt zu jedem Konfigurationsschluessel nicht nur cfg_<key>,
+    // sondern auch cfg_<key>Default auf dieser Seite. Fehlen die Deklarationen,
+    // meldet plasmashell beim Oeffnen der Seite fuer jeden Schluessel
+    // "Setting initial properties failed" und der Knopf "Voreinstellungen"
+    // kann nicht erkennen, welcher Wert der Standard ist. Die hier gesetzten
+    // Werte spiegeln contents/config/main.xml; Plasma ueberschreibt sie beim
+    // Laden ohnehin mit den echten Vorgaben.
+    property int cfg_dockPositionDefault: 0
+    property real cfg_maxScaleDefault: 1.45
+    property int cfg_zoomRadiusDefault: 70
+    property int cfg_iconSizeDefault: 44
+    property int cfg_dockMarginDefault: 16
+    property int cfg_dockCrossMarginDefault: 5
+    property int cfg_screenEdgeMarginDefault: 8
+    property real cfg_backgroundOpacityDefault: 0.55
+    property bool cfg_useThemeBackgroundDefault: true
+    property color cfg_customBackgroundColorDefault: "#20242b"
+    property int cfg_cornerRadiusDefault: 12
+    property real cfg_borderOpacityDefault: 0.22
+    property real cfg_shadowOpacityDefault: 0.42
+    property bool cfg_showHighlightDefault: true
+    property bool cfg_enableBlurDefault: true
+    property bool cfg_hideOnMaximizedDefault: true
+    property int cfg_launchAnimationDefault: 1
+    property bool cfg_showFolderViewDefault: true
+    property string cfg_folderUrlDefault: ""
+    property int cfg_folderViewModeDefault: 0
+    property int cfg_appGroupViewModeDefault: 1
+    property var cfg_folderUrlsDefault: []
+    property bool cfg_showTrashDefault: true
+    property bool cfg_showRemovableVolumesDefault: true
+    property bool cfg_showDesktopSwitcherDefault: true
+    property int cfg_desktopSwitcherPositionDefault: 0
+    property int cfg_desktopSwitcherLabelModeDefault: 0
+    property bool cfg_showPowerButtonDefault: true
+    property int cfg_powerButtonPositionDefault: 1
+    property bool cfg_showProgressIndicatorsDefault: true
+    property bool cfg_showKdeConnectRecentSharesDefault: true
+    property var cfg_appGroupsDefault: []
+    property var cfg_launchersDefault: []
+
     // Accepted for compatibility with the configuration page instance that
     // existed before 1.3 and with Plasma's standard applet page properties.
     property bool cfg_showDockBackground: false
