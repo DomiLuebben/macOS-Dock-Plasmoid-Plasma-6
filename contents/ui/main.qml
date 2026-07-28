@@ -76,6 +76,11 @@ PlasmoidItem {
             ? true : Boolean(Plasmoid.configuration.hideOnMaximized)
     readonly property int launchAnimation: Math.round(boundedNumber(
         Plasmoid.configuration.launchAnimation, 1, 0, 1))
+    // Die Vergroesserung folgt dem Zeiger ueber die Feder in DockItem.qml:
+    // magnificationSpring ist deren Eigenfrequenz in rad/s, die Beruhigungs-
+    // zeit betraegt rund 6.6 / omega Sekunden (20 -> 330 ms, 50 -> 130 ms,
+    // 60 -> 110 ms). magnificationDamping ist der Daempfungsgrad, 1.0 ist der
+    // aperiodische Grenzfall ohne Nachwippen.
     readonly property real magnificationSpring: boundedNumber(
         Plasmoid.configuration.magnificationSpring, 50.0, 20.0, 60.0)
     readonly property real magnificationDamping: boundedNumber(
@@ -2432,7 +2437,9 @@ PlasmoidItem {
         appName: appGroupLeader ? appGroup.name : originalAppName
         appIcon: originalAppIcon
         baseSize: root.baseIconSize
-        currentScale: displayScale
+        targetScale: displayScale
+        scaleResponse: root.magnificationSpring
+        scaleDamping: root.magnificationDamping
         crossIconExtent: displayCrossExtent
         isVertical: root.isVertical
         location: root.dockLocation
@@ -2500,26 +2507,6 @@ PlasmoidItem {
         onRecentShareClicked: {
             if (recentShareInfo && recentShareInfo.url) {
                 kdeConnectMonitor.openShareUrl(recentShareInfo.url);
-            }
-        }
-
-        Behavior on currentScale {
-            // Die Vergroesserung folgt dem Zeiger kontinuierlich: Bei jeder
-            // Mausbewegung wird currentScale neu gesetzt. Eine zeitbasierte
-            // Kurve startet dabei jedes Mal von vorn und verliert die bereits
-            // aufgebaute Geschwindigkeit - bei schnellen Bewegungen wirkt das
-            // stufig und hinkt dem Zeiger hinterher. Eine Feder traegt ihre
-            // Geschwindigkeit ueber die Neuberechnungen hinweg und laeuft
-            // durch. Die starke Daempfung haelt sie frei von Nachwippen; die
-            // Vergroesserung soll folgen, nicht schaukeln.
-            SpringAnimation {
-                // spring = Steifigkeit (hoeher = zieht schneller zum Ziel),
-                // damping = Reibung (hoeher = weniger Nachwippen, aber traeger).
-                // Die Voreinstellung reagiert schneller als die urspruengliche
-                // Feder; beide Werte sind in den Dock-Einstellungen anpassbar.
-                spring: root.magnificationSpring
-                damping: root.magnificationDamping
-                epsilon: 0.01
             }
         }
 
@@ -3064,7 +3051,9 @@ PlasmoidItem {
         property real displayCrossExtent: root.baseIconSize
 
         baseSize: root.baseIconSize
-        currentScale: displayScale
+        targetScale: displayScale
+        scaleResponse: root.magnificationSpring
+        scaleDamping: root.magnificationDamping
         crossIconExtent: displayCrossExtent
         isVertical: root.isVertical
         location: root.dockLocation
@@ -3073,26 +3062,6 @@ PlasmoidItem {
         clickBounceHeight: root.clickBounceHeight
         launchBounceHeight: root.launchBounceHeight
         dragEnabled: false
-
-        Behavior on currentScale {
-            // Die Vergroesserung folgt dem Zeiger kontinuierlich: Bei jeder
-            // Mausbewegung wird currentScale neu gesetzt. Eine zeitbasierte
-            // Kurve startet dabei jedes Mal von vorn und verliert die bereits
-            // aufgebaute Geschwindigkeit - bei schnellen Bewegungen wirkt das
-            // stufig und hinkt dem Zeiger hinterher. Eine Feder traegt ihre
-            // Geschwindigkeit ueber die Neuberechnungen hinweg und laeuft
-            // durch. Die starke Daempfung haelt sie frei von Nachwippen; die
-            // Vergroesserung soll folgen, nicht schaukeln.
-            SpringAnimation {
-                // spring = Steifigkeit (hoeher = zieht schneller zum Ziel),
-                // damping = Reibung (hoeher = weniger Nachwippen, aber traeger).
-                // Die Voreinstellung reagiert schneller als die urspruengliche
-                // Feder; beide Werte sind in den Dock-Einstellungen anpassbar.
-                spring: root.magnificationSpring
-                damping: root.magnificationDamping
-                epsilon: 0.01
-            }
-        }
     }
 
     component UtilityDelegate: AuxiliaryDelegate {

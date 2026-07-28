@@ -12,7 +12,16 @@ Item {
     property string appName: ""
     property var appIcon: "application-x-executable"
     property real baseSize: 48
+    // Zielgroesse der Vergroesserung. Von aussen wird ausschliesslich
+    // targetScale gesetzt; currentScale laeuft ihr ueber die Feder weiter
+    // unten nach und ist der Wert, den Layout und Zeichnung benutzen.
+    property real targetScale: 1.0
     property real currentScale: 1.0
+    // Eigenfrequenz der Feder in rad/s (hoeher = zieht schneller zum Ziel)
+    // und Daempfungsgrad (1.0 = aperiodischer Grenzfall, kein Nachwippen;
+    // darunter federt es sichtbar nach).
+    property real scaleResponse: 50.0
+    property real scaleDamping: 1.0
     property real crossIconExtent: scaledSize
     property bool isVertical: false
     property int location: PlasmaCore.Types.Floating
@@ -40,6 +49,80 @@ Item {
     signal recentShareClicked()
 
     readonly property real scaledSize: baseSize * currentScale
+
+    // --- Vergroesserungs-Feder ------------------------------------------
+    // Qt's SpringAnimation integriert auf einem festen 16-ms-Raster: sie
+    // verwirft jeden Takt, der kuerzer als 16 ms ist, und rechnet sonst in
+    // ganzen 16-ms-Schritten. Damit liefert sie hoechstens rund 62
+    // Wertaenderungen pro Sekunde. Auf einem 120-Hz-Bildschirm wiederholt
+    // deshalb jedes zweite Bild den vorherigen Wert, waehrend alle anderen
+    // Dock-Animationen mit voller Bildrate laufen - die Vergroesserung ist
+    // die einzige, die dabei sichtbar stuft, und keine Wahl von spring und
+    // damping kann daran etwas aendern. Dieser Integrator rechnet
+    // stattdessen mit der tatsaechlichen Bildabstandszeit und ist damit von
+    // der Bildwiederholrate unabhaengig.
+    readonly property real scaleEpsilon: 0.0005
+    property real scaleVelocity: 0.0
+    property bool scaleSettled: true
+
+    onTargetScaleChanged: {
+        if (targetScale !== currentScale) {
+            scaleSettled = false;
+        }
+    }
+
+    Component.onCompleted: {
+        currentScale = targetScale;
+        scaleVelocity = 0.0;
+        scaleSettled = true;
+    }
+
+    function advanceScale(frameSeconds) {
+        var omega = Math.max(1.0, root.scaleResponse);
+        var zeta = Math.max(0.05, Math.min(2.0, root.scaleDamping));
+        // Verschluckte Bilder oder eine Ruhephase duerfen nicht in einem
+        // einzigen Riesenschritt nachgeholt werden.
+        var elapsed = Math.min(Math.max(frameSeconds, 0.0), 0.1);
+        if (elapsed <= 0) {
+            return;
+        }
+        // Die explizite Integration wird instabil, sobald omega mal
+        // Schrittweite zu gross wird. Teilschritte halten das Produkt klein,
+        // egal wie lange das letzte Bild gedauert hat - dieselbe Bewegung
+        // also bei 60, 120 und 144 Hz.
+        var steps = Math.min(16,
+            Math.max(1, Math.ceil(elapsed * omega / 0.25)));
+        var stepSeconds = elapsed / steps;
+        var position = root.currentScale;
+        var velocity = root.scaleVelocity;
+        var target = root.targetScale;
+        for (var step = 0; step < steps; ++step) {
+            velocity += (omega * omega * (target - position)
+                - 2.0 * zeta * omega * velocity) * stepSeconds;
+            position += velocity * stepSeconds;
+        }
+        if (Math.abs(target - position) < root.scaleEpsilon
+                && Math.abs(velocity) < root.scaleEpsilon * omega * 2.0) {
+            position = target;
+            velocity = 0.0;
+            root.scaleSettled = true;
+        }
+        root.currentScale = position;
+        root.scaleVelocity = velocity;
+    }
+
+    // Schaltet den Bildtakt ab; advanceScale() muss dann von aussen gerufen
+    // werden. Der Test nutzt das, um mit festen Schrittweiten zu rechnen.
+    property bool scaleFollowEnabled: true
+
+    FrameAnimation {
+        // Laeuft nur, solange sich die Feder tatsaechlich bewegt. Symbole im
+        // unvergroesserten Basisfenster haben ein konstantes Ziel und takten
+        // deshalb nie.
+        running: root.scaleFollowEnabled && !root.scaleSettled
+        onTriggered: root.advanceScale(frameTime)
+    }
+
     readonly property real indicatorSize: 3
     readonly property real indicatorGap: 2
     readonly property real crossExtent: crossIconExtent + indicatorGap + indicatorSize

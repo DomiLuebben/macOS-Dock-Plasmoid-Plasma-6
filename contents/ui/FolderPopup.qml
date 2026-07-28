@@ -580,10 +580,16 @@ Window {
                             // Dock-Einstellungen anpassbar.
                             scale: fanHover.hovered ? root.hoverScale : 1.0
                             Behavior on scale {
-                                SpringAnimation {
-                                    spring: 4.0
-                                    damping: 0.45
-                                    epsilon: 0.002
+                                // Bewusst keine SpringAnimation: die
+                                // integriert auf einem festen 16-ms-Raster
+                                // und aktualisiert deshalb auf einem
+                                // 120-Hz-Bildschirm nur jedes zweite Bild.
+                                // OutBack gibt denselben leicht federnden
+                                // Eindruck bei voller Bildrate.
+                                NumberAnimation {
+                                    duration: 160
+                                    easing.type: Easing.OutBack
+                                    easing.overshoot: 2.2
                                 }
                             }
                             Behavior on opacity {
