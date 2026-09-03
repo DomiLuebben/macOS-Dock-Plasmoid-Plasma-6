@@ -3362,10 +3362,14 @@ PlasmoidItem {
             id: volumeMenu
 
             QQC2.MenuItem {
+                // Ist die Tab-Option aus, oeffnet die Standardaktion im
+                // eingestellten Dateimanager — dann darf hier auch nicht
+                // „In neuem Fenster" stehen, das waere eine Dolphin-Zusage,
+                // die die Standardaktion nicht einloest.
                 text: volumeDelegate.volumeMounted
                     ? (root.openRemovableVolumesInNewTab
                         ? i18n("Open in New Tab")
-                        : i18n("Open in New Window"))
+                        : i18n("Open Volume"))
                     : (volumeDelegate.volumeOperation === "mounting"
                         ? i18n("Mounting…")
                         : i18n("Mount Volume"))

@@ -32,6 +32,26 @@ public:
     };
     Q_ENUM(Roles)
 
+    /**
+     * Wie ein Datentraeger geoeffnet wird.
+     *
+     * Die drei Werte sind bewusst NICHT als `bool` gefuehrt. Ein Wahrheitswert
+     * kennt nur „Tab" und „Fenster" und zwingt damit jede Voreinstellung in
+     * eine Dolphin-spezifische Betriebsart. Genau daran ist 1.14.0 gescheitert:
+     * `openRemovableVolumesInNewTab = false` (die Voreinstellung) landete im
+     * Zweig `dolphin --new-window` und ersetzte damit fuer JEDEN Nutzer den
+     * eingestellten Dateimanager durch Dolphin.
+     */
+    enum class OpenMode {
+        /// `QDesktopServices` — der im System eingestellte Dateimanager.
+        DefaultApplication,
+        /// Neuer Tab in einem bereits laufenden Dolphin-Fenster.
+        DolphinTab,
+        /// Ausdruecklich ein eigenes Fenster (`dolphin --new-window`).
+        DolphinWindow,
+    };
+    Q_ENUM(OpenMode)
+
     struct VolumeItem {
         QString udi;
         QString displayName;
@@ -44,7 +64,7 @@ public:
         bool canOpen{true};
         bool canRemove{true};
         bool openOnMount{false};
-        bool openInNewTabOnMount{false};
+        OpenMode openModeOnMount{OpenMode::DefaultApplication};
         QString errorText;
     };
 
@@ -60,7 +80,22 @@ public:
     bool openInNewTab() const;
     void setOpenInNewTab(bool openInNewTab);
 
+    /**
+     * Betriebsart der Standardaktion (Klick auf das Symbol, erster Menueintrag).
+     * Ist die Tab-Option aus, bleibt es beim Dateimanager des Systems — die
+     * Standardaktion darf keine Anwendung erzwingen.
+     */
+    OpenMode defaultOpenMode() const;
+
+    /**
+     * Exakter Abgleich eines D-Bus-Dienstnamens gegen Dolphin.
+     * Oeffentlich, weil er die einzige Stelle ist, an der wir einem fremden
+     * Prozess einen Pfad schicken — und damit testbar sein muss.
+     */
+    static bool isDolphinService(const QString &service);
+
     Q_INVOKABLE void open(const QString &udi);
+    /// Ausdrueckliche Wahl aus dem Kontextmenue: Tab oder eigenes Fenster.
     Q_INVOKABLE void open(const QString &udi, bool inNewTab);
     Q_INVOKABLE void mount(const QString &udi);
     Q_INVOKABLE void mount(const QString &udi, bool inNewTab);
@@ -87,9 +122,11 @@ private:
     int findRowByUdi(const QString &udi) const;
     void connectDeviceSignals(const QString &udi);
     void reportError(const QString &udi, const QString &message);
-    void openWhenReady(const QString &udi, bool inNewTab, int retries = 10);
+    void open(const QString &udi, OpenMode mode);
+    void mount(const QString &udi, OpenMode mode);
+    void openWhenReady(const QString &udi, OpenMode mode, int retries = 10);
     static bool openInDolphinTab(const QUrl &url);
-    static void openUrl(const QUrl &url, bool inNewTab);
+    static void openUrl(const QUrl &url, OpenMode mode);
 
     QList<VolumeItem> m_items;
     QSet<QString> m_watchedUdis;

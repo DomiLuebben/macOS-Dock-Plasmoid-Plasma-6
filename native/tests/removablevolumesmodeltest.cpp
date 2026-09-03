@@ -136,11 +136,60 @@ private slots:
         model.setOpenInNewTab(false);
         QCOMPARE(model.openInNewTab(), false);
         QCOMPARE(spy.count(), 2);
+    }
 
-        // Verify open() with inNewTab overload does not crash
-        const QString stickUdi = QStringLiteral("/org/kde/solid/fakehw/volume_part1_size_993218560");
-        model.open(stickUdi, true);
-        model.open(stickUdi, false);
+    /**
+     * Der Kern der Regression aus 1.14.0: Die Standardaktion (Klick auf das
+     * Symbol, erster Menueintrag) darf bei ausgeschalteter Tab-Option KEINE
+     * Anwendung erzwingen. Vorher lief sie in `dolphin --new-window` und
+     * ersetzte damit den eingestellten Dateimanager.
+     *
+     * Der frueher hier stehende Aufruf `model.open(<erfundene UDI>, true)`
+     * hat das nicht geprueft: `findRowByUdi()` liefert fuer eine unbekannte
+     * UDI -1, beide Aufrufe kehrten in der ersten Zeile zurueck und haben den
+     * Oeffnen-Pfad nie erreicht.
+     */
+    void defaultOpenModeFollowsConfiguration()
+    {
+        RemovableVolumesModel model;
+
+        QCOMPARE(model.openInNewTab(), false);
+        QCOMPARE(model.defaultOpenMode(), RemovableVolumesModel::OpenMode::DefaultApplication);
+
+        model.setOpenInNewTab(true);
+        QCOMPARE(model.defaultOpenMode(), RemovableVolumesModel::OpenMode::DolphinTab);
+
+        model.setOpenInNewTab(false);
+        QCOMPARE(model.defaultOpenMode(), RemovableVolumesModel::OpenMode::DefaultApplication);
+    }
+
+    /**
+     * `openInDolphinTab()` schickt einem fremden Prozess einen Einhaengepfad
+     * und ruft danach `activateWindow`. Jede lokale Anwendung darf sich einen
+     * beliebigen Namen auf dem Sitzungsbus registrieren — der Abgleich muss
+     * deshalb exakt sein und nicht per Praefix raten.
+     */
+    void dolphinServiceNameMatching_data()
+    {
+        QTest::addColumn<QString>("service");
+        QTest::addColumn<bool>("expected");
+
+        QTest::newRow("plain") << QStringLiteral("org.kde.dolphin") << true;
+        QTest::newRow("with pid") << QStringLiteral("org.kde.dolphin-1234") << true;
+        QTest::newRow("suffix word") << QStringLiteral("org.kde.dolphinator") << false;
+        QTest::newRow("sub-namespace") << QStringLiteral("org.kde.dolphin.evil") << false;
+        QTest::newRow("dangling dash") << QStringLiteral("org.kde.dolphin-") << false;
+        QTest::newRow("non-numeric suffix") << QStringLiteral("org.kde.dolphin-abc") << false;
+        QTest::newRow("prefixed") << QStringLiteral("com.example.org.kde.dolphin") << false;
+        QTest::newRow("unrelated") << QStringLiteral("org.kde.konsole") << false;
+        QTest::newRow("empty") << QString() << false;
+    }
+
+    void dolphinServiceNameMatching()
+    {
+        QFETCH(QString, service);
+        QFETCH(bool, expected);
+        QCOMPARE(RemovableVolumesModel::isDolphinService(service), expected);
     }
 };
 

@@ -18,7 +18,6 @@
 #include <KLocalizedString>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
-#include <QDBusInterface>
 #include <QDBusMessage>
 #include <QDBusReply>
 #include <QDesktopServices>
@@ -26,6 +25,38 @@
 #include <QRegularExpression>
 #include <QTimer>
 #include <QDebug>
+
+namespace {
+
+constexpr const char *kDolphinMainWindowIface = "org.kde.dolphin.MainWindow";
+
+/**
+ * Diese Suche laeuft im Modell eines Plasmoids, also auf dem GUI-Thread der
+ * Plasma-Shell. Jeder synchrone D-Bus-Aufruf haelt damit die gesamte
+ * Arbeitsflaeche an. Qts Vorgabe waeren 25 Sekunden PRO Aufruf — ein
+ * haengender Gegenueber haette die Shell minutenlang eingefroren. Deshalb ein
+ * knappes Limit und eine harte Obergrenze fuer die Zahl der Aufrufe.
+ *
+ * Bewusst `QDBusMessage` statt `QDBusInterface`: dessen Konstruktor loest
+ * selbst noch eine blockierende Introspektion aus, also eine zusaetzliche
+ * Rundreise je Dienst und je Fenster.
+ */
+constexpr int kDolphinDBusTimeoutMs = 400;
+constexpr int kMaxDolphinServices = 8;
+constexpr int kMaxDolphinWindows = 16;
+
+QDBusMessage callDolphin(const QDBusConnection &bus, const QString &service, const QString &path,
+                         const QString &iface, const QString &method,
+                         const QVariantList &args = {})
+{
+    QDBusMessage msg = QDBusMessage::createMethodCall(service, path, iface, method);
+    if (!args.isEmpty()) {
+        msg.setArguments(args);
+    }
+    return bus.call(msg, QDBus::Block, kDolphinDBusTimeoutMs);
+}
+
+} // namespace
 
 RemovableVolumesModel::RemovableVolumesModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -63,6 +94,14 @@ void RemovableVolumesModel::setOpenInNewTab(bool openInNewTab)
     }
     m_openInNewTab = openInNewTab;
     emit openInNewTabChanged();
+}
+
+RemovableVolumesModel::OpenMode RemovableVolumesModel::defaultOpenMode() const
+{
+    // Ist die Tab-Option aus, bleibt es beim Dateimanager des Systems. Alles
+    // andere waere eine stille Bevormundung: bis 1.13.3 lief die
+    // Standardaktion ueber QDesktopServices, und genau dorthin gehoert sie.
+    return m_openInNewTab ? OpenMode::DolphinTab : OpenMode::DefaultApplication;
 }
 
 QVariant RemovableVolumesModel::data(const QModelIndex &index, int role) const
@@ -341,7 +380,7 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
     item.operation = QStringLiteral("idle");
 
     bool shouldOpenAfterMount = false;
-    bool inNewTab = m_openInNewTab;
+    OpenMode openMode = defaultOpenMode();
     if (accessible) {
         Solid::Device dev(udi);
         auto *access = dev.as<Solid::StorageAccess>();
@@ -353,12 +392,12 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
         }
         item.errorText.clear();
         shouldOpenAfterMount = item.openOnMount;
-        inNewTab = item.openInNewTabOnMount;
+        openMode = item.openModeOnMount;
         item.openOnMount = false;
-        item.openInNewTabOnMount = false;
+        item.openModeOnMount = OpenMode::DefaultApplication;
     } else {
         item.openOnMount = false;
-        item.openInNewTabOnMount = false;
+        item.openModeOnMount = OpenMode::DefaultApplication;
         item.mountUrl.clear();
     }
 
@@ -366,7 +405,7 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
     emit dataChanged(idx, idx, {MountedRole, CanOpenRole, MountUrlRole, BusyRole, OperationRole, ErrorTextRole});
 
     if (shouldOpenAfterMount) {
-        openWhenReady(udi, inNewTab, 10);
+        openWhenReady(udi, openMode, 10);
     }
 }
 
@@ -463,10 +502,15 @@ void RemovableVolumesModel::reportError(const QString &udi, const QString &messa
 
 void RemovableVolumesModel::mount(const QString &udi)
 {
-    mount(udi, m_openInNewTab);
+    mount(udi, defaultOpenMode());
 }
 
 void RemovableVolumesModel::mount(const QString &udi, bool inNewTab)
+{
+    mount(udi, inNewTab ? OpenMode::DolphinTab : OpenMode::DolphinWindow);
+}
+
+void RemovableVolumesModel::mount(const QString &udi, OpenMode mode)
 {
     int row = findRowByUdi(udi);
     if (row == -1) {
@@ -491,7 +535,7 @@ void RemovableVolumesModel::mount(const QString &udi, bool inNewTab)
     item.busy = true;
     item.operation = QStringLiteral("mounting");
     item.openOnMount = true;
-    item.openInNewTabOnMount = inNewTab;
+    item.openModeOnMount = mode;
     item.errorText.clear();
     QModelIndex idx = createIndex(row, 0);
     emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
@@ -507,7 +551,7 @@ void RemovableVolumesModel::mount(const QString &udi, bool inNewTab)
         currentItem.busy = false;
         currentItem.operation = QStringLiteral("idle");
         currentItem.openOnMount = false;
-        currentItem.openInNewTabOnMount = false;
+        currentItem.openModeOnMount = OpenMode::DefaultApplication;
         currentItem.errorText = errorMsg;
         const QModelIndex currentIdx = createIndex(currentRow, 0);
         emit dataChanged(currentIdx, currentIdx,
@@ -530,7 +574,7 @@ void RemovableVolumesModel::onSetupDone(Solid::ErrorType error, const QVariant &
 
     if (error != Solid::NoError) {
         item.openOnMount = false;
-        item.openInNewTabOnMount = false;
+        item.openModeOnMount = OpenMode::DefaultApplication;
         QString msg = errorData.toString();
         if (msg.isEmpty()) {
             msg = i18n("Failed to mount volume.");
@@ -548,7 +592,7 @@ void RemovableVolumesModel::onSetupDone(Solid::ErrorType error, const QVariant &
     }
 }
 
-void RemovableVolumesModel::openWhenReady(const QString &udi, bool inNewTab, int retries)
+void RemovableVolumesModel::openWhenReady(const QString &udi, OpenMode mode, int retries)
 {
     int row = findRowByUdi(udi);
     if (row == -1) {
@@ -571,14 +615,14 @@ void RemovableVolumesModel::openWhenReady(const QString &udi, bool inNewTab, int
                 const QModelIndex idx = createIndex(row, 0);
                 emit dataChanged(idx, idx, {MountUrlRole, CanOpenRole});
             }
-            openUrl(mountUrl, inNewTab);
+            openUrl(mountUrl, mode);
             return;
         }
     }
 
     if (retries > 0) {
-        QTimer::singleShot(100, this, [this, udi, inNewTab, retries]() {
-            openWhenReady(udi, inNewTab, retries - 1);
+        QTimer::singleShot(100, this, [this, udi, mode, retries]() {
+            openWhenReady(udi, mode, retries - 1);
         });
     } else {
         reportError(udi, i18n("Failed to open volume."));
@@ -587,10 +631,16 @@ void RemovableVolumesModel::openWhenReady(const QString &udi, bool inNewTab, int
 
 void RemovableVolumesModel::open(const QString &udi)
 {
-    open(udi, m_openInNewTab);
+    open(udi, defaultOpenMode());
 }
 
 void RemovableVolumesModel::open(const QString &udi, bool inNewTab)
+{
+    // Nur der ausdrueckliche Menuebefehl darf eine Anwendung erzwingen.
+    open(udi, inNewTab ? OpenMode::DolphinTab : OpenMode::DolphinWindow);
+}
+
+void RemovableVolumesModel::open(const QString &udi, OpenMode mode)
 {
     int row = findRowByUdi(udi);
     if (row == -1) {
@@ -599,7 +649,7 @@ void RemovableVolumesModel::open(const QString &udi, bool inNewTab)
 
     // If not mounted, mount first — onAccessibilityChanged will update the model
     if (!m_items.at(row).mounted) {
-        mount(udi, inNewTab);
+        mount(udi, mode);
         return;
     }
 
@@ -609,7 +659,7 @@ void RemovableVolumesModel::open(const QString &udi, bool inNewTab)
         emit dataChanged(idx, idx, {ErrorTextRole});
     }
 
-    openWhenReady(udi, inNewTab, 10);
+    openWhenReady(udi, mode, 10);
 }
 
 void RemovableVolumesModel::remove(const QString &udi)
@@ -695,6 +745,18 @@ void RemovableVolumesModel::remove(const QString &udi)
     }
 }
 
+bool RemovableVolumesModel::isDolphinService(const QString &service)
+{
+    // Dolphin meldet sich als `org.kde.dolphin` bzw. `org.kde.dolphin-<pid>`.
+    // Ein `startsWith("org.kde.dolphin")` traf auch `org.kde.dolphinator` oder
+    // `org.kde.dolphin.irgendwas` — und JEDE lokale Anwendung darf sich einen
+    // beliebigen Namen auf dem Sitzungsbus registrieren. Wir schicken hier
+    // einen Einhaengepfad an einen fremden Prozess und rufen anschliessend
+    // `activateWindow`; der Abgleich muss deshalb exakt sein.
+    static const QRegularExpression re(QStringLiteral("^org\\.kde\\.dolphin(-\\d+)?$"));
+    return re.match(service).hasMatch();
+}
+
 bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
 {
     const QDBusConnection bus = QDBusConnection::sessionBus();
@@ -710,45 +772,52 @@ bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
     const QStringList services = servicesReply.value();
     QString chosenService;
     QString chosenPath;
+    bool foundActive = false;
+    int inspectedServices = 0;
 
     for (const QString &service : services) {
-        if (!service.startsWith(QLatin1String("org.kde.dolphin"))) {
+        if (!isDolphinService(service)) {
+            continue;
+        }
+        if (++inspectedServices > kMaxDolphinServices) {
+            break;
+        }
+
+        const QDBusMessage xmlReply = callDolphin(bus, service, QStringLiteral("/dolphin"),
+                                                  QStringLiteral("org.freedesktop.DBus.Introspectable"),
+                                                  QStringLiteral("Introspect"));
+        if (xmlReply.type() != QDBusMessage::ReplyMessage || xmlReply.arguments().isEmpty()) {
             continue;
         }
 
-        QDBusInterface rootIface(service, QStringLiteral("/dolphin"),
-                                 QStringLiteral("org.freedesktop.DBus.Introspectable"), bus);
-        if (!rootIface.isValid()) {
-            continue;
-        }
-
-        const QDBusReply<QString> xmlReply = rootIface.call(QStringLiteral("Introspect"));
-        if (!xmlReply.isValid()) {
-            continue;
-        }
-
-        const QString xml = xmlReply.value();
+        const QString xml = xmlReply.arguments().constFirst().toString();
         static const QRegularExpression nodeRe(QStringLiteral("<node name=\"(Dolphin_\\d+)\""));
         auto it = nodeRe.globalMatch(xml);
-        while (it.hasNext()) {
-            const auto match = it.next();
-            const QString winPath = QStringLiteral("/dolphin/") + match.captured(1);
-            QDBusInterface winIface(service, winPath,
-                                    QStringLiteral("org.kde.dolphin.MainWindow"), bus);
-            if (winIface.isValid()) {
-                const QDBusReply<bool> activeReply = winIface.call(QStringLiteral("isActiveWindow"));
-                if (activeReply.isValid() && activeReply.value()) {
-                    chosenService = service;
-                    chosenPath = winPath;
-                    break;
-                } else if (chosenService.isEmpty()) {
-                    chosenService = service;
-                    chosenPath = winPath;
-                }
+        int inspectedWindows = 0;
+        while (it.hasNext() && ++inspectedWindows <= kMaxDolphinWindows) {
+            const QString winPath = QStringLiteral("/dolphin/") + it.next().captured(1);
+            const QDBusMessage activeReply =
+                callDolphin(bus, service, winPath, QLatin1String(kDolphinMainWindowIface),
+                            QStringLiteral("isActiveWindow"));
+            if (activeReply.type() != QDBusMessage::ReplyMessage || activeReply.arguments().isEmpty()) {
+                continue;
+            }
+            if (chosenService.isEmpty()) {
+                chosenService = service;
+                chosenPath = winPath;
+            }
+            if (activeReply.arguments().constFirst().toBool()) {
+                chosenService = service;
+                chosenPath = winPath;
+                foundActive = true;
+                break;
             }
         }
 
-        if (!chosenService.isEmpty() && !chosenPath.isEmpty()) {
+        // Erst abbrechen, wenn das AKTIVE Fenster gefunden ist. Vorher brach die
+        // Suche schon beim ersten irgendwie erreichbaren Fenster ab und konnte
+        // das aktive eines zweiten Dolphin-Prozesses nie mehr erreichen.
+        if (foundActive) {
             break;
         }
     }
@@ -757,40 +826,40 @@ bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
         return false;
     }
 
-    QDBusInterface winIface(chosenService, chosenPath,
-                            QStringLiteral("org.kde.dolphin.MainWindow"), bus);
-    if (!winIface.isValid()) {
+    const QDBusMessage openReply =
+        callDolphin(bus, chosenService, chosenPath, QLatin1String(kDolphinMainWindowIface),
+                    QStringLiteral("openDirectories"),
+                    QVariantList{QStringList{url.toString()}, false});
+    if (openReply.type() != QDBusMessage::ReplyMessage) {
         return false;
     }
 
-    const QString urlString = url.toString();
-    const QDBusMessage reply = winIface.call(QStringLiteral("openDirectories"),
-                                             QStringList{urlString}, false);
-    if (reply.type() == QDBusMessage::ErrorMessage) {
-        return false;
-    }
-
-    winIface.call(QStringLiteral("activateWindow"), QString());
+    callDolphin(bus, chosenService, chosenPath, QLatin1String(kDolphinMainWindowIface),
+                QStringLiteral("activateWindow"), QVariantList{QString()});
     return true;
 }
 
-void RemovableVolumesModel::openUrl(const QUrl &url, bool inNewTab)
+void RemovableVolumesModel::openUrl(const QUrl &url, OpenMode mode)
 {
-    if (inNewTab) {
+    switch (mode) {
+    case OpenMode::DolphinTab:
         if (openInDolphinTab(url)) {
             return;
         }
-        // Fall back to opening via desktop services if no running Dolphin instance is found
-        QDesktopServices::openUrl(url);
-        return;
+        // Kein erreichbarer Dolphin — auf den Dateimanager des Systems zurueck.
+        break;
+    case OpenMode::DolphinWindow: {
+        // `--new-window` erzwingt ein eigenes Fenster, selbst wenn Dolphin auf
+        // Tabs eingestellt ist. Nur fuer den ausdruecklichen Menuebefehl.
+        const QString targetArg = url.isLocalFile() ? url.toLocalFile() : url.toString();
+        if (QProcess::startDetached(QStringLiteral("dolphin"),
+                                    QStringList{QStringLiteral("--new-window"), targetArg})) {
+            return;
+        }
+        break;
     }
-
-    // inNewTab is false: explicitly open in a new window. Dolphin supports `--new-window`
-    // which guarantees a separate window even when Dolphin is configured to open in tabs.
-    const QString targetArg = url.isLocalFile() ? url.toLocalFile() : url.toString();
-    if (QProcess::startDetached(QStringLiteral("dolphin"),
-                                QStringList{QStringLiteral("--new-window"), targetArg})) {
-        return;
+    case OpenMode::DefaultApplication:
+        break;
     }
 
     QDesktopServices::openUrl(url);
