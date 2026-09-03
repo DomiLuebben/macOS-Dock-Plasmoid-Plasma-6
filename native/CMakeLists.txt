@@ -67,6 +67,7 @@ if(BUILD_TESTING)
     )
     target_link_libraries(removablevolumesmodeltest PRIVATE
         Qt6::Core
+        Qt6::DBus
         Qt6::Test
         KF6::Solid
         KF6::I18n

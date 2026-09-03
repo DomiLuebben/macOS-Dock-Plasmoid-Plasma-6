@@ -101,6 +101,9 @@
     <entry name="showRemovableVolumes" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="openRemovableVolumesInNewTab" type="Bool">
+      <default>false</default>
+    </entry>
     <entry name="showDesktopSwitcher" type="Bool">
       <default>true</default>
     </entry>

@@ -16,7 +16,14 @@
 #include <KIO/OpenUrlJob>
 #include <KJob>
 #include <KLocalizedString>
+#include <QDBusConnection>
+#include <QDBusConnectionInterface>
+#include <QDBusInterface>
+#include <QDBusMessage>
+#include <QDBusReply>
 #include <QDesktopServices>
+#include <QProcess>
+#include <QRegularExpression>
 #include <QTimer>
 #include <QDebug>
 
@@ -42,6 +49,20 @@ int RemovableVolumesModel::rowCount(const QModelIndex &parent) const
 int RemovableVolumesModel::count() const
 {
     return m_items.size();
+}
+
+bool RemovableVolumesModel::openInNewTab() const
+{
+    return m_openInNewTab;
+}
+
+void RemovableVolumesModel::setOpenInNewTab(bool openInNewTab)
+{
+    if (m_openInNewTab == openInNewTab) {
+        return;
+    }
+    m_openInNewTab = openInNewTab;
+    emit openInNewTabChanged();
 }
 
 QVariant RemovableVolumesModel::data(const QModelIndex &index, int role) const
@@ -153,15 +174,17 @@ bool RemovableVolumesModel::isCandidateDevice(const QString &udi, VolumeItem &it
         return false;
     }
 
-    if (requireMounted) {
-        if (!access->isAccessible()) {
+    if (requireMounted && !access->isAccessible()) {
+        return false;
+    }
+
+    if (access->isAccessible()) {
+        const QString filePath = access->filePath();
+        if (!filePath.isEmpty() && filePath != QStringLiteral("/")) {
+            itemOut.mountUrl = QUrl::fromLocalFile(filePath);
+        } else if (requireMounted) {
             return false;
         }
-        QString filePath = access->filePath();
-        if (filePath.isEmpty() || filePath == QStringLiteral("/")) {
-            return false;
-        }
-        itemOut.mountUrl = QUrl::fromLocalFile(filePath);
     }
 
     itemOut.udi = udi;
@@ -240,6 +263,7 @@ void RemovableVolumesModel::refreshModel()
 {
     beginResetModel();
     m_items.clear();
+    m_watchedUdis.clear();
 
     const auto volumeDevices = Solid::Device::listFromType(Solid::DeviceInterface::StorageVolume);
     for (const Solid::Device &dev : volumeDevices) {
@@ -247,18 +271,6 @@ void RemovableVolumesModel::refreshModel()
         VolumeItem item;
         if (isCandidateDevice(udi, item, false)) {
             connectDeviceSignals(udi);
-            // Fill mountUrl if already mounted
-            if (item.mounted) {
-                Solid::Device d(udi);
-                auto *access = d.as<Solid::StorageAccess>();
-                if (access) {
-                    QString fp = access->filePath();
-                    if (!fp.isEmpty() && fp != QStringLiteral("/")) {
-                        item.mountUrl = QUrl::fromLocalFile(fp);
-                        item.canOpen = true;
-                    }
-                }
-            }
             m_items.append(item);
         }
     }
@@ -269,17 +281,6 @@ void RemovableVolumesModel::refreshModel()
         VolumeItem item;
         if (isCandidateDevice(udi, item, false) && findRowByUdi(udi) == -1) {
             connectDeviceSignals(udi);
-            if (item.mounted) {
-                Solid::Device d(udi);
-                auto *access = d.as<Solid::StorageAccess>();
-                if (access) {
-                    QString fp = access->filePath();
-                    if (!fp.isEmpty() && fp != QStringLiteral("/")) {
-                        item.mountUrl = QUrl::fromLocalFile(fp);
-                        item.canOpen = true;
-                    }
-                }
-            }
             m_items.append(item);
         }
     }
@@ -293,18 +294,6 @@ void RemovableVolumesModel::onDeviceAdded(const QString &udi)
     VolumeItem item;
     if (isCandidateDevice(udi, item, false) && findRowByUdi(udi) == -1) {
         connectDeviceSignals(udi);
-        // Fill mountUrl if already mounted
-        if (item.mounted) {
-            Solid::Device d(udi);
-            auto *access = d.as<Solid::StorageAccess>();
-            if (access) {
-                QString fp = access->filePath();
-                if (!fp.isEmpty() && fp != QStringLiteral("/")) {
-                    item.mountUrl = QUrl::fromLocalFile(fp);
-                    item.canOpen = true;
-                }
-            }
-        }
         int newRow = m_items.size();
         beginInsertRows(QModelIndex(), newRow, newRow);
         m_items.append(item);
@@ -335,16 +324,6 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
             VolumeItem item;
             if (isCandidateDevice(udi, item, false)) {
                 connectDeviceSignals(udi);
-                Solid::Device d(udi);
-                auto *access = d.as<Solid::StorageAccess>();
-                if (access) {
-                    QString fp = access->filePath();
-                    if (!fp.isEmpty() && fp != QStringLiteral("/")) {
-                        item.mountUrl = QUrl::fromLocalFile(fp);
-                    }
-                }
-                item.mounted = true;
-                item.canOpen = true;
                 int newRow = m_items.size();
                 beginInsertRows(QModelIndex(), newRow, newRow);
                 m_items.append(item);
@@ -362,6 +341,7 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
     item.operation = QStringLiteral("idle");
 
     bool shouldOpenAfterMount = false;
+    bool inNewTab = m_openInNewTab;
     if (accessible) {
         Solid::Device dev(udi);
         auto *access = dev.as<Solid::StorageAccess>();
@@ -373,9 +353,12 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
         }
         item.errorText.clear();
         shouldOpenAfterMount = item.openOnMount;
+        inNewTab = item.openInNewTabOnMount;
         item.openOnMount = false;
+        item.openInNewTabOnMount = false;
     } else {
         item.openOnMount = false;
+        item.openInNewTabOnMount = false;
         item.mountUrl.clear();
     }
 
@@ -383,7 +366,7 @@ void RemovableVolumesModel::onAccessibilityChanged(bool accessible, const QStrin
     emit dataChanged(idx, idx, {MountedRole, CanOpenRole, MountUrlRole, BusyRole, OperationRole, ErrorTextRole});
 
     if (shouldOpenAfterMount) {
-        openWhenReady(udi, 10);
+        openWhenReady(udi, inNewTab, 10);
     }
 }
 
@@ -480,6 +463,11 @@ void RemovableVolumesModel::reportError(const QString &udi, const QString &messa
 
 void RemovableVolumesModel::mount(const QString &udi)
 {
+    mount(udi, m_openInNewTab);
+}
+
+void RemovableVolumesModel::mount(const QString &udi, bool inNewTab)
+{
     int row = findRowByUdi(udi);
     if (row == -1) {
         return;
@@ -503,29 +491,28 @@ void RemovableVolumesModel::mount(const QString &udi)
     item.busy = true;
     item.operation = QStringLiteral("mounting");
     item.openOnMount = true;
+    item.openInNewTabOnMount = inNewTab;
     item.errorText.clear();
     QModelIndex idx = createIndex(row, 0);
     emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
 
     if (!access->setup()) {
-        // Zeile neu bestimmen: emit dataChanged() ruft synchron QML auf, und
-        // Solid kann waehrend setup() ein deviceRemoved nachziehen. Beides kann
-        // m_items umbauen, wodurch die oben gehaltene Referenz und der Index
-        // ungueltig werden - Schreiben darauf waere undefiniertes Verhalten.
+        const QString errorMsg = i18n("Could not initiate mounting.");
         const int currentRow = findRowByUdi(udi);
         if (currentRow == -1) {
-            emit operationFailed(udi, i18n("Could not initiate mounting."));
+            emit operationFailed(udi, errorMsg);
             return;
         }
         VolumeItem &currentItem = m_items[currentRow];
         currentItem.busy = false;
         currentItem.operation = QStringLiteral("idle");
         currentItem.openOnMount = false;
-        currentItem.errorText = i18n("Could not initiate mounting.");
+        currentItem.openInNewTabOnMount = false;
+        currentItem.errorText = errorMsg;
         const QModelIndex currentIdx = createIndex(currentRow, 0);
         emit dataChanged(currentIdx, currentIdx,
                          {BusyRole, OperationRole, ErrorTextRole});
-        emit operationFailed(udi, currentItem.errorText);
+        emit operationFailed(udi, errorMsg);
     }
 }
 
@@ -543,6 +530,7 @@ void RemovableVolumesModel::onSetupDone(Solid::ErrorType error, const QVariant &
 
     if (error != Solid::NoError) {
         item.openOnMount = false;
+        item.openInNewTabOnMount = false;
         QString msg = errorData.toString();
         if (msg.isEmpty()) {
             msg = i18n("Failed to mount volume.");
@@ -560,7 +548,7 @@ void RemovableVolumesModel::onSetupDone(Solid::ErrorType error, const QVariant &
     }
 }
 
-void RemovableVolumesModel::openWhenReady(const QString &udi, int retries)
+void RemovableVolumesModel::openWhenReady(const QString &udi, bool inNewTab, int retries)
 {
     int row = findRowByUdi(udi);
     if (row == -1) {
@@ -576,15 +564,21 @@ void RemovableVolumesModel::openWhenReady(const QString &udi, int retries)
     if (access && access->isAccessible()) {
         QString path = access->filePath();
         if (!path.isEmpty() && path != QStringLiteral("/")) {
-            m_items[row].mountUrl = QUrl::fromLocalFile(path);
-            QDesktopServices::openUrl(m_items[row].mountUrl);
+            const QUrl mountUrl = QUrl::fromLocalFile(path);
+            if (m_items[row].mountUrl != mountUrl || !m_items[row].canOpen) {
+                m_items[row].mountUrl = mountUrl;
+                m_items[row].canOpen = true;
+                const QModelIndex idx = createIndex(row, 0);
+                emit dataChanged(idx, idx, {MountUrlRole, CanOpenRole});
+            }
+            openUrl(mountUrl, inNewTab);
             return;
         }
     }
 
     if (retries > 0) {
-        QTimer::singleShot(100, this, [this, udi, retries]() {
-            openWhenReady(udi, retries - 1);
+        QTimer::singleShot(100, this, [this, udi, inNewTab, retries]() {
+            openWhenReady(udi, inNewTab, retries - 1);
         });
     } else {
         reportError(udi, i18n("Failed to open volume."));
@@ -593,6 +587,11 @@ void RemovableVolumesModel::openWhenReady(const QString &udi, int retries)
 
 void RemovableVolumesModel::open(const QString &udi)
 {
+    open(udi, m_openInNewTab);
+}
+
+void RemovableVolumesModel::open(const QString &udi, bool inNewTab)
+{
     int row = findRowByUdi(udi);
     if (row == -1) {
         return;
@@ -600,18 +599,17 @@ void RemovableVolumesModel::open(const QString &udi)
 
     // If not mounted, mount first — onAccessibilityChanged will update the model
     if (!m_items.at(row).mounted) {
-        mount(udi);
+        mount(udi, inNewTab);
         return;
     }
 
-    VolumeItem &item = m_items[row];
-    if (!item.errorText.isEmpty()) {
-        item.errorText.clear();
-        QModelIndex idx = createIndex(row, 0);
+    if (!m_items.at(row).errorText.isEmpty()) {
+        m_items[row].errorText.clear();
+        const QModelIndex idx = createIndex(row, 0);
         emit dataChanged(idx, idx, {ErrorTextRole});
     }
 
-    openWhenReady(udi, 10);
+    openWhenReady(udi, inNewTab, 10);
 }
 
 void RemovableVolumesModel::remove(const QString &udi)
@@ -650,21 +648,20 @@ void RemovableVolumesModel::remove(const QString &udi)
         emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
 
         if (!optical->eject()) {
-            // Siehe mount(): nach dem Solid-Aufruf darf die alte Referenz nicht
-            // weiterbenutzt werden, das Auswerfen kann das Geraet entfernen.
+            const QString errorMsg = i18n("Could not initiate eject.");
             const int currentRow = findRowByUdi(udi);
             if (currentRow == -1) {
-                emit operationFailed(udi, i18n("Could not initiate eject."));
+                emit operationFailed(udi, errorMsg);
                 return;
             }
             VolumeItem &currentItem = m_items[currentRow];
             currentItem.busy = false;
             currentItem.operation = QStringLiteral("idle");
-            currentItem.errorText = i18n("Could not initiate eject.");
+            currentItem.errorText = errorMsg;
             const QModelIndex currentIdx = createIndex(currentRow, 0);
             emit dataChanged(currentIdx, currentIdx,
                              {BusyRole, OperationRole, ErrorTextRole});
-            emit operationFailed(udi, currentItem.errorText);
+            emit operationFailed(udi, errorMsg);
         }
         return;
     }
@@ -681,19 +678,120 @@ void RemovableVolumesModel::remove(const QString &udi)
     emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
 
     if (!access->teardown()) {
-        // Siehe mount(): Aushaengen kann das Geraet verschwinden lassen.
+        const QString errorMsg = i18n("Could not initiate unmounting.");
         const int currentRow = findRowByUdi(udi);
         if (currentRow == -1) {
-            emit operationFailed(udi, i18n("Could not initiate unmounting."));
+            emit operationFailed(udi, errorMsg);
             return;
         }
         VolumeItem &currentItem = m_items[currentRow];
         currentItem.busy = false;
         currentItem.operation = QStringLiteral("idle");
-        currentItem.errorText = i18n("Could not initiate unmounting.");
+        currentItem.errorText = errorMsg;
         const QModelIndex currentIdx = createIndex(currentRow, 0);
         emit dataChanged(currentIdx, currentIdx,
                          {BusyRole, OperationRole, ErrorTextRole});
-        emit operationFailed(udi, currentItem.errorText);
+        emit operationFailed(udi, errorMsg);
     }
+}
+
+bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
+{
+    const QDBusConnection bus = QDBusConnection::sessionBus();
+    if (!bus.isConnected() || !bus.interface()) {
+        return false;
+    }
+
+    const QDBusReply<QStringList> servicesReply = bus.interface()->registeredServiceNames();
+    if (!servicesReply.isValid()) {
+        return false;
+    }
+
+    const QStringList services = servicesReply.value();
+    QString chosenService;
+    QString chosenPath;
+
+    for (const QString &service : services) {
+        if (!service.startsWith(QLatin1String("org.kde.dolphin"))) {
+            continue;
+        }
+
+        QDBusInterface rootIface(service, QStringLiteral("/dolphin"),
+                                 QStringLiteral("org.freedesktop.DBus.Introspectable"), bus);
+        if (!rootIface.isValid()) {
+            continue;
+        }
+
+        const QDBusReply<QString> xmlReply = rootIface.call(QStringLiteral("Introspect"));
+        if (!xmlReply.isValid()) {
+            continue;
+        }
+
+        const QString xml = xmlReply.value();
+        static const QRegularExpression nodeRe(QStringLiteral("<node name=\"(Dolphin_\\d+)\""));
+        auto it = nodeRe.globalMatch(xml);
+        while (it.hasNext()) {
+            const auto match = it.next();
+            const QString winPath = QStringLiteral("/dolphin/") + match.captured(1);
+            QDBusInterface winIface(service, winPath,
+                                    QStringLiteral("org.kde.dolphin.MainWindow"), bus);
+            if (winIface.isValid()) {
+                const QDBusReply<bool> activeReply = winIface.call(QStringLiteral("isActiveWindow"));
+                if (activeReply.isValid() && activeReply.value()) {
+                    chosenService = service;
+                    chosenPath = winPath;
+                    break;
+                } else if (chosenService.isEmpty()) {
+                    chosenService = service;
+                    chosenPath = winPath;
+                }
+            }
+        }
+
+        if (!chosenService.isEmpty() && !chosenPath.isEmpty()) {
+            break;
+        }
+    }
+
+    if (chosenService.isEmpty() || chosenPath.isEmpty()) {
+        return false;
+    }
+
+    QDBusInterface winIface(chosenService, chosenPath,
+                            QStringLiteral("org.kde.dolphin.MainWindow"), bus);
+    if (!winIface.isValid()) {
+        return false;
+    }
+
+    const QString urlString = url.toString();
+    const QDBusMessage reply = winIface.call(QStringLiteral("openDirectories"),
+                                             QStringList{urlString}, false);
+    if (reply.type() == QDBusMessage::ErrorMessage) {
+        return false;
+    }
+
+    winIface.call(QStringLiteral("activateWindow"), QString());
+    return true;
+}
+
+void RemovableVolumesModel::openUrl(const QUrl &url, bool inNewTab)
+{
+    if (inNewTab) {
+        if (openInDolphinTab(url)) {
+            return;
+        }
+        // Fall back to opening via desktop services if no running Dolphin instance is found
+        QDesktopServices::openUrl(url);
+        return;
+    }
+
+    // inNewTab is false: explicitly open in a new window. Dolphin supports `--new-window`
+    // which guarantees a separate window even when Dolphin is configured to open in tabs.
+    const QString targetArg = url.isLocalFile() ? url.toLocalFile() : url.toString();
+    if (QProcess::startDetached(QStringLiteral("dolphin"),
+                                QStringList{QStringLiteral("--new-window"), targetArg})) {
+        return;
+    }
+
+    QDesktopServices::openUrl(url);
 }

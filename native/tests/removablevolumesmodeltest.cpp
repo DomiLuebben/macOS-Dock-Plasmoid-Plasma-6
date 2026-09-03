@@ -118,6 +118,30 @@ private slots:
                      .toString(),
                  QString());
     }
+
+    void openInNewTabPropertyAndMethods()
+    {
+        RemovableVolumesModel model;
+        QCOMPARE(model.openInNewTab(), false);
+
+        QSignalSpy spy(&model, &RemovableVolumesModel::openInNewTabChanged);
+        model.setOpenInNewTab(true);
+        QCOMPARE(model.openInNewTab(), true);
+        QCOMPARE(spy.count(), 1);
+
+        // Setting same value should not emit signal
+        model.setOpenInNewTab(true);
+        QCOMPARE(spy.count(), 1);
+
+        model.setOpenInNewTab(false);
+        QCOMPARE(model.openInNewTab(), false);
+        QCOMPARE(spy.count(), 2);
+
+        // Verify open() with inNewTab overload does not crash
+        const QString stickUdi = QStringLiteral("/org/kde/solid/fakehw/volume_part1_size_993218560");
+        model.open(stickUdi, true);
+        model.open(stickUdi, false);
+    }
 };
 
 QTEST_GUILESS_MAIN(RemovableVolumesModelTest)

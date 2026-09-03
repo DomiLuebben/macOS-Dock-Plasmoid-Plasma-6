@@ -607,3 +607,15 @@ msgstr "Auswurfvorgang konnte nicht gestartet werden."
 #: native/removablevolumesmodel.cpp:664
 msgid "Could not initiate unmounting."
 msgstr "Aushängevorgang konnte nicht gestartet werden."
+
+#: contents/ui/ConfigGeneral.qml:582
+msgid "Open removable drives in a new tab"
+msgstr "Wechselmedien in neuem Tab öffnen"
+
+#: contents/ui/main.qml:3366
+msgid "Open in New Tab"
+msgstr "In neuem Tab öffnen"
+
+#: contents/ui/main.qml:3368
+msgid "Open in New Window"
+msgstr "In neuem Fenster öffnen"

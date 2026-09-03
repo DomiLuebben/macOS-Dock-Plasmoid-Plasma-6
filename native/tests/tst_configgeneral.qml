@@ -58,4 +58,21 @@ TestCase {
         compare(config.cfg_appGroupPopupOvershoot, 1.5);
         compare(config.cfg_folderHoverScale, 1.08);
     }
+
+    function test_acceptsRemovableVolumeConfiguration() {
+        failOnWarning(
+            /ConfigGeneral does not have a property called cfg_openRemovableVolumesInNewTab/);
+
+        var config = createTemporaryObject(configComponent, this, {
+            cfg_showRemovableVolumes: true,
+            cfg_showRemovableVolumesDefault: true,
+            cfg_openRemovableVolumesInNewTab: true,
+            cfg_openRemovableVolumesInNewTabDefault: false
+        });
+        verify(config);
+        compare(config.cfg_showRemovableVolumes, true);
+        compare(config.cfg_showRemovableVolumesDefault, true);
+        compare(config.cfg_openRemovableVolumesInNewTab, true);
+        compare(config.cfg_openRemovableVolumesInNewTabDefault, false);
+    }
 }

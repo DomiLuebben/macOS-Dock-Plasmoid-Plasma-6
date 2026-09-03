@@ -14,6 +14,7 @@ class RemovableVolumesModel : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY countChanged)
+    Q_PROPERTY(bool openInNewTab READ openInNewTab WRITE setOpenInNewTab NOTIFY openInNewTabChanged)
 
 public:
     enum Roles {
@@ -43,6 +44,7 @@ public:
         bool canOpen{true};
         bool canRemove{true};
         bool openOnMount{false};
+        bool openInNewTabOnMount{false};
         QString errorText;
     };
 
@@ -55,12 +57,18 @@ public:
 
     int count() const;
 
+    bool openInNewTab() const;
+    void setOpenInNewTab(bool openInNewTab);
+
     Q_INVOKABLE void open(const QString &udi);
+    Q_INVOKABLE void open(const QString &udi, bool inNewTab);
     Q_INVOKABLE void mount(const QString &udi);
+    Q_INVOKABLE void mount(const QString &udi, bool inNewTab);
     Q_INVOKABLE void remove(const QString &udi);
 
 signals:
     void countChanged();
+    void openInNewTabChanged();
     void operationFailed(const QString &udi, const QString &message);
     void operationSucceeded(const QString &udi);
 
@@ -79,10 +87,13 @@ private:
     int findRowByUdi(const QString &udi) const;
     void connectDeviceSignals(const QString &udi);
     void reportError(const QString &udi, const QString &message);
-    void openWhenReady(const QString &udi, int retries = 10);
+    void openWhenReady(const QString &udi, bool inNewTab, int retries = 10);
+    static bool openInDolphinTab(const QUrl &url);
+    static void openUrl(const QUrl &url, bool inNewTab);
 
     QList<VolumeItem> m_items;
     QSet<QString> m_watchedUdis;
+    bool m_openInNewTab = false;
 };
 
 #endif // REMOVABLEVOLUMESMODEL_H

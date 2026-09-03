@@ -607,3 +607,15 @@ msgstr "Impossible d'initier l'éjection."
 #: native/removablevolumesmodel.cpp:664
 msgid "Could not initiate unmounting."
 msgstr "Impossible d'initier le démontage."
+
+#: contents/ui/ConfigGeneral.qml:582
+msgid "Open removable drives in a new tab"
+msgstr "Ouvrir les disques amovibles dans un nouvel onglet"
+
+#: contents/ui/main.qml:3366
+msgid "Open in New Tab"
+msgstr "Ouvrir dans un nouvel onglet"
+
+#: contents/ui/main.qml:3368
+msgid "Open in New Window"
+msgstr "Ouvrir dans une nouvelle fenêtre"

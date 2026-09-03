@@ -47,6 +47,8 @@ KCM.SimpleKCM {
     property var cfg_folderUrls: []
     property alias cfg_showTrash: showTrashCheckBox.checked
     property alias cfg_showRemovableVolumes: showRemovableVolumesCheckBox.checked
+    property alias cfg_openRemovableVolumesInNewTab:
+        openRemovableVolumesInNewTabCheckBox.checked
     property alias cfg_showDesktopSwitcher:
         showDesktopSwitcherCheckBox.checked
     property alias cfg_desktopSwitcherPosition:
@@ -104,6 +106,7 @@ KCM.SimpleKCM {
     property var cfg_folderUrlsDefault: []
     property bool cfg_showTrashDefault: true
     property bool cfg_showRemovableVolumesDefault: true
+    property bool cfg_openRemovableVolumesInNewTabDefault: false
     property bool cfg_showDesktopSwitcherDefault: true
     property int cfg_desktopSwitcherPositionDefault: 0
     property int cfg_desktopSwitcherLabelModeDefault: 0
@@ -573,6 +576,14 @@ KCM.SimpleKCM {
             QQC2.CheckBox {
                 id: showRemovableVolumesCheckBox
                 text: i18n("Show removable drives")
+            }
+
+            QQC2.CheckBox {
+                id: openRemovableVolumesInNewTabCheckBox
+                text: i18n("Open removable drives in a new tab")
+                leftPadding: Kirigami.Units.largeSpacing + Kirigami.Units.smallSpacing
+                enabled: showRemovableVolumesCheckBox.checked
+                visible: showRemovableVolumesCheckBox.checked
             }
 
             QQC2.CheckBox {

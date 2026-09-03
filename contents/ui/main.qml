@@ -112,6 +112,9 @@ PlasmoidItem {
     readonly property bool showRemovableVolumes:
         Plasmoid.configuration.showRemovableVolumes === undefined
             ? true : Boolean(Plasmoid.configuration.showRemovableVolumes)
+    readonly property bool openRemovableVolumesInNewTab:
+        Plasmoid.configuration.openRemovableVolumesInNewTab === undefined
+            ? false : Boolean(Plasmoid.configuration.openRemovableVolumesInNewTab)
     property bool isVolumeDragOverTrash: false
 
     readonly property int removableVolumeCount: showRemovableVolumes
@@ -294,6 +297,7 @@ PlasmoidItem {
 
     DockEffects.RemovableVolumesModel {
         id: removableVolumesModel
+        openInNewTab: root.openRemovableVolumesInNewTab
         onOperationFailed: (udi, message) => {
             console.warn("macOS Dock: volume operation failed for", udi, ":", message);
         }
@@ -3359,14 +3363,31 @@ PlasmoidItem {
 
             QQC2.MenuItem {
                 text: volumeDelegate.volumeMounted
-                    ? i18n("Open Volume")
+                    ? (root.openRemovableVolumesInNewTab
+                        ? i18n("Open in New Tab")
+                        : i18n("Open in New Window"))
                     : (volumeDelegate.volumeOperation === "mounting"
                         ? i18n("Mounting…")
                         : i18n("Mount Volume"))
                 icon.name: volumeDelegate.volumeMounted
-                    ? "document-open-folder" : "media-mount"
+                    ? (root.openRemovableVolumesInNewTab
+                        ? "tab-new"
+                        : "document-open-folder")
+                    : "media-mount"
                 enabled: !volumeDelegate.volumeBusy
                 onTriggered: removableVolumesModel.open(volumeDelegate.volumeUdi)
+            }
+
+            QQC2.MenuItem {
+                text: root.openRemovableVolumesInNewTab
+                    ? i18n("Open in New Window")
+                    : i18n("Open in New Tab")
+                icon.name: root.openRemovableVolumesInNewTab
+                    ? "window-new"
+                    : "tab-new"
+                visible: volumeDelegate.volumeMounted
+                enabled: volumeDelegate.volumeMounted && !volumeDelegate.volumeBusy
+                onTriggered: removableVolumesModel.open(volumeDelegate.volumeUdi, !root.openRemovableVolumesInNewTab)
             }
 
             QQC2.MenuItem {
