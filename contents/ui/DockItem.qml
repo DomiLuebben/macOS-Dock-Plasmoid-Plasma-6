@@ -33,7 +33,12 @@ Item {
     property real clickBounceHeight: 4
     property real launchBounceHeight: 8
     property bool previewAvailable: isRunning
-    property bool inOverlay: true
+    // Nur Items im overlayWindow zeigen Tooltips/Vorschauen. Die Vorgabe ist
+    // bewusst false, damit die Delegates im baseWindow ohne Zutun still bleiben.
+    // Ableitungen duerfen diesen Namen NICHT erneut deklarieren — ein Schatten
+    // im abgeleiteten Typ nimmt die Zuweisung entgegen, waehrend DockItem
+    // weiterhin seine eigene Vorgabe liest (qmllint: property-override).
+    property bool inOverlay: false
     property bool anyPreviewOpen: false
     property bool isAppGroup: false
     property var groupPreviewItems: []

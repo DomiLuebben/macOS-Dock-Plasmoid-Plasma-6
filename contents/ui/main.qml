@@ -2552,7 +2552,6 @@ PlasmoidItem {
             }
         }
 
-        property bool inOverlay: false
         property bool previewCountedAsOpen: false
         property bool geometryPublishPending: false
 
@@ -3100,6 +3099,17 @@ PlasmoidItem {
                 root.previewClosed();
             }
         }
+
+        // Gegenstueck zur Erhoehung oben: Ordner- und Wechseldatentraeger-
+        // Delegates werden zur Laufzeit zerstoert (Ordner entfernt, Stick
+        // abgezogen). Ohne diesen Abzug bliebe openPreviewCount dauerhaft
+        // stehen und das Dock wuerde sich nie wieder automatisch verbergen.
+        Component.onDestruction: {
+            if (previewCountedAsOpen) {
+                previewCountedAsOpen = false;
+                root.previewClosed();
+            }
+        }
     }
 
     component UtilityDelegate: AuxiliaryDelegate {
@@ -3108,7 +3118,6 @@ PlasmoidItem {
         required property string utilityType
         property int folderIndex: -1
         property url folderUrl: ""
-        property bool inOverlay: false
 
         readonly property bool isFolder: utilityType === "folder"
         readonly property bool isTrash: utilityType === "trash"

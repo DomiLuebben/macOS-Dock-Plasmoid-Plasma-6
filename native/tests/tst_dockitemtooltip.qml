@@ -77,6 +77,53 @@ TestCase {
         verify(!dockItem.hasWindowPreviews, "Item with previewAvailable false must not have window previews");
     }
 
+    // Abbild der Ableitungskette aus main.qml. Deklariert dort ein abgeleiteter
+    // Typ "inOverlay" erneut, nimmt der Schatten die Zuweisung entgegen und
+    // DockItem liest weiter seine eigene Vorgabe — die Tooltips von Ordnern und
+    // Papierkorb fielen dadurch stumm aus. Diese Faelle laufen deshalb ueber die
+    // Kette, nicht ueber ein nacktes DockItem.
+    component AuxiliaryDelegate: DockItem {
+        inOverlay: false
+    }
+
+    component UtilityDelegate: AuxiliaryDelegate {}
+
+    UtilityDelegate {
+        id: folderOverlayItem
+        baseSize: 48
+        appName: "Dokumente"
+        inOverlay: true
+        location: PlasmaCore.Types.BottomEdge
+    }
+
+    UtilityDelegate {
+        id: folderBaseItem
+        baseSize: 48
+        appName: "Dokumente"
+        location: PlasmaCore.Types.BottomEdge
+    }
+
+    DockItem {
+        id: baseWindowTask
+        baseSize: 48
+        appName: "Test Application"
+        location: PlasmaCore.Types.BottomEdge
+    }
+
+    function test_auxiliaryDelegateChainKeepsOverlayFlag() {
+        verify(folderOverlayItem.tooltipOrPreviewAvailable,
+            "Ordner/Papierkorb im Overlay muessen ein Titel-Tooltip bekommen");
+        verify(!folderBaseItem.tooltipOrPreviewAvailable,
+            "Dieselben Items im baseWindow duerfen kein Tooltip zeigen");
+    }
+
+    function test_baseWindowItemIsSilentByDefault() {
+        verify(!baseWindowTask.inOverlay,
+            "DockItem muss ohne ausdrueckliche Zuweisung ausserhalb des Overlays liegen");
+        verify(!baseWindowTask.tooltipOrPreviewAvailable,
+            "Ein DockItem ohne inOverlay-Zuweisung darf kein Tooltip oeffnen");
+    }
+
     function test_positionPreviewWindowAboveBottomDock() {
         dockItem.location = PlasmaCore.Types.BottomEdge;
         dockItem.setPreviewOpen(true);
