@@ -39,6 +39,11 @@ Item {
     // im abgeleiteten Typ nimmt die Zuweisung entgegen, waehrend DockItem
     // weiterhin seine eigene Vorgabe liest (qmllint: property-override).
     property bool inOverlay: false
+    // Solange über diesem Item ein Ordner- oder Gruppen-Popup steht, darf das
+    // Titel-Tooltip nicht zusätzlich erscheinen. Ohne diese Sperre käme es
+    // nach dem Aufklappen noch hinterher: der Tooltip-Timer läuft mit
+    // Kirigami.Units.toolTipDelay und damit länger als die Aufklapp-Verzögerung.
+    property bool suppressTooltip: false
     property bool anyPreviewOpen: false
     property bool isAppGroup: false
     property var groupPreviewItems: []
@@ -192,7 +197,8 @@ Item {
         && root.previewAvailable
     readonly property bool hasTitleTooltip: root.appName.length > 0
     readonly property bool tooltipOrPreviewAvailable: root.inOverlay
-        && !root.isDragging && (root.hasWindowPreviews || root.hasTitleTooltip)
+        && !root.isDragging && !root.suppressTooltip
+        && (root.hasWindowPreviews || root.hasTitleTooltip)
 
     signal clicked()
     signal newInstanceRequested()
@@ -658,10 +664,20 @@ Item {
 
         HoverHandler {
             id: iconHover
+
+            // Qt reicht den Enabled-Zustand eines Items NICHT an seine
+            // Pointer-Handler weiter. Ohne diese Bindung faengt ein
+            // deaktiviertes DockItem weiterhin Hover und Klicks ab — genau das
+            // passierte bei den versteckten App-Gruppen-Mitgliedern, die mit
+            // opacity 0 ueber der Gruppenkachel liegen: das Tooltip nannte das
+            // versteckte Mitglied statt der Gruppe, und die Gruppe bekam den
+            // Hover nie zu sehen.
+            enabled: root.enabled
             cursorShape: Qt.PointingHandCursor
         }
 
         TapHandler {
+            enabled: root.enabled
             acceptedButtons: Qt.LeftButton
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
@@ -674,7 +690,7 @@ Item {
         DragHandler {
             id: dragHandler
 
-            enabled: root.dragEnabled
+            enabled: root.dragEnabled && root.enabled
             acceptedButtons: Qt.LeftButton
             target: null
 
@@ -704,6 +720,7 @@ Item {
         }
 
         TapHandler {
+            enabled: root.enabled
             acceptedButtons: Qt.MiddleButton
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
@@ -714,6 +731,7 @@ Item {
         }
 
         TapHandler {
+            enabled: root.enabled
             acceptedButtons: Qt.RightButton
             gesturePolicy: TapHandler.ReleaseWithinBounds
 

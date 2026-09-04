@@ -108,6 +108,10 @@ PlasmoidItem {
         Plasmoid.configuration.autoOpenFolderWithOpenDocument === undefined
             ? true
             : Boolean(Plasmoid.configuration.autoOpenFolderWithOpenDocument)
+    readonly property bool autoOpenAppGroupWithRunningApp:
+        Plasmoid.configuration.autoOpenAppGroupWithRunningApp === undefined
+            ? true
+            : Boolean(Plasmoid.configuration.autoOpenAppGroupWithRunningApp)
     readonly property int appGroupViewMode: Math.round(boundedNumber(
         Plasmoid.configuration.appGroupViewMode, 1, 0, 1))
     readonly property bool showTrash:
@@ -336,6 +340,8 @@ PlasmoidItem {
     property bool autoOpenedFolderHovered: false
     property bool appGroupPopupCountedAsOpen: false
     property bool appGroupPopupOpenPending: false
+    property bool appGroupPopupAutoOpened: false
+    property bool autoOpenedAppGroupHovered: false
     property string activeAppGroupId: ""
     property bool folderDropActive: false
     property url activeFolderUrl: configuredFolderUrl
@@ -704,6 +710,8 @@ PlasmoidItem {
         if (appGroupPopup.visible) {
             appGroupPopup.hidePopup();
         }
+        appGroupPopupAutoOpened = false;
+        autoOpenedAppGroupHovered = false;
         activeAppGroupId = group.id;
         appGroupPopup.groupId = group.id;
         appGroupPopup.groupName = group.name;
@@ -728,8 +736,47 @@ PlasmoidItem {
         }
     }
 
+    // Vom Überfahren ausgelöster Weg. Schaltet bewusst nicht um: ist die
+    // Gruppe schon offen, bleibt sie offen.
+    function autoOpenAppGroupPopup(groupId, visualParent) {
+        var group = appGroupById(groupId);
+        if (!group) {
+            return;
+        }
+        if ((appGroupPopup.visible || appGroupPopupOpenPending)
+                && activeAppGroupId === group.id) {
+            return;
+        }
+        // Erst öffnen, dann markieren: der Öffnungsweg setzt die Marke
+        // zurück, damit ein Klick nie als automatisch geöffnet gilt.
+        toggleAppGroupPopup(group.id, visualParent);
+        appGroupPopupAutoOpened = true;
+        autoOpenedAppGroupHovered = true;
+    }
+
+    // Wie bei den Ordnern: eine automatisch aufgegangene Gruppe verschwindet
+    // wieder, sobald der Zeiger das Symbol verlässt. Eine angeklickte bleibt
+    // stehen, solange der Zeiger irgendwo im Dock ist.
+    function noteAppGroupItemHover(groupId, hovered) {
+        var isAutoOpenedGroup = appGroupPopupAutoOpened
+            && activeAppGroupId === groupId;
+        if (hovered) {
+            if (isAutoOpenedGroup) {
+                autoOpenedAppGroupHovered = true;
+                appGroupPopupCloseTimer.stop();
+            }
+            return;
+        }
+        if (isAutoOpenedGroup) {
+            autoOpenedAppGroupHovered = false;
+            appGroupPopupCloseTimer.restart();
+        }
+    }
+
     function closeAppGroupPopup() {
         appGroupPopupOpenPending = false;
+        appGroupPopupAutoOpened = false;
+        autoOpenedAppGroupHovered = false;
         if (appGroupPopup.visible) {
             appGroupPopup.hidePopup();
         }
@@ -1616,6 +1663,20 @@ PlasmoidItem {
 
     function groupPreviewItems(group) {
         return groupRuntimeMembers(group).slice(0, 4);
+    }
+
+    // Läuft gerade eine Anwendung aus dieser Gruppe? Anders als bei den
+    // Dateiordnern braucht das kein Raten: groupRuntimeMembers() verbindet
+    // jedes gespeicherte Mitglied mit seiner Task-Zeile und weiß damit
+    // sicher, ob es ein Fenster hat.
+    function appGroupHasRunningMember(group) {
+        var members = groupRuntimeMembers(group);
+        for (var index = 0; index < members.length; ++index) {
+            if (members[index].running) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function groupHasRuntimeState(group, stateName) {
@@ -2547,6 +2608,9 @@ PlasmoidItem {
                 ? root.groupPreviewItems(appGroup) : [];
         }
 
+        suppressTooltip: appGroupLeader
+            && (appGroupPopup.visible || root.appGroupPopupOpenPending)
+            && root.activeAppGroupId === appGroup.id
         appName: appGroupLeader ? appGroup.name : originalAppName
         appIcon: originalAppIcon
         baseSize: root.baseIconSize
@@ -2737,6 +2801,43 @@ PlasmoidItem {
             if (!appGroupMember) {
                 triggerBounce();
                 root.launchNewInstance(index);
+            }
+        }
+
+        // App-Gruppe beim Überfahren aufklappen, sobald eine Anwendung aus der
+        // Gruppe läuft. Der Zeiger muss kurz stehenbleiben, damit die Gruppe
+        // beim bloßen Entlangfahren am Dock nicht aufspringt.
+        onIconHoveredChanged: {
+            if (!taskDelegate.appGroupLeader || !taskDelegate.inOverlay) {
+                return;
+            }
+            if (taskDelegate.iconHovered) {
+                appGroupAutoOpenTimer.restart();
+            } else {
+                appGroupAutoOpenTimer.stop();
+            }
+            root.noteAppGroupItemHover(taskDelegate.appGroup.id,
+                taskDelegate.iconHovered);
+        }
+
+        Timer {
+            id: appGroupAutoOpenTimer
+
+            interval: 500
+            repeat: false
+            onTriggered: {
+                if (!taskDelegate.iconHovered || taskDelegate.isDragging
+                        || root.taskDragActive || root.openMenuCount > 0
+                        || !root.autoOpenAppGroupWithRunningApp
+                        || !taskDelegate.appGroupLeader
+                        || !root.appGroupHasRunningMember(
+                            taskDelegate.appGroup)) {
+                    return;
+                }
+                // Das Titel-Tooltip säße sonst zusätzlich über dem Symbol.
+                taskDelegate.setPreviewOpen(false);
+                root.autoOpenAppGroupPopup(taskDelegate.appGroup.id,
+                    taskDelegate);
             }
         }
 
@@ -3249,6 +3350,10 @@ PlasmoidItem {
             }
         }
 
+        suppressTooltip: isFolder
+            && (folderPopup.visible || root.folderPopupOpenPending)
+            && root.comparableFolderUrl(root.activeFolderUrl)
+                === root.comparableFolderUrl(folderUrl)
         appName: isFolder
             ? root.folderName(folderUrl)
             : (isTrash ? i18n("Trash") : "")
@@ -3730,8 +3835,16 @@ PlasmoidItem {
         interval: 480
         repeat: false
         onTriggered: {
-            if (appGroupPopup.visible && !appGroupPopup.hovered
-                    && !root.overlayHovered) {
+            if (!appGroupPopup.visible || appGroupPopup.hovered) {
+                return;
+            }
+            if (root.appGroupPopupAutoOpened) {
+                if (!root.autoOpenedAppGroupHovered) {
+                    root.closeAppGroupPopup();
+                }
+                return;
+            }
+            if (!root.overlayHovered) {
                 appGroupPopup.hidePopup();
             }
         }

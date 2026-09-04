@@ -237,6 +237,12 @@ msgstr ""
 "Ouvrir le dossier au survol lorsqu'un document qui s'y trouve est ouvert"
 
 #: contents/ui/ConfigGeneral.qml:352
+msgid "Open app group on hover when one of its apps is running"
+msgstr ""
+"Ouvrir le groupe d'applications au survol lorsque l'une de ses applications "
+"est en cours d'exécution"
+
+#: contents/ui/ConfigGeneral.qml:357
 msgid "Show Trash"
 msgstr "Afficher la corbeille"
 

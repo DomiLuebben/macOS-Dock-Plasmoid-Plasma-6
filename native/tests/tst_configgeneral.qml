@@ -90,4 +90,17 @@ TestCase {
         compare(config.cfg_autoOpenFolderWithOpenDocument, false);
         compare(config.cfg_autoOpenFolderWithOpenDocumentDefault, true);
     }
+
+    function test_acceptsAppGroupAutoOpenConfiguration() {
+        failOnWarning(
+            /ConfigGeneral does not have a property called cfg_autoOpenAppGroupWithRunningApp/);
+
+        var config = createTemporaryObject(configComponent, this, {
+            cfg_autoOpenAppGroupWithRunningApp: false,
+            cfg_autoOpenAppGroupWithRunningAppDefault: true
+        });
+        verify(config);
+        compare(config.cfg_autoOpenAppGroupWithRunningApp, false);
+        compare(config.cfg_autoOpenAppGroupWithRunningAppDefault, true);
+    }
 }

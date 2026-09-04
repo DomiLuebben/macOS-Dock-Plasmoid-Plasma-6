@@ -44,6 +44,8 @@ KCM.SimpleKCM {
     property alias cfg_folderViewMode: folderViewModeCombo.currentIndex
     property alias cfg_autoOpenFolderWithOpenDocument:
         autoOpenFolderWithOpenDocumentCheckBox.checked
+    property alias cfg_autoOpenAppGroupWithRunningApp:
+        autoOpenAppGroupWithRunningAppCheckBox.checked
     property alias cfg_appGroupViewMode: appGroupViewModeCombo.currentIndex
     property alias cfg_folderUrl: folderUrlField.text
     property var cfg_folderUrls: []
@@ -105,6 +107,7 @@ KCM.SimpleKCM {
     property string cfg_folderUrlDefault: ""
     property int cfg_folderViewModeDefault: 0
     property bool cfg_autoOpenFolderWithOpenDocumentDefault: true
+    property bool cfg_autoOpenAppGroupWithRunningAppDefault: true
     property int cfg_appGroupViewModeDefault: 1
     property var cfg_folderUrlsDefault: []
     property bool cfg_showTrashDefault: true
@@ -577,6 +580,11 @@ KCM.SimpleKCM {
                 leftPadding: Kirigami.Units.largeSpacing + Kirigami.Units.smallSpacing
                 enabled: showFolderViewCheckBox.checked
                 visible: showFolderViewCheckBox.checked
+            }
+
+            QQC2.CheckBox {
+                id: autoOpenAppGroupWithRunningAppCheckBox
+                text: i18n("Open app group on hover when one of its apps is running")
             }
 
             QQC2.CheckBox {

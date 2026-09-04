@@ -236,6 +236,11 @@ msgid "Open folder on hover when a document from it is open"
 msgstr "Ordner beim Überfahren öffnen, wenn ein Dokument daraus geöffnet ist"
 
 #: contents/ui/ConfigGeneral.qml:352
+msgid "Open app group on hover when one of its apps is running"
+msgstr ""
+"App-Gruppe beim Überfahren öffnen, wenn eine ihrer Anwendungen läuft"
+
+#: contents/ui/ConfigGeneral.qml:357
 msgid "Show Trash"
 msgstr "Papierkorb anzeigen"
 

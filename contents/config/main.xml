@@ -94,6 +94,9 @@
     <entry name="autoOpenFolderWithOpenDocument" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="autoOpenAppGroupWithRunningApp" type="Bool">
+      <default>true</default>
+    </entry>
     <entry name="appGroupViewMode" type="Int">
       <default>1</default>
     </entry>

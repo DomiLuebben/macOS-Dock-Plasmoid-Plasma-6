@@ -37,6 +37,7 @@ TestCase {
         dockItem.isDragging = false;
         dockItem.isRunning = false;
         dockItem.windowsList = [];
+        dockItem.suppressTooltip = false;
         dockItem.setPreviewOpen(false);
     }
 
@@ -115,6 +116,65 @@ TestCase {
             "Ordner/Papierkorb im Overlay muessen ein Titel-Tooltip bekommen");
         verify(!folderBaseItem.tooltipOrPreviewAvailable,
             "Dieselben Items im baseWindow duerfen kein Tooltip zeigen");
+    }
+
+    function test_suppressTooltipSilencesTheItem() {
+        verify(dockItem.tooltipOrPreviewAvailable,
+            "Ausgangslage: Tooltip verfuegbar");
+        dockItem.setPreviewOpen(true);
+        verify(dockItem.previewOpen, "Tooltip muss offen sein");
+
+        // Steht ein Ordner- oder Gruppen-Popup ueber dem Symbol, darf das
+        // Titel-Tooltip nicht zusaetzlich nachkommen.
+        dockItem.suppressTooltip = true;
+        verify(!dockItem.tooltipOrPreviewAvailable,
+            "Bei suppressTooltip darf kein Tooltip verfuegbar sein");
+        verify(!dockItem.previewOpen,
+            "Ein offenes Tooltip muss beim Sperren sofort schliessen");
+
+        dockItem.suppressTooltip = false;
+        verify(dockItem.tooltipOrPreviewAvailable,
+            "Nach dem Entsperren muss das Tooltip wieder moeglich sein");
+    }
+
+    // Versteckte App-Gruppen-Mitglieder liegen mit opacity 0 ueber der
+    // Gruppenkachel und sind ueber `enabled: false` abgeschaltet. Qt reicht
+    // diesen Zustand aber NICHT an die Pointer-Handler weiter: ohne
+    // ausdrueckliche Bindung fingen sie Hover und Klicks weiterhin ab, das
+    // Tooltip nannte das versteckte Mitglied statt der Gruppe, und die Gruppe
+    // bekam den Hover nie zu sehen.
+    DockItem {
+        id: disabledItem
+        x: 250
+        y: 100
+        baseSize: 48
+        appName: "Verstecktes Gruppenmitglied"
+        inOverlay: true
+        enabled: false
+        opacity: 0
+        location: PlasmaCore.Types.BottomEdge
+    }
+
+    function test_disabledItemDoesNotCaptureHover() {
+        mouseMove(testCase, 0, 0);
+        verify(!disabledItem.iconHovered, "Ausgangslage: nicht ueberfahren");
+
+        mouseMove(disabledItem, disabledItem.width / 2,
+            disabledItem.height / 2);
+        verify(!disabledItem.iconHovered,
+            "Ein deaktiviertes DockItem darf den Hover nicht abfangen");
+        verify(!disabledItem.previewOpen,
+            "und erst recht kein Tooltip oeffnen");
+
+        // Gegenprobe: dasselbe Item eingeschaltet meldet den Hover sehr wohl.
+        disabledItem.enabled = true;
+        mouseMove(testCase, 0, 0);
+        mouseMove(disabledItem, disabledItem.width / 2,
+            disabledItem.height / 2);
+        verify(disabledItem.iconHovered,
+            "Eingeschaltet muss derselbe Hover ankommen");
+        disabledItem.enabled = false;
+        mouseMove(testCase, 0, 0);
     }
 
     function test_baseWindowItemIsSilentByDefault() {
