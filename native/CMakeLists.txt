@@ -111,6 +111,10 @@ if(BUILD_TESTING)
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_dockitemscale.qml"
     )
+    add_test(NAME dockitemfocusqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_dockitemfocus.qml"
+    )
     set_tests_properties(
         removablevolumedragqmltest
         appgroupstoreqmltest
@@ -118,6 +122,7 @@ if(BUILD_TESTING)
         progresscontrollerqmltest
         configgeneralqmltest
         dockitemscaleqmltest
+        dockitemfocusqmltest
         PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )

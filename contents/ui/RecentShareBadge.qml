@@ -46,16 +46,6 @@ Item {
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: -2
-        radius: width / 2
-        color: "transparent"
-        border.color: Kirigami.Theme.highlightColor
-        border.width: 2
-        visible: root.activeFocus
-    }
-
     MouseArea {
         id: mouseArea
         anchors.fill: parent
@@ -64,7 +54,6 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onClicked: (mouse) => {
             mouse.accepted = true;
-            root.forceActiveFocus();
             root.clicked();
         }
     }

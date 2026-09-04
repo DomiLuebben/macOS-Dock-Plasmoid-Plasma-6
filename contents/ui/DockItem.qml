@@ -571,16 +571,6 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            anchors.margins: -1
-            radius: 6
-            color: "transparent"
-            border.color: qtPalette.highlight
-            border.width: 2
-            visible: root.activeFocus
-        }
-
-        Rectangle {
-            anchors.fill: parent
             anchors.margins: -3
             z: -1
             radius: 9
@@ -644,7 +634,6 @@ Item {
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
             onTapped: {
-                root.forceActiveFocus();
                 root.clicked();
             }
         }
@@ -659,7 +648,6 @@ Item {
             onActiveChanged: {
                 if (active) {
                     root.isDragging = true;
-                    root.forceActiveFocus();
                     root.dragStarted(centroid.scenePosition.x,
                         centroid.scenePosition.y);
                 } else if (root.isDragging) {
@@ -686,7 +674,6 @@ Item {
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
             onTapped: {
-                root.forceActiveFocus();
                 root.newInstanceRequested();
             }
         }
@@ -696,7 +683,6 @@ Item {
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
             onTapped: {
-                root.forceActiveFocus();
                 root.contextMenuRequested();
             }
         }
