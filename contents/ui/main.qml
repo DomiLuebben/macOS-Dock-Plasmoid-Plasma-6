@@ -104,6 +104,10 @@ PlasmoidItem {
             ? true : Boolean(Plasmoid.configuration.showFolderView)
     readonly property int folderViewMode: Math.round(boundedNumber(
         Plasmoid.configuration.folderViewMode, 0, 0, 2))
+    readonly property bool autoOpenFolderWithOpenDocument:
+        Plasmoid.configuration.autoOpenFolderWithOpenDocument === undefined
+            ? true
+            : Boolean(Plasmoid.configuration.autoOpenFolderWithOpenDocument)
     readonly property int appGroupViewMode: Math.round(boundedNumber(
         Plasmoid.configuration.appGroupViewMode, 1, 0, 1))
     readonly property bool showTrash:
@@ -328,6 +332,8 @@ PlasmoidItem {
     property int openPreviewCount: 0
     property bool folderPopupCountedAsOpen: false
     property bool folderPopupOpenPending: false
+    property bool folderPopupAutoOpened: false
+    property bool autoOpenedFolderHovered: false
     property bool appGroupPopupCountedAsOpen: false
     property bool appGroupPopupOpenPending: false
     property string activeAppGroupId: ""
@@ -599,15 +605,8 @@ PlasmoidItem {
         trashModel.emptyTrashBin();
     }
 
-    function toggleFolderPopup(folderUrl, visualParent) {
+    function openFolderPopup(folderUrl, visualParent) {
         var targetUrl = String(folderUrl || configuredFolderUrl);
-        var sameTarget = comparableFolderUrl(activeFolderUrl)
-            === comparableFolderUrl(targetUrl);
-        closeAppGroupPopup();
-        if ((folderPopup.visible || folderPopupOpenPending) && sameTarget) {
-            closeFolderPopup();
-            return;
-        }
         if (folderPopup.visible) {
             folderPopup.close();
         }
@@ -619,6 +618,55 @@ PlasmoidItem {
         if (!folderPopupOpenPending) {
             folderPopupOpenPending = true;
             Qt.callLater(runScheduledFolderPopupOpen);
+        }
+    }
+
+    function toggleFolderPopup(folderUrl, visualParent) {
+        var targetUrl = String(folderUrl || configuredFolderUrl);
+        var sameTarget = comparableFolderUrl(activeFolderUrl)
+            === comparableFolderUrl(targetUrl);
+        closeAppGroupPopup();
+        if ((folderPopup.visible || folderPopupOpenPending) && sameTarget) {
+            closeFolderPopup();
+            return;
+        }
+        folderPopupAutoOpened = false;
+        openFolderPopup(targetUrl, visualParent);
+    }
+
+    // Vom Überfahren ausgelöster Weg. Anders als der Klick schaltet er nicht
+    // um: ist der Ordner schon offen, bleibt er offen.
+    function autoOpenFolderPopup(folderUrl, visualParent) {
+        var targetUrl = String(folderUrl || configuredFolderUrl);
+        if ((folderPopup.visible || folderPopupOpenPending)
+                && comparableFolderUrl(activeFolderUrl)
+                    === comparableFolderUrl(targetUrl)) {
+            return;
+        }
+        closeAppGroupPopup();
+        folderPopupAutoOpened = true;
+        autoOpenedFolderHovered = true;
+        openFolderPopup(targetUrl, visualParent);
+    }
+
+    // Ein von Hand geöffnetes Popup bleibt stehen, solange der Zeiger
+    // irgendwo im Dock ist. Ein automatisch aufgegangenes soll dagegen wieder
+    // verschwinden, sobald man den Ordner verlässt — sonst verdeckt es beim
+    // Weiterfahren zum nächsten Symbol die halbe Ecke.
+    function noteFolderItemHover(folderUrl, hovered) {
+        var isAutoOpenedFolder = folderPopupAutoOpened
+            && comparableFolderUrl(activeFolderUrl)
+                === comparableFolderUrl(folderUrl);
+        if (hovered) {
+            if (isAutoOpenedFolder) {
+                autoOpenedFolderHovered = true;
+                folderPopupCloseTimer.stop();
+            }
+            return;
+        }
+        if (isAutoOpenedFolder) {
+            autoOpenedFolderHovered = false;
+            folderPopupCloseTimer.restart();
         }
     }
 
@@ -634,6 +682,8 @@ PlasmoidItem {
 
     function closeFolderPopup() {
         folderPopupOpenPending = false;
+        folderPopupAutoOpened = false;
+        autoOpenedFolderHovered = false;
         if (folderPopup.visible) {
             folderPopup.close();
         }
@@ -897,6 +947,41 @@ PlasmoidItem {
 
     function taskRole(index, role) {
         return tasksModel.data(index, role);
+    }
+
+    // Qt.DisplayRole liefert im Tasks-Model den Fenstertitel; bei einem
+    // Gruppeneintrag steht dort nur der Anwendungsname, die Titel hängen an
+    // den Kindzeilen. Starterzeilen haben gar kein Fenster und bleiben außen
+    // vor. Wird nur beim Überfahren eines Ordners gerufen, nicht laufend.
+    function collectWindowTitles() {
+        var titles = [];
+        for (var row = 0; row < tasksModel.count; ++row) {
+            var parentIndex = modelIndex(row);
+            if (Boolean(taskRole(parentIndex,
+                    TaskManager.AbstractTasksModel.IsLauncher))) {
+                continue;
+            }
+            if (Boolean(taskRole(parentIndex,
+                    TaskManager.AbstractTasksModel.IsGroupParent))) {
+                var childCount = tasksModel.rowCount(parentIndex);
+                for (var child = 0; child < childCount; ++child) {
+                    var childIndex = tasksModel.makeModelIndex(row, child);
+                    titles.push(String(
+                        taskRole(childIndex, Qt.DisplayRole) || ""));
+                }
+                continue;
+            }
+            titles.push(String(taskRole(parentIndex, Qt.DisplayRole) || ""));
+        }
+        return titles;
+    }
+
+    function folderHasOpenDocument(folderUrl) {
+        if (!autoOpenFolderWithOpenDocument || !showFolderView) {
+            return false;
+        }
+        return openDocumentLocator.hasOpenDocument(folderUrl,
+            collectWindowTitles());
     }
 
     function updateScreenWindowState() {
@@ -2287,6 +2372,10 @@ PlasmoidItem {
         applet: Plasmoid
     }
 
+    DockEffects.OpenDocumentLocator {
+        id: openDocumentLocator
+    }
+
     Folder.FolderModel {
         id: trashModel
 
@@ -3196,6 +3285,42 @@ PlasmoidItem {
         }
         onContextMenuRequested: utilityMenu.popup()
 
+        // Ordner beim Überfahren aufklappen, sobald ein laufendes Fenster eine
+        // Datei aus genau diesem Ordner nennt. Die Abfrage kostet ein
+        // Verzeichnislisting und läuft deshalb erst, wenn der Zeiger eine
+        // Weile stehengeblieben ist — nicht bei jeder Mausbewegung.
+        onIconHoveredChanged: {
+            if (!utilityDelegate.isFolder || !utilityDelegate.inOverlay) {
+                return;
+            }
+            if (utilityDelegate.iconHovered) {
+                folderAutoOpenTimer.restart();
+            } else {
+                folderAutoOpenTimer.stop();
+            }
+            root.noteFolderItemHover(utilityDelegate.folderUrl,
+                utilityDelegate.iconHovered);
+        }
+
+        Timer {
+            id: folderAutoOpenTimer
+
+            interval: 500
+            repeat: false
+            onTriggered: {
+                if (!utilityDelegate.iconHovered || utilityDelegate.isDragging
+                        || root.taskDragActive || root.openMenuCount > 0
+                        || !root.folderHasOpenDocument(
+                            utilityDelegate.folderUrl)) {
+                    return;
+                }
+                // Das Titel-Tooltip säße sonst zusätzlich über dem Symbol.
+                utilityDelegate.setPreviewOpen(false);
+                root.autoOpenFolderPopup(utilityDelegate.folderUrl,
+                    utilityDelegate);
+            }
+        }
+
         DropArea {
             anchors.fill: parent
             enabled: utilityDelegate.isTrash
@@ -3527,8 +3652,16 @@ PlasmoidItem {
         interval: 380
         repeat: false
         onTriggered: {
-            if (folderPopup.visible && !folderPopup.hovered
-                    && !root.overlayHovered) {
+            if (!folderPopup.visible || folderPopup.hovered) {
+                return;
+            }
+            if (root.folderPopupAutoOpened) {
+                if (!root.autoOpenedFolderHovered) {
+                    root.closeFolderPopup();
+                }
+                return;
+            }
+            if (!root.overlayHovered) {
                 folderPopup.close();
             }
         }

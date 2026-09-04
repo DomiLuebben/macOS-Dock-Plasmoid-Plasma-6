@@ -24,6 +24,8 @@ add_library(macosdockeffectsplugin MODULE
     kdeconnectsharemonitor.h
     launcherprogressmonitor.cpp
     launcherprogressmonitor.h
+    opendocumentlocator.cpp
+    opendocumentlocator.h
     plugin.cpp
     removablevolumesmodel.cpp
     removablevolumesmodel.h
@@ -59,6 +61,11 @@ if(BUILD_TESTING)
         tests/desktopidutilstest.cpp
         desktopidutils.h
     )
+    add_executable(opendocumentlocatortest
+        tests/opendocumentlocatortest.cpp
+        opendocumentlocator.cpp
+        opendocumentlocator.h
+    )
     target_compile_definitions(removablevolumesmodeltest PRIVATE
         TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/tests/data/removable-volumes.xml"
     )
@@ -80,12 +87,22 @@ if(BUILD_TESTING)
         Qt6::Core
         Qt6::Test
     )
+    target_include_directories(opendocumentlocatortest PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(opendocumentlocatortest PRIVATE
+        Qt6::Core
+        Qt6::Test
+    )
 
     add_test(NAME removablevolumesmodeltest
         COMMAND removablevolumesmodeltest
     )
     add_test(NAME desktopidutilstest
         COMMAND desktopidutilstest
+    )
+    add_test(NAME opendocumentlocatortest
+        COMMAND opendocumentlocatortest
     )
     add_test(NAME removablevolumedragqmltest
         COMMAND Qt6::qmltestrunner

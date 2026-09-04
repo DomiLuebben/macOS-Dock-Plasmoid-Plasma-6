@@ -232,6 +232,11 @@ msgid "Show folder view"
 msgstr "Afficher la vue du dossier"
 
 #: contents/ui/ConfigGeneral.qml:344
+msgid "Open folder on hover when a document from it is open"
+msgstr ""
+"Ouvrir le dossier au survol lorsqu'un document qui s'y trouve est ouvert"
+
+#: contents/ui/ConfigGeneral.qml:352
 msgid "Show Trash"
 msgstr "Afficher la corbeille"
 

@@ -75,4 +75,19 @@ TestCase {
         compare(config.cfg_openRemovableVolumesInNewTab, true);
         compare(config.cfg_openRemovableVolumesInNewTabDefault, false);
     }
+
+    function test_acceptsFolderAutoOpenConfiguration() {
+        failOnWarning(
+            /ConfigGeneral does not have a property called cfg_autoOpenFolderWithOpenDocument/);
+
+        var config = createTemporaryObject(configComponent, this, {
+            cfg_showFolderView: true,
+            cfg_showFolderViewDefault: true,
+            cfg_autoOpenFolderWithOpenDocument: false,
+            cfg_autoOpenFolderWithOpenDocumentDefault: true
+        });
+        verify(config);
+        compare(config.cfg_autoOpenFolderWithOpenDocument, false);
+        compare(config.cfg_autoOpenFolderWithOpenDocumentDefault, true);
+    }
 }

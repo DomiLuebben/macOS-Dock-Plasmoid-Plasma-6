@@ -2,6 +2,7 @@
 #include "windowactions.h"
 #include "launcherprogressmonitor.h"
 #include "kdeconnectsharemonitor.h"
+#include "opendocumentlocator.h"
 #include "removablevolumesmodel.h"
 
 #include <QQmlEngine>
@@ -20,6 +21,7 @@ public:
         qmlRegisterType<LauncherProgressMonitor>(uri, 1, 0, "LauncherProgressMonitor");
         qmlRegisterType<KdeConnectShareMonitor>(uri, 1, 0, "KdeConnectShareMonitor");
         qmlRegisterType<RemovableVolumesModel>(uri, 1, 0, "RemovableVolumesModel");
+        qmlRegisterType<OpenDocumentLocator>(uri, 1, 0, "OpenDocumentLocator");
     }
 };
 
