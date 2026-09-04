@@ -17,6 +17,7 @@ Item {
 
     readonly property int previewCount: windowsList
         ? windowsList.length : 0
+    readonly property bool hasThumbnails: previewCount > 0
     readonly property int previewColumns:
         Math.min(Math.max(1, previewCount), 3)
     readonly property int previewRows:
@@ -38,17 +39,22 @@ Item {
     signal windowActivated(var modelIndex)
     signal windowClosed(var modelIndex)
 
-    implicitWidth: Math.max(previewViewportWidth,
-        appTitle.visible
-            ? Math.min(appTitle.implicitWidth, maximumPreviewWidth) : 0)
-    implicitHeight: previewViewportHeight + (appTitle.visible
-        ? appTitle.implicitHeight + contentLayout.spacing : 0)
+    implicitWidth: hasThumbnails
+        ? Math.max(previewViewportWidth,
+            appTitle.visible
+                ? Math.min(appTitle.implicitWidth, maximumPreviewWidth) : 0)
+        : (appTitle.visible
+            ? Math.min(appTitle.implicitWidth + Kirigami.Units.largeSpacing * 2, maximumPreviewWidth) : 0)
+    implicitHeight: (hasThumbnails
+        ? previewViewportHeight + (appTitle.visible ? contentLayout.spacing : 0)
+        : 0) + (appTitle.visible
+            ? appTitle.implicitHeight + (hasThumbnails ? 0 : Kirigami.Units.smallSpacing * 2) : 0)
 
     Kirigami.Theme.colorSet: Kirigami.Theme.Tooltip
     Kirigami.Theme.inherit: false
 
     onCaptureRequestedChanged: {
-        if (captureRequested) {
+        if (captureRequested && root.hasThumbnails) {
             captureStartTimer.restart();
         } else {
             captureStartTimer.stop();
@@ -67,13 +73,15 @@ Item {
     ColumnLayout {
         id: contentLayout
 
+        anchors.centerIn: parent
         spacing: Kirigami.Units.smallSpacing
 
         QQC2.Label {
             id: appTitle
 
             text: root.appName
-            font.bold: true
+            font.bold: root.hasThumbnails
+            font.weight: root.hasThumbnails ? Font.Bold : Font.Medium
             visible: root.appName.length > 0
             elide: Text.ElideRight
             Layout.maximumWidth: root.maximumPreviewWidth
@@ -83,8 +91,9 @@ Item {
         QQC2.ScrollView {
             id: previewScrollView
 
-            Layout.preferredWidth: root.previewViewportWidth
-            Layout.preferredHeight: root.previewViewportHeight
+            visible: root.hasThumbnails
+            Layout.preferredWidth: root.hasThumbnails ? root.previewViewportWidth : 0
+            Layout.preferredHeight: root.hasThumbnails ? root.previewViewportHeight : 0
             contentWidth: previewGrid.implicitWidth
             contentHeight: previewGrid.implicitHeight
             clip: true

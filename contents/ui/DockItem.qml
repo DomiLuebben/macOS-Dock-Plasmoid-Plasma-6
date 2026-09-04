@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.layershell as LayerShell
 import org.kde.plasma.core as PlasmaCore
@@ -34,6 +33,8 @@ Item {
     property real clickBounceHeight: 4
     property real launchBounceHeight: 8
     property bool previewAvailable: isRunning
+    property bool inOverlay: true
+    property bool anyPreviewOpen: false
     property bool isAppGroup: false
     property var groupPreviewItems: []
 
@@ -183,6 +184,10 @@ Item {
         && Boolean(previewWindowObject["previewHovered"])
     readonly property bool hasWindowPreviews: root.isRunning
         && Boolean(root.windowsList && root.windowsList.length > 0)
+        && root.previewAvailable
+    readonly property bool hasTitleTooltip: root.appName.length > 0
+    readonly property bool tooltipOrPreviewAvailable: root.inOverlay
+        && !root.isDragging && (root.hasWindowPreviews || root.hasTitleTooltip)
 
     signal clicked()
     signal newInstanceRequested()
@@ -195,18 +200,29 @@ Item {
     signal previewVisibilityChanged(bool visible)
 
     onHasWindowPreviewsChanged: {
-        if (root.hasWindowPreviews && root.iconHovered
-                && root.previewDataRequested && !root.previewOpen
-                && !root.isDragging) {
-            root.setPreviewOpen(true);
-        } else if (!root.hasWindowPreviews) {
+        if (root.previewOpen) {
+            root.schedulePreviewPosition();
+        }
+    }
+
+    onAppNameChanged: {
+        if (root.previewOpen) {
+            root.schedulePreviewPosition();
+        }
+    }
+
+    onTooltipOrPreviewAvailableChanged: {
+        if (!root.tooltipOrPreviewAvailable) {
+            previewOpenTimer.stop();
+            previewCloseTimer.stop();
             root.setPreviewOpen(false);
+        } else if (root.iconHovered && !root.isDragging) {
+            previewOpenTimer.restart();
         }
     }
 
     onIconHoveredChanged: {
-        if (root.iconHovered && root.previewAvailable
-                && !root.isDragging) {
+        if (root.iconHovered && root.tooltipOrPreviewAvailable) {
             previewCloseTimer.stop();
             if (!root.previewOpen && !root.previewDataRequested) {
                 previewOpenTimer.restart();
@@ -233,30 +249,16 @@ Item {
         }
     }
 
-    onPreviewAvailableChanged: {
-        if (!root.previewAvailable) {
-            previewOpenTimer.stop();
-            previewCloseTimer.stop();
-            root.setPreviewOpen(false);
-        } else if (root.iconHovered && !root.isDragging) {
-            previewOpenTimer.restart();
-        }
-    }
-
     Timer {
         id: previewOpenTimer
 
-        interval: Kirigami.Units.toolTipDelay
+        interval: (root.anyPreviewOpen && !root.hasWindowPreviews)
+            ? 40 : Kirigami.Units.toolTipDelay
         repeat: false
         onTriggered: {
-            if (root.iconHovered && root.previewAvailable
-                    && !root.isDragging) {
+            if (root.iconHovered && root.tooltipOrPreviewAvailable) {
                 root.previewDataRequested = true;
-                if (root.hasWindowPreviews) {
-                    root.setPreviewOpen(true);
-                } else {
-                    root.previewDataRequested = false;
-                }
+                root.setPreviewOpen(true);
             }
         }
     }
@@ -264,7 +266,7 @@ Item {
     Timer {
         id: previewCloseTimer
 
-        interval: 180
+        interval: root.hasWindowPreviews ? 180 : 40
         repeat: false
         onTriggered: {
             if (!root.iconHovered && !root.previewHovered) {
@@ -295,11 +297,16 @@ Item {
 
             flags: Qt.FramelessWindowHint | Qt.WindowDoesNotAcceptFocus
             color: "transparent"
-            width: previewContent.implicitWidth
-                + 2 * Kirigami.Units.smallSpacing
-            height: previewContent.implicitHeight
-                + 2 * Kirigami.Units.smallSpacing
+            width: root.hasWindowPreviews
+                ? previewContent.implicitWidth + 2 * Kirigami.Units.smallSpacing
+                : previewContent.implicitWidth
+            height: root.hasWindowPreviews
+                ? previewContent.implicitHeight + 2 * Kirigami.Units.smallSpacing
+                : previewContent.implicitHeight
             visible: false
+
+            Kirigami.Theme.colorSet: Kirigami.Theme.Tooltip
+            Kirigami.Theme.inherit: false
 
             LayerShell.Window.scope: "macosdock-preview"
             LayerShell.Window.anchors: {
@@ -327,6 +334,23 @@ Item {
 
             PlasmaCore.DialogBackground {
                 anchors.fill: parent
+                visible: root.hasWindowPreviews
+            }
+
+            Kirigami.ShadowedRectangle {
+                anchors.fill: parent
+                visible: !root.hasWindowPreviews
+                radius: height / 2
+                color: Qt.rgba(Kirigami.Theme.backgroundColor.r,
+                    Kirigami.Theme.backgroundColor.g,
+                    Kirigami.Theme.backgroundColor.b, 0.94)
+                border.width: 1
+                border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                    Kirigami.Theme.textColor.g,
+                    Kirigami.Theme.textColor.b, 0.22)
+                shadow.size: 8
+                shadow.yOffset: 2
+                shadow.color: Qt.rgba(0, 0, 0, 0.35)
             }
 
             onVisibleChanged: {
@@ -359,14 +383,17 @@ Item {
                 id: previewContent
 
                 anchors.fill: parent
-                anchors.margins: Kirigami.Units.smallSpacing
+                anchors.margins: root.hasWindowPreviews
+                    ? Kirigami.Units.smallSpacing
+                    : 0
                 windowsList: root.windowsList
                 appIcon: root.appIcon
                 appName: root.appName
-                captureRequested: previewWindow.visible
+                captureRequested: previewWindow.visible && root.hasWindowPreviews
 
                 HoverHandler {
                     id: previewHover
+                    enabled: root.hasWindowPreviews
                 }
 
                 onWindowActivated: (modelIndex) => {
@@ -634,6 +661,7 @@ Item {
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
             onTapped: {
+                root.setPreviewOpen(false);
                 root.clicked();
             }
         }
@@ -647,6 +675,7 @@ Item {
 
             onActiveChanged: {
                 if (active) {
+                    root.setPreviewOpen(false);
                     root.isDragging = true;
                     root.dragStarted(centroid.scenePosition.x,
                         centroid.scenePosition.y);
@@ -674,6 +703,7 @@ Item {
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
             onTapped: {
+                root.setPreviewOpen(false);
                 root.newInstanceRequested();
             }
         }
@@ -683,14 +713,10 @@ Item {
             gesturePolicy: TapHandler.ReleaseWithinBounds
 
             onTapped: {
+                root.setPreviewOpen(false);
                 root.contextMenuRequested();
             }
         }
-
-        QQC2.ToolTip.visible: iconHover.hovered && root.appName.length > 0 && !root.isDragging && (!root.isRunning || !root.windowsList || root.windowsList.length === 0)
-        QQC2.ToolTip.text: root.appName
-        QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
-
     }
 
     Rectangle {
@@ -735,8 +761,7 @@ Item {
     }
 
     function setPreviewOpen(open) {
-        var requested = Boolean(open && previewAvailable
-            && hasWindowPreviews && !isDragging);
+        var requested = Boolean(open && tooltipOrPreviewAvailable);
         var previewWindow = previewWindowObject;
         var windowVisible = previewWindow !== null && previewWindow.visible;
         if (previewOpen === requested && windowVisible === requested) {
@@ -786,7 +811,9 @@ Item {
         if (previewWindow === null) {
             return;
         }
-        var spacing = Kirigami.Units.smallSpacing;
+        var spacing = root.hasWindowPreviews
+            ? Kirigami.Units.smallSpacing
+            : Kirigami.Units.smallSpacing + 2;
         var targetScreen = previewWindow.screen;
         if (!targetScreen) {
             return;

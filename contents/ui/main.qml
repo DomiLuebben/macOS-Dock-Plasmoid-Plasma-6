@@ -835,12 +835,32 @@ PlasmoidItem {
         }
     }
 
+    function closeAuxiliaryPreviewsIn(repeater) {
+        if (!repeater) {
+            return;
+        }
+        for (var index = 0; index < repeater.count; ++index) {
+            var delegate = repeater.itemAt(index);
+            if (delegate) {
+                delegate.setPreviewOpen(false);
+            }
+        }
+    }
+
     function closeTransientUi() {
         closeOpenContextMenu();
         closeFolderPopup();
         closeAppGroupPopup();
         closeTaskPreviewsIn(baseRepeater);
         closeTaskPreviewsIn(overlayRepeater);
+        closeAuxiliaryPreviewsIn(folderOverlayRepeater);
+        closeAuxiliaryPreviewsIn(removableVolumeOverlayRepeater);
+        if (trashOverlayItem) {
+            trashOverlayItem.setPreviewOpen(false);
+        }
+        if (powerOverlayItem) {
+            powerOverlayItem.setPreviewOpen(false);
+        }
     }
 
     function previewOpened() {
@@ -2536,6 +2556,7 @@ PlasmoidItem {
         property bool previewCountedAsOpen: false
         property bool geometryPublishPending: false
 
+        anyPreviewOpen: root.openPreviewCount > 0
         previewAvailable: !appGroupMember && runningTask
         windowsList: (!appGroupMember && runningTask
                 && (previewDataRequested || previewOpen))
@@ -3053,7 +3074,9 @@ PlasmoidItem {
         required property int dockIndex
         property real displayScale: 1.0
         property real displayCrossExtent: root.baseIconSize
+        property bool previewCountedAsOpen: false
 
+        inOverlay: false
         baseSize: root.baseIconSize
         targetScale: displayScale
         scaleResponse: root.magnificationSpring
@@ -3066,6 +3089,17 @@ PlasmoidItem {
         clickBounceHeight: root.clickBounceHeight
         launchBounceHeight: root.launchBounceHeight
         dragEnabled: false
+        anyPreviewOpen: root.openPreviewCount > 0
+
+        onPreviewVisibilityChanged: (visible) => {
+            if (visible && !previewCountedAsOpen) {
+                previewCountedAsOpen = true;
+                root.previewOpened();
+            } else if (!visible && previewCountedAsOpen) {
+                previewCountedAsOpen = false;
+                root.previewClosed();
+            }
+        }
     }
 
     component UtilityDelegate: AuxiliaryDelegate {
@@ -4398,6 +4432,7 @@ PlasmoidItem {
                     delegate: RemovableVolumeDelegate {
                         required property int index
                         required property string udi
+                        inOverlay: true
                         required property string displayName
                         required property string iconName
                         required property string kind
@@ -4458,6 +4493,7 @@ PlasmoidItem {
                     id: powerOverlayItem
 
                     visible: root.showPowerButton
+                    inOverlay: true
                     dockIndex: root.powerButtonDockIndex
                     displayScale: root.scaleForIndex(dockIndex,
                         root.lastPointerMain, root.overlayOpen,
