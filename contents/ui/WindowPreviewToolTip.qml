@@ -4,7 +4,6 @@ import QtQuick
 import QtQuick.Controls as QQC2
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
-import org.kde.plasma.core as PlasmaCore
 
 Item {
     id: root
@@ -182,19 +181,6 @@ Item {
                                         previewCard.previewTimedOut = true
                                 }
 
-                                PlasmaCore.WindowThumbnail {
-                                    id: legacyThumbnail
-
-                                    anchors.fill: parent
-                                    winId: {
-                                        var id = Number(previewCard.modelData.winId);
-                                        return Number.isFinite(id) && id > 0 ? id : 0;
-                                    }
-                                    visible: !pipeWireThumbnail.hasThumbnail
-                                        && legacyThumbnail.thumbnailAvailable
-                                        && legacyThumbnail.winId > 0
-                                }
-
                                 QQC2.BusyIndicator {
                                     anchors.centerIn: parent
                                     width: Kirigami.Units.iconSizes.medium
@@ -203,7 +189,6 @@ Item {
                                     visible: pipeWireThumbnail.requestActive
                                         && !previewCard.previewTimedOut
                                         && !pipeWireThumbnail.hasThumbnail
-                                        && !legacyThumbnail.visible
                                 }
 
                                 QQC2.Label {
@@ -219,7 +204,6 @@ Item {
                                     text: i18n("Preview unavailable")
                                     // qmllint enable unqualified
                                     visible: !pipeWireThumbnail.hasThumbnail
-                                        && !legacyThumbnail.visible
                                         && (!pipeWireThumbnail.requestActive
                                             || previewCard.previewTimedOut)
                                 }
