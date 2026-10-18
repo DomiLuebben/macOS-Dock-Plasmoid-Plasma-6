@@ -3850,6 +3850,45 @@ PlasmoidItem {
         }
     }
 
+    // The compositor closes every layer surface when the last output goes
+    // away (suspend, DPMS off, monitor unplugged). QtWayland answers with
+    // QWindow::close(), which sets visible=false from C++ and leaves the
+    // declarative binding stale, so the dock would never come back. Restore
+    // the bindings once the outputs return.
+    function scheduleLayerWindowRecovery() {
+        layerWindowRecoveryTimer.restart();
+    }
+
+    function recoverLayerWindows() {
+        if (root.dockWindowVisible && !root.overlayVisible
+                && !baseWindow.visible) {
+            baseWindow.visible = true;
+            baseWindow.visible = Qt.binding(function () {
+                return root.dockWindowVisible && !root.overlayVisible;
+            });
+        }
+        if (root.overlayVisible && !overlayWindow.visible) {
+            overlayWindow.visible = true;
+            overlayWindow.visible = Qt.binding(function () {
+                return root.overlayVisible;
+            });
+        }
+        if ((root.dockWindowVisible && !root.overlayVisible
+                    && !baseWindow.visible)
+                || (root.overlayVisible && !overlayWindow.visible)) {
+            // Still refused (no output yet): try again later.
+            layerWindowRecoveryTimer.restart();
+        }
+    }
+
+    Timer {
+        id: layerWindowRecoveryTimer
+
+        interval: 1000
+        repeat: false
+        onTriggered: root.recoverLayerWindows()
+    }
+
     Window {
         id: baseWindow
 
@@ -3891,6 +3930,7 @@ PlasmoidItem {
         onVisibleChanged: {
             if (!visible) {
                 root.baseHovered = false;
+                root.scheduleLayerWindowRecovery();
             }
             root.republishTaskGeometry();
             geometryRepublishTimer.restart();
@@ -4276,6 +4316,7 @@ PlasmoidItem {
         onVisibleChanged: {
             if (!visible) {
                 root.overlayHovered = false;
+                root.scheduleLayerWindowRecovery();
             }
             root.republishTaskGeometry();
             geometryRepublishTimer.restart();
