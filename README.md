@@ -22,6 +22,10 @@ color scheme.
   grid, or fan layout in the widget settings
 - Optional progress rings for Plasma jobs and Unity-compatible downloads on
   application icons and matching folder stacks
+- Add Apps picker: right-click the Dock (or an app, or a group) and choose "Add Apps…" to
+  search every installed program, tick several at once, and sort them into new or
+  existing groups before adding; with several apps and no group chosen it asks whether
+  they should all go into one group
 - Unread-message badges on application icons and on app group folders, like
   ChromeOS: a closed folder shows the sum of its apps right on the folder.
   Counts come from Unity-compatible apps (chat and mail clients) or from missed

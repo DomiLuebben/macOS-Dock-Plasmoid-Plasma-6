@@ -22,6 +22,10 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
   Raster oder Fächer werden in den Dock-Einstellungen ausgewählt
 - optionale Fortschrittsringe für Plasma-Aufträge und Unity-kompatible
   Downloads auf Anwendungssymbolen und passenden Ordnerstapeln
+- Apps-hinzufügen-Auswahl: Rechtsklick auf das Dock (oder auf eine App oder Gruppe) und
+  „Apps hinzufügen …“ wählen, alle installierten Programme durchsuchen, mehrere auf einmal
+  ankreuzen und vor dem Hinzufügen in neue oder bestehende Gruppen sortieren; bei mehreren
+  Apps ohne Gruppe fragt das Dock, ob alle in eine Gruppe sollen
 - Badges für ungelesene Nachrichten auf App-Symbolen und App-Gruppen-Ordnern wie
   bei ChromeOS: Ein geschlossener Ordner zeigt die Summe seiner Apps direkt auf
   dem Ordner. Die Zahlen stammen von Unity-kompatiblen Apps (Chat und Mail) oder

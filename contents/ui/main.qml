@@ -1490,6 +1490,86 @@ PlasmoidItem {
         onTriggered: root.applyPendingLauncherToggle()
     }
 
+    // ---- Add Apps picker -------------------------------------------------
+
+    // The picker needs the native app list (plugin API 3). With an older plugin
+    // in memory the menu entries stay hidden instead of failing.
+    readonly property bool addAppsAvailable: pluginCheck.apiVersion >= 3
+    property string pendingAddAppsGroup: ""
+    property var pendingAddAppsPlan: null
+
+    function openAddApps(groupId) {
+        if (!addAppsAvailable) {
+            return;
+        }
+        // Like the launcher toggle: close the menu first and let a root-owned
+        // timer do the work in the next event turn, so nothing is shown or
+        // changed from inside MenuItem.onTriggered.
+        pendingAddAppsGroup = String(groupId || "");
+        closeOpenContextMenu();
+        addAppsOpenTimer.restart();
+    }
+
+    function showAddApps() {
+        addAppsLoader.active = true;
+        var dialog = addAppsLoader.item;
+        if (!dialog) {
+            return;
+        }
+        dialog.existingGroups = appGroups;
+        dialog.pinnedLaunchers = tasksModel.launcherList || [];
+        dialog.preferredGroupId = pendingAddAppsGroup;
+        dialog.visible = true;
+        dialog.raise();
+        dialog.requestActivate();
+    }
+
+    function scheduleAddAppsPlan(plan) {
+        pendingAddAppsPlan = plan;
+        addAppsApplyTimer.restart();
+    }
+
+    function applyAddAppsPlan() {
+        var plan = pendingAddAppsPlan;
+        pendingAddAppsPlan = null;
+        if (!plan) {
+            return;
+        }
+        for (var index = 0; index < plan.addLaunchers.length; ++index) {
+            if (tasksModel.launcherPosition(plan.addLaunchers[index]) === -1) {
+                tasksModel.requestAddLauncher(plan.addLaunchers[index]);
+            }
+        }
+        saveAppGroups(plan.groups);
+    }
+
+    Timer {
+        id: addAppsOpenTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: root.showAddApps()
+    }
+
+    Timer {
+        id: addAppsApplyTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: root.applyAddAppsPlan()
+    }
+
+    // Created on first use and then kept; nothing is destroyed while a window
+    // of the shell is still being polished.
+    Loader {
+        id: addAppsLoader
+
+        active: false
+        sourceComponent: AddAppsDialog {
+            onPlanReady: (plan) => root.scheduleAddAppsPlan(plan)
+        }
+    }
+
     function normalizedLauncherUrl(value) {
         return AppGroupStore.normalizeLauncherUrl(value);
     }
@@ -2964,6 +3044,13 @@ PlasmoidItem {
             }
 
             QQC2.MenuItem {
+                text: i18n("Add Apps…")
+                icon.name: "list-add"
+                visible: root.addAppsAvailable
+                onTriggered: root.openAddApps("")
+            }
+
+            QQC2.MenuItem {
                 text: root.isVertical ? i18n("Move Up") : i18n("Move Left")
                 icon.name: root.isVertical ? "go-up" : "go-previous"
                 visible: taskDelegate.pinned
@@ -3043,6 +3130,13 @@ PlasmoidItem {
                 icon.name: "folder-open"
                 onTriggered: root.toggleAppGroupPopup(
                     taskDelegate.appGroup.id, taskDelegate)
+            }
+
+            QQC2.MenuItem {
+                text: i18n("Add Apps to This Group…")
+                icon.name: "list-add"
+                visible: root.addAppsAvailable
+                onTriggered: root.openAddApps(taskDelegate.appGroup.id)
             }
 
             QQC2.MenuItem {
@@ -4644,6 +4738,13 @@ PlasmoidItem {
 
             TrackedMenu {
                 id: dockMenu
+
+                QQC2.MenuItem {
+                    text: i18n("Add Apps…")
+                    icon.name: "list-add"
+                    visible: root.addAppsAvailable
+                    onTriggered: root.openAddApps("")
+                }
 
                 QQC2.MenuItem {
                     text: i18n("Configure Dock…")

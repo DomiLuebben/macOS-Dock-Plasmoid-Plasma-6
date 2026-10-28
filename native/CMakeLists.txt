@@ -20,6 +20,8 @@ add_library(macosdockeffectsplugin MODULE
     blurregion.cpp
     blurregion.h
     desktopidutils.h
+    installedappsmodel.cpp
+    installedappsmodel.h
     kdeconnectsharemonitor.cpp
     kdeconnectsharemonitor.h
     launcherprogressmonitor.cpp
@@ -66,6 +68,19 @@ if(BUILD_TESTING)
         tests/opendocumentlocatortest.cpp
         opendocumentlocator.cpp
         opendocumentlocator.h
+    )
+    add_executable(installedappsmodeltest
+        tests/installedappsmodeltest.cpp
+        installedappsmodel.cpp
+        installedappsmodel.h
+    )
+    target_include_directories(installedappsmodeltest PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(installedappsmodeltest PRIVATE
+        Qt6::Core
+        Qt6::Test
+        KF6::Service
     )
     add_executable(launcherprogressmonitortest
         tests/launcherprogressmonitortest.cpp
@@ -114,6 +129,9 @@ if(BUILD_TESTING)
     add_test(NAME removablevolumesmodeltest
         COMMAND removablevolumesmodeltest
     )
+    add_test(NAME installedappsmodeltest
+        COMMAND installedappsmodeltest
+    )
     add_test(NAME launcherprogressmonitortest
         COMMAND launcherprogressmonitortest
     )
@@ -134,6 +152,14 @@ if(BUILD_TESTING)
     add_test(NAME appgrouppopupqmltest
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_appgrouppopup.qml"
+    )
+    add_test(NAME addappsdialogqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_addappsdialog.qml"
+    )
+    add_test(NAME addappsplanqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_addappsplan.qml"
     )
     add_test(NAME plugincheckqmltest
         COMMAND Qt6::qmltestrunner

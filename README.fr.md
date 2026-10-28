@@ -24,6 +24,11 @@ couleurs du thème Qt.
   sélectionnée dans les réglages
 - Anneaux de progression facultatifs pour les tâches Plasma et les
   téléchargements compatibles Unity sur les applications et les piles de dossiers correspondantes
+- Sélecteur d’ajout d’applications : clic droit sur le Dock (ou sur une application ou un
+  groupe) puis « Ajouter des applications… » pour chercher tous les programmes installés,
+  en cocher plusieurs et les classer dans des groupes nouveaux ou existants avant l’ajout ;
+  avec plusieurs applications sans groupe, le Dock demande si elles doivent toutes aller
+  dans un seul groupe
 - Pastilles de messages non lus sur les icônes d’applications et sur les dossiers de
   groupes, comme sur ChromeOS : un dossier fermé affiche la somme de ses
   applications directement sur le dossier. Les nombres viennent des applications

@@ -640,3 +640,95 @@ msgid "%1 unread message"
 msgid_plural "%1 unread messages"
 msgstr[0] "%1 message non lu"
 msgstr[1] "%1 messages non lus"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "%1 (in Dock)"
+msgstr "%1 (dans le Dock)"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "A group needs at least two apps. With only one, the app is added on its own."
+msgstr "Un groupe nécessite au moins deux applications. Avec une seule, elle est ajoutée seule."
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Add %1 Apps"
+msgstr "Ajouter %1 applications"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Add Apps to Dock"
+msgstr "Ajouter des applications au Dock"
+
+#: contents/ui/main.qml
+msgid "Add Apps to This Group…"
+msgstr "Ajouter des applications à ce groupe…"
+
+#: contents/ui/main.qml
+msgid "Add Apps…"
+msgstr "Ajouter des applications…"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Add to Dock"
+msgstr "Ajouter au Dock"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "All in One Group"
+msgstr "Tout dans un groupe"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Already in Dock"
+msgstr "Déjà dans le Dock"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Cancel"
+msgstr "Annuler"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Group %1"
+msgstr "Groupe %1"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Installed apps (%1)"
+msgstr "Applications installées (%1)"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "New Group"
+msgstr "Nouveau groupe"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "No apps found"
+msgstr "Aucune application trouvée"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "No, Add Separately"
+msgstr "Non, ajouter séparément"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Not in a group"
+msgstr "Dans aucun groupe"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Put all %1 apps into one group?"
+msgstr "Mettre les %1 applications dans un seul groupe ?"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Remove from selection"
+msgstr "Retirer de la sélection"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Remove group"
+msgstr "Supprimer le groupe"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Search installed apps…"
+msgstr "Rechercher les applications installées…"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Tick apps on the left to add them"
+msgstr "Cochez des applications à gauche pour les ajouter"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "To add (%1)"
+msgstr "À ajouter (%1)"
+
+#: contents/ui/AddAppsDialog.qml
+msgid "Yes, One Group"
+msgstr "Oui, un groupe"
