@@ -628,3 +628,13 @@ msgstr "In neuem Tab öffnen"
 #: contents/ui/main.qml:3368
 msgid "Open in New Window"
 msgstr "In neuem Fenster öffnen"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Show unread message badges on apps and folders"
+msgstr "Ungelesene Nachrichten auf Apps und Ordnern anzeigen"
+
+#: contents/ui/BadgeOverlay.qml
+msgid "%1 unread message"
+msgid_plural "%1 unread messages"
+msgstr[0] "%1 ungelesene Nachricht"
+msgstr[1] "%1 ungelesene Nachrichten"

@@ -43,4 +43,49 @@ TestCase {
             "file:///usr/share/applications/org.kde.dolphin.desktop"),
             "org.kde.dolphin");
     }
+
+    function test_unityCountSurvivesUntilHidden() {
+        var controller = createTemporaryObject(controllerComponent, this);
+        verify(controller);
+
+        controller.handleUnityCount("application://org.example.chat.desktop", 4, true);
+        compare(controller.getAppBadgeCount("org.example.chat", ""), 4);
+
+        controller.handleUnityCount("org.example.chat", 0, false);
+        compare(controller.getAppBadgeCount("org.example.chat", ""), 0);
+    }
+
+    function test_badgeLookupFallsBackToTheLauncher() {
+        var controller = createTemporaryObject(controllerComponent, this);
+        verify(controller);
+
+        controller.notificationCounts = { affinity: 2 };
+        compare(controller.getAppBadgeCount("affinity.exe", "application://affinity.exe"), 2);
+        compare(controller.getAppBadgeCount("", "applications:affinity.desktop"), 2);
+        compare(controller.getAppBadgeCount("other", ""), 0);
+    }
+
+    function test_activatingAnAppRecordsWhenItWasSeen() {
+        var controller = createTemporaryObject(controllerComponent, this);
+        verify(controller);
+
+        var before = Date.now();
+        controller.setAppActive("org.example.chat", "", true);
+        verify(controller.activeApps["org.example.chat"]);
+        verify(controller.seenAt["org.example.chat"] >= before);
+
+        controller.setAppActive("org.example.chat", "", false);
+        verify(!controller.activeApps["org.example.chat"]);
+        verify(controller.seenAt["org.example.chat"] >= before);
+    }
+
+    function test_badgesAreOffWhenDisabled() {
+        var controller = createTemporaryObject(controllerComponent, this);
+        verify(controller);
+
+        controller.badgesEnabled = false;
+        controller.notificationCounts = { telegram: 3 };
+        controller.recalculateBadges();
+        compare(controller.getAppBadgeCount("telegram", ""), 0);
+    }
 }

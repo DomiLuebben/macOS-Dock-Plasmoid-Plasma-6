@@ -24,6 +24,11 @@ couleurs du thème Qt.
   sélectionnée dans les réglages
 - Anneaux de progression facultatifs pour les tâches Plasma et les
   téléchargements compatibles Unity sur les applications et les piles de dossiers correspondantes
+- Pastilles de messages non lus sur les icônes d’applications et sur les dossiers de
+  groupes, comme sur ChromeOS : un dossier fermé affiche la somme de ses
+  applications directement sur le dossier. Les nombres viennent des applications
+  compatibles Unity (messagerie, courrier) ou des notifications manquées ; la
+  pastille disparaît dès que l’application passe au premier plan
 - Badges KDE Connect facultatifs pour les liens et fichiers reçus récemment ;
   les liens sont associés au navigateur par défaut du système
 - Corbeille facultative adaptée au thème avec état vide/plein et dépôt de fichiers

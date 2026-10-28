@@ -65,6 +65,8 @@ KCM.SimpleKCM {
         powerButtonPositionCombo.currentIndex
     property alias cfg_showProgressIndicators:
         showProgressIndicatorsCheckBox.checked
+    property alias cfg_showNotificationBadges:
+        showNotificationBadgesCheckBox.checked
     property alias cfg_showKdeConnectRecentShares:
         showKdeConnectRecentSharesCheckBox.checked
     property var cfg_launchers: []
@@ -119,6 +121,7 @@ KCM.SimpleKCM {
     property bool cfg_showPowerButtonDefault: true
     property int cfg_powerButtonPositionDefault: 1
     property bool cfg_showProgressIndicatorsDefault: true
+    property bool cfg_showNotificationBadgesDefault: true
     property bool cfg_showKdeConnectRecentSharesDefault: true
     property var cfg_appGroupsDefault: []
     property var cfg_launchersDefault: []
@@ -343,6 +346,12 @@ KCM.SimpleKCM {
 
             Kirigami.FormData.label: i18n("Integrations:")
             text: i18n("Show download and job progress indicators")
+        }
+
+        QQC2.CheckBox {
+            id: showNotificationBadgesCheckBox
+
+            text: i18n("Show unread message badges on apps and folders")
         }
 
         QQC2.CheckBox {

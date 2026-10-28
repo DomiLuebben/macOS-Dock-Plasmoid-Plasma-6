@@ -66,6 +66,11 @@ if(BUILD_TESTING)
         opendocumentlocator.cpp
         opendocumentlocator.h
     )
+    add_executable(launcherprogressmonitortest
+        tests/launcherprogressmonitortest.cpp
+        launcherprogressmonitor.cpp
+        launcherprogressmonitor.h
+    )
     target_compile_definitions(removablevolumesmodeltest PRIVATE
         TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/tests/data/removable-volumes.xml"
     )
@@ -95,8 +100,21 @@ if(BUILD_TESTING)
         Qt6::Test
     )
 
+    target_include_directories(launcherprogressmonitortest PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(launcherprogressmonitortest PRIVATE
+        Qt6::Core
+        Qt6::DBus
+        Qt6::Test
+        KF6::Service
+    )
+
     add_test(NAME removablevolumesmodeltest
         COMMAND removablevolumesmodeltest
+    )
+    add_test(NAME launcherprogressmonitortest
+        COMMAND launcherprogressmonitortest
     )
     add_test(NAME desktopidutilstest
         COMMAND desktopidutilstest
@@ -116,6 +134,10 @@ if(BUILD_TESTING)
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_appgrouppopup.qml"
     )
+    add_test(NAME badgestoreqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_badgestore.qml"
+    )
     add_test(NAME progresscontrollerqmltest
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_progresscontroller.qml"
@@ -123,6 +145,10 @@ if(BUILD_TESTING)
     add_test(NAME configgeneralqmltest
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_configgeneral.qml"
+    )
+    add_test(NAME dockitembadgeqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_dockitembadge.qml"
     )
     add_test(NAME dockitemscaleqmltest
         COMMAND Qt6::qmltestrunner

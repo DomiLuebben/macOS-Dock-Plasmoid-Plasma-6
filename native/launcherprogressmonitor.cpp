@@ -173,13 +173,29 @@ void LauncherProgressMonitor::update(const QString &appUri,
     const bool hasProgress = properties.contains(QStringLiteral("progress"));
     const bool hasVisibility = properties.contains(QStringLiteral("progress-visible"))
         || properties.contains(QStringLiteral("progress_visible"));
-    if (!hasProgress && !hasVisibility) {
+    const bool hasCount = properties.contains(QStringLiteral("count"));
+    const bool hasCountVisibility = properties.contains(QStringLiteral("count-visible"))
+        || properties.contains(QStringLiteral("count_visible"));
+    if (!hasProgress && !hasVisibility && !hasCount && !hasCountVisibility) {
         return;
     }
 
     Entry &entry = m_entries[desktopId];
     const double oldProgress = entry.progress;
     const bool oldVisible = entry.visible;
+    const qlonglong oldCount = entry.count;
+    const bool oldCountVisible = entry.countVisible;
+
+    if (hasCount) {
+        bool ok = false;
+        const qlonglong count = properties.value(QStringLiteral("count")).toLongLong(&ok);
+        entry.count = ok ? std::max<qlonglong>(0, count) : 0;
+    }
+    if (properties.contains(QStringLiteral("count-visible"))) {
+        entry.countVisible = properties.value(QStringLiteral("count-visible")).toBool();
+    } else if (properties.contains(QStringLiteral("count_visible"))) {
+        entry.countVisible = properties.value(QStringLiteral("count_visible")).toBool();
+    }
 
     if (hasProgress) {
         bool ok = false;
@@ -207,6 +223,8 @@ void LauncherProgressMonitor::update(const QString &appUri,
     // darf sich diese Funktion aber nicht verlassen.
     const double newProgress = entry.progress;
     const bool newVisible = entry.visible;
+    const qlonglong newCount = entry.count;
+    const bool newCountVisible = entry.countVisible;
 
     if (calledFromDBus()) {
         associatePublisher(message().service(), desktopId);
@@ -215,6 +233,9 @@ void LauncherProgressMonitor::update(const QString &appUri,
     if (!qFuzzyCompare(oldProgress + 1.0, newProgress + 1.0)
             || oldVisible != newVisible) {
         Q_EMIT progressUpdated(desktopId, newProgress, newVisible);
+    }
+    if (oldCount != newCount || oldCountVisible != newCountVisible) {
+        Q_EMIT countUpdated(desktopId, newCount, newCountVisible);
     }
 }
 
@@ -228,7 +249,12 @@ void LauncherProgressMonitor::onPublisherUnregistered(const QString &service)
             continue;
         }
         const double progress = entry->progress;
+        const bool hadCount = entry->countVisible && entry->count > 0;
         m_entries.erase(entry);
         Q_EMIT progressUpdated(desktopId, progress, false);
+        if (hadCount) {
+            // A publisher that exits cannot clear its own badge.
+            Q_EMIT countUpdated(desktopId, 0, false);
+        }
     }
 }

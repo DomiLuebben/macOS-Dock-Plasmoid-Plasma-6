@@ -53,6 +53,9 @@ Item {
     property bool progressIndeterminate: false
     property bool progressCompleting: false
 
+    // Unread messages for this application, or the sum over a group.
+    property int badgeCount: 0
+
     property bool hasRecentShare: false
     property string recentShareDevice: ""
     property string recentShareUrl: ""
@@ -645,6 +648,18 @@ Item {
                     progressValue: root.progressValue
                     indeterminate: root.progressIndeterminate
                     completing: root.progressCompleting
+                }
+            }
+        }
+
+        Loader {
+            id: unreadBadgeLoader
+            anchors.fill: parent
+            active: root.badgeCount > 0
+            sourceComponent: Component {
+                BadgeOverlay {
+                    count: root.badgeCount
+                    onLeft: root.hasRecentShare && root.recentShareUrl.length > 0
                 }
             }
         }

@@ -22,6 +22,10 @@ color scheme.
   grid, or fan layout in the widget settings
 - Optional progress rings for Plasma jobs and Unity-compatible downloads on
   application icons and matching folder stacks
+- Unread-message badges on application icons and on app group folders, like
+  ChromeOS: a closed folder shows the sum of its apps right on the folder.
+  Counts come from Unity-compatible apps (chat and mail clients) or from missed
+  notifications; the badge clears when the app comes to the front
 - Optional KDE Connect badges for recently received links and files; links
   are associated with the system's default browser
 - Optional theme-aware Trash with empty/full state and file drop support

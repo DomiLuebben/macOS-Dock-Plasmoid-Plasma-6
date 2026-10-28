@@ -13,6 +13,7 @@ import org.kde.taskmanager as TaskManager
 import org.kde.private.desktopcontainment.folder as Folder
 import "effects" as DockEffects
 import "AppGroupStore.js" as AppGroupStore
+import "BadgeStore.js" as BadgeStore
 
 PlasmoidItem {
     id: root
@@ -289,6 +290,10 @@ PlasmoidItem {
         Plasmoid.configuration.showProgressIndicators === undefined
             ? true : Boolean(Plasmoid.configuration.showProgressIndicators)
 
+    readonly property bool showNotificationBadges:
+        Plasmoid.configuration.showNotificationBadges === undefined
+            ? true : Boolean(Plasmoid.configuration.showNotificationBadges)
+
     readonly property bool showKdeConnectRecentShares:
         Plasmoid.configuration.showKdeConnectRecentShares === undefined
             ? true : Boolean(Plasmoid.configuration.showKdeConnectRecentShares)
@@ -296,6 +301,7 @@ PlasmoidItem {
     ProgressController {
         id: progressController
         monitoringEnabled: root.showProgressIndicators
+        badgesEnabled: root.showNotificationBadges
     }
 
     DockEffects.KdeConnectShareMonitor {
@@ -1720,6 +1726,21 @@ PlasmoidItem {
         return result;
     }
 
+    function groupBadgeCount(group) {
+        // Keep the badge state as explicit binding dependencies.
+        void progressController.unityCountState;
+        void progressController.notificationCounts;
+
+        var counts = [];
+        var members = groupRuntimeMembers(group);
+        for (var index = 0; index < members.length; ++index) {
+            var member = members[index];
+            counts.push(progressController.getAppBadgeCount(
+                member.appId || "", member.launcher || ""));
+        }
+        return BadgeStore.groupBadgeCount(counts);
+    }
+
     function canGroupAppSnapshots(source, target) {
         if (!source || !target || source.launcher === target.launcher) {
             return false;
@@ -2662,6 +2683,29 @@ PlasmoidItem {
         progressValue: Number(progressInfo.progress)
         progressIndeterminate: Boolean(progressInfo.indeterminate)
         progressCompleting: Boolean(progressInfo.completing)
+
+        // On the group's own icon the badge is the sum over its members, so a
+        // message in a closed folder is visible without opening it. Members
+        // hidden inside a collapsed group show nothing of their own.
+        badgeCount: {
+            if (!root.showNotificationBadges || hiddenAppGroupMember) {
+                return 0;
+            }
+            void progressController.unityCountState;
+            void progressController.notificationCounts;
+            return appGroupLeader
+                ? root.groupBadgeCount(appGroup)
+                : progressController.getAppBadgeCount(
+                    model.AppId || "",
+                    model.LauncherUrlWithoutIcon || model.LauncherUrl || "");
+        }
+
+        // The application in front has no unread messages.
+        readonly property bool badgeAppActive: taskIsActive
+        onBadgeAppActiveChanged: progressController.setAppActive(
+            model.AppId || "",
+            model.LauncherUrlWithoutIcon || model.LauncherUrl || "",
+            badgeAppActive)
 
         readonly property var recentShareInfo: {
             // Establish the property dependency explicitly. The native lookup

@@ -22,6 +22,10 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
   Raster oder Fächer werden in den Dock-Einstellungen ausgewählt
 - optionale Fortschrittsringe für Plasma-Aufträge und Unity-kompatible
   Downloads auf Anwendungssymbolen und passenden Ordnerstapeln
+- Badges für ungelesene Nachrichten auf App-Symbolen und App-Gruppen-Ordnern wie
+  bei ChromeOS: Ein geschlossener Ordner zeigt die Summe seiner Apps direkt auf
+  dem Ordner. Die Zahlen stammen von Unity-kompatiblen Apps (Chat und Mail) oder
+  aus verpassten Benachrichtigungen; sie verschwinden, sobald die App vorn ist
 - optionale KDE-Connect-Badges für kürzlich empfangene Links und Dateien;
   Links werden dem Standardbrowser des Systems zugeordnet
 - optionaler, designkonformer Papierkorb mit Leer-/Vollstatus und Dateiablage
