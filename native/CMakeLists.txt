@@ -27,6 +27,7 @@ add_library(macosdockeffectsplugin MODULE
     opendocumentlocator.cpp
     opendocumentlocator.h
     plugin.cpp
+    plugininfo.h
     removablevolumesmodel.cpp
     removablevolumesmodel.h
     windowactions.cpp
@@ -133,6 +134,10 @@ if(BUILD_TESTING)
     add_test(NAME appgrouppopupqmltest
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_appgrouppopup.qml"
+    )
+    add_test(NAME plugincheckqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_plugincheck.qml"
     )
     add_test(NAME badgestoreqmltest
         COMMAND Qt6::qmltestrunner

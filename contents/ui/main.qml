@@ -298,6 +298,12 @@ PlasmoidItem {
         Plasmoid.configuration.showKdeConnectRecentShares === undefined
             ? true : Boolean(Plasmoid.configuration.showKdeConnectRecentShares)
 
+    // Warns in the log when this QML runs against an older native plugin than
+    // it was written for (widget updated while plasmashell kept running).
+    PluginCheck {
+        id: pluginCheck
+    }
+
     ProgressController {
         id: progressController
         monitoringEnabled: root.showProgressIndicators

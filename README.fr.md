@@ -78,6 +78,11 @@ cd macOS-Dock-Plasmoid-Plasma-6
 systemctl --user restart plasma-plasmashell.service
 ```
 
+Redémarrez plasmashell juste après chaque mise à jour. Une session en cours garde
+l’ancien module natif en mémoire tout en lisant le nouveau QML sur le disque ; le
+Dock écrit alors « the native plugin in memory has API version … » dans le
+journal et se limite au lieu de ne pas se charger.
+
 Le script compile le petit module QML natif utilisé pour la zone de flou, les
 actions KWin et les intégrations facultatives, compile les traductions, puis
 installe ou met à jour le composant graphique.

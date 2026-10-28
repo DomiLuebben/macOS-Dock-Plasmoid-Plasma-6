@@ -13,6 +13,27 @@ TestCase {
         }
     }
 
+    Component {
+        id: monitoringController
+
+        ProgressController {
+            monitoringEnabled: true
+            badgesEnabled: true
+        }
+    }
+
+    // Instantiates the native monitor. Must work whether the plugin in memory is
+    // current or older than this QML (no countUpdated signal): a static handler
+    // for the new signal used to stop the whole component from loading.
+    function test_monitorLoadsWithEitherPluginGeneration() {
+        var controller = createTemporaryObject(monitoringController, this);
+        verify(controller);
+        controller.handleUnityUpdate("application://org.example.dl.desktop", 0.4, true);
+        compare(controller.unityState["org.example.dl"].progress, 0.4);
+        wait(100);
+        verify(controller);
+    }
+
     function test_wineExecutableUsesDesktopLauncherProgress() {
         var controller = createTemporaryObject(controllerComponent, this);
         verify(controller);

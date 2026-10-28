@@ -3,6 +3,7 @@
 #include "launcherprogressmonitor.h"
 #include "kdeconnectsharemonitor.h"
 #include "opendocumentlocator.h"
+#include "plugininfo.h"
 #include "removablevolumesmodel.h"
 
 #include <QQmlEngine>
@@ -22,6 +23,7 @@ public:
         qmlRegisterType<KdeConnectShareMonitor>(uri, 1, 0, "KdeConnectShareMonitor");
         qmlRegisterType<RemovableVolumesModel>(uri, 1, 0, "RemovableVolumesModel");
         qmlRegisterType<OpenDocumentLocator>(uri, 1, 0, "OpenDocumentLocator");
+        qmlRegisterType<PluginInfo>(uri, 1, 0, "PluginInfo");
     }
 };
 

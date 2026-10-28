@@ -77,6 +77,11 @@ cd macOS-Dock-Plasmoid-Plasma-6
 systemctl --user restart plasma-plasmashell.service
 ```
 
+Starte plasmashell nach jedem Update sofort neu. Eine laufende Shell behält das
+alte native Modul im Speicher, liest neue QML-Dateien aber von der Platte; das
+Dock schreibt dann „the native plugin in memory has API version …“ ins Journal
+und schränkt sich ein, statt gar nicht zu laden.
+
 Das Installationsskript baut zuerst das kleine native QML-Modul für die
 Blur-Region, die KWin-Fensteraktionen und die optionalen Integrationen und
 installiert bzw. aktualisiert anschließend das Plasmoid.

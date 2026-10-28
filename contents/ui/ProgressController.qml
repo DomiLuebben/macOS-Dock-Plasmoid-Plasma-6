@@ -69,11 +69,20 @@ Item {
         active: root.monitoringEnabled || root.badgesEnabled
         sourceComponent: Component {
             DockEffects.LauncherProgressMonitor {
+                id: monitor
+
                 onProgressUpdated: (desktopId, progress, visible) => {
                     root.handleUnityUpdate(desktopId, progress, visible);
                 }
-                onCountUpdated: (desktopId, count, visible) => {
-                    root.handleUnityCount(desktopId, count, visible);
+
+                // Connected at run time: a plugin from before the counts existed
+                // has no countUpdated signal, and a static handler would stop
+                // this whole file from loading. Without it only the notification
+                // counts are available.
+                Component.onCompleted: {
+                    if (monitor.countUpdated) {
+                        monitor.countUpdated.connect(root.handleUnityCount);
+                    }
                 }
             }
         }
