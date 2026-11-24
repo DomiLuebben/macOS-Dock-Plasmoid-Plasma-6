@@ -756,7 +756,8 @@ PlasmoidItem {
             return;
         }
         var sameTarget = activeAppGroupId === group.id;
-        if ((appGroupPopup.visible || appGroupPopupOpenPending)
+        if (((appGroupPopup.visible && !appGroupPopup.closing)
+                    || appGroupPopupOpenPending)
                 && sameTarget) {
             closeAppGroupPopup();
             return;
@@ -798,7 +799,8 @@ PlasmoidItem {
         if (!group) {
             return;
         }
-        if ((appGroupPopup.visible || appGroupPopupOpenPending)
+        if (((appGroupPopup.visible && !appGroupPopup.closing)
+                    || appGroupPopupOpenPending)
                 && activeAppGroupId === group.id) {
             return;
         }
@@ -3020,7 +3022,8 @@ PlasmoidItem {
         }
 
         suppressTooltip: appGroupLeader
-            && (appGroupPopup.visible || root.appGroupPopupOpenPending)
+            && ((appGroupPopup.visible && !appGroupPopup.closing)
+                || root.appGroupPopupOpenPending)
             && root.activeAppGroupId === appGroup.id
         appName: appGroupLeader ? appGroup.name : originalAppName
         appIcon: originalAppIcon
@@ -3964,11 +3967,21 @@ PlasmoidItem {
         }
         onMemberWindowClosed: (windowIndex) =>
             root.closeGroupWindow(windowIndex)
-        onMemberRemoved: (launcherUrl) =>
-            root.removeAppFromGroup(groupId, launcherUrl)
+        onMemberRemoved: (launcherUrl) => {
+            var targetGroupId = appGroupPopup.groupId;
+            var targetLauncher = String(launcherUrl || "");
+            Qt.callLater(function () {
+                root.removeAppFromGroup(targetGroupId, targetLauncher);
+            });
+        }
         onGroupNameRequested: (name) =>
             root.renameAppGroup(groupId, name)
-        onUngroupRequested: root.ungroupAppGroup(groupId)
+        onUngroupRequested: {
+            var targetGroupId = appGroupPopup.groupId;
+            Qt.callLater(function () {
+                root.ungroupAppGroup(targetGroupId);
+            });
+        }
 
         onVisibleChanged: {
             if (visible && !root.appGroupPopupCountedAsOpen) {

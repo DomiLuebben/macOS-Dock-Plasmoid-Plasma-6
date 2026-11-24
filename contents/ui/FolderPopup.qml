@@ -35,10 +35,14 @@ Window {
         || location === PlasmaCore.Types.RightEdge
     readonly property bool hovered: popupHover.hovered
     readonly property string currentFolderName:
-        folderName(folderModel ? folderModel.resolvedUrl : rootFolderUrl)
-    readonly property bool atRootFolder:
-        normalizedUrl(folderModel ? folderModel.resolvedUrl : "")
-            === normalizedUrl(rootFolderUrl)
+        folderName(folderModel && String(folderModel.resolvedUrl || "").length > 0
+            ? folderModel.resolvedUrl : rootFolderUrl)
+    readonly property bool atRootFolder: {
+        var resolved = folderModel
+            ? normalizedUrl(folderModel.resolvedUrl) : "";
+        return resolved.length === 0
+            || resolved === normalizedUrl(rootFolderUrl);
+    }
 
     property real placementLeft: 0
     property real placementTop: 0
@@ -96,7 +100,13 @@ Window {
     }
 
     function normalizedUrl(value) {
-        return String(value || "").replace(/\/$/, "");
+        var raw = String(value || "").trim().replace(/\/$/, "");
+        try {
+            raw = decodeURI(raw);
+        } catch (error) {
+            // Keep malformed escape sequences comparable as-is.
+        }
+        return raw;
     }
 
     function folderName(value) {
@@ -160,7 +170,9 @@ Window {
         if (!owningWindow || !owningWindow.contentItem) {
             return;
         }
-        var targetScreen = owningWindow.screen || root.screen;
+        // qmllint disable missing-property
+        var targetScreen = owningWindow["screen"] || root.screen;
+        // qmllint enable missing-property
         if (!targetScreen) {
             return;
         }
@@ -280,7 +292,11 @@ Window {
                 Layout.preferredWidth: 36
                 Layout.preferredHeight: 36
                 icon.name: "go-previous"
-                onClicked: root.folderModel.up()
+                onClicked: {
+                    if (root.folderModel) {
+                        root.folderModel.up();
+                    }
+                }
 
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: i18n("Back")
@@ -311,7 +327,8 @@ Window {
                 Layout.preferredHeight: 36
                 icon.name: "document-open-folder"
                 onClicked: root.openFolderRequested(
-                    root.folderModel.resolvedUrl || root.rootFolderUrl)
+                    (root.folderModel && root.folderModel.resolvedUrl)
+                        || root.rootFolderUrl)
 
                 QQC2.ToolTip.visible: hovered
                 QQC2.ToolTip.text: i18n("Open in File Manager")
@@ -335,15 +352,29 @@ Window {
                     Layout.fillWidth: true
                     model: [i18n("Name"), i18n("Date"),
                         i18n("Size"), i18n("Type")]
-                    onActivated: root.folderModel.sortMode
-                        = [0, 2, 1, 6][currentIndex]
+                    currentIndex: {
+                        var mode = root.folderModel
+                            ? Number(root.folderModel.sortMode) : 0;
+                        var idx = [0, 2, 1, 6].indexOf(mode);
+                        return idx >= 0 ? idx : 0;
+                    }
+                    onActivated: {
+                        if (root.folderModel) {
+                            root.folderModel.sortMode
+                                = [0, 2, 1, 6][currentIndex];
+                        }
+                    }
                 }
 
                 QQC2.ToolButton {
                     icon.name: root.folderModel && root.folderModel.sortDesc
                         ? "view-sort-descending" : "view-sort-ascending"
-                    onClicked: root.folderModel.sortDesc
-                        = !root.folderModel.sortDesc
+                    onClicked: {
+                        if (root.folderModel) {
+                            root.folderModel.sortDesc
+                                = !root.folderModel.sortDesc;
+                        }
+                    }
 
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: root.folderModel
@@ -356,7 +387,11 @@ Window {
                     checked: root.folderModel
                         ? root.folderModel.showHiddenFiles : false
                     icon.name: checked ? "view-visible" : "view-hidden"
-                    onToggled: root.folderModel.showHiddenFiles = checked
+                    onToggled: {
+                        if (root.folderModel) {
+                            root.folderModel.showHiddenFiles = checked;
+                        }
+                    }
 
                     QQC2.ToolTip.visible: hovered
                     QQC2.ToolTip.text: checked

@@ -720,16 +720,6 @@ KCM.SimpleKCM {
             opacity: 0.78
         }
 
-        FolderDialog {
-            id: folderDialog
-
-            title: i18n("Choose Folder for the Dock")
-            currentFolder: folderUrlField.text.length > 0
-                ? folderUrlField.text
-                : StandardPaths.writableLocation(StandardPaths.DownloadLocation)
-            onAccepted: folderUrlField.text = selectedFolder.toString()
-        }
-
         Item {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("Applications")
@@ -757,5 +747,15 @@ KCM.SimpleKCM {
             text: i18n("Place this widget directly on the Plasma desktop, not inside a panel. The invisible desktop widget only stores settings; the Dock itself uses a separate transparent window anchored to the selected screen edge and centered along it. BetterBlur can blur that window directly.")
             opacity: 0.78
         }
+    }
+
+    FolderDialog {
+        id: folderDialog
+
+        title: i18n("Choose Folder for the Dock")
+        currentFolder: folderUrlField.text.length > 0
+            ? folderUrlField.text
+            : StandardPaths.writableLocation(StandardPaths.DownloadLocation)
+        onAccepted: folderUrlField.text = selectedFolder.toString()
     }
 }

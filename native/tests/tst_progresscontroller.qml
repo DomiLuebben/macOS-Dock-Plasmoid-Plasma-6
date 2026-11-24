@@ -109,4 +109,25 @@ TestCase {
         controller.recalculateBadges();
         compare(controller.getAppBadgeCount("telegram", ""), 0);
     }
+
+    function test_onePercentJobDoesNotReadAsHundredPercent() {
+        var controller = createTemporaryObject(controllerComponent, this);
+        verify(controller);
+
+        var onePercent = controller.aggregateJobGroup([{
+            percentage: 1,
+            processedBytes: 0,
+            totalBytes: 0
+        }]);
+        verify(onePercent.visible);
+        verify(!onePercent.indeterminate);
+        compare(onePercent.progress, 0.01);
+
+        var fiftyPercent = controller.aggregateJobGroup([{
+            percentage: 50,
+            processedBytes: 0,
+            totalBytes: 0
+        }]);
+        compare(fiftyPercent.progress, 0.5);
+    }
 }

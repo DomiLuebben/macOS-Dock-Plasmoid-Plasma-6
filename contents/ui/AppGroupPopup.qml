@@ -67,6 +67,7 @@ Window {
             + (expandedWindowCount > 1
                 ? Math.min(4, expandedWindowCount) * 39 + 10 : 0)
     property real openProgress: 0
+    readonly property bool closing: closeAnimation.running
     property bool positionPending: false
     property real placementLeft: 0
     property real placementTop: 0
@@ -232,9 +233,22 @@ Window {
         schedulePositionPopup();
     }
 
+    function commitGroupNameEdit() {
+        var trimmedName = nameField.text.trim();
+        if (trimmedName.length > 0 && trimmedName !== root.groupName) {
+            root.groupNameRequested(trimmedName);
+        } else {
+            nameField.text = root.groupName;
+        }
+    }
+
     function hidePopup() {
         if (!visible) {
             return;
+        }
+        if (nameField.activeFocus) {
+            commitGroupNameEdit();
+            nameField.focus = false;
         }
         openAnimation.stop();
         closeAnimation.restart();
@@ -478,15 +492,7 @@ Window {
                     font.weight: Font.DemiBold
                     selectByMouse: true
                     Accessible.name: i18n("Group name")
-                    onEditingFinished: {
-                        var trimmedName = text.trim();
-                        if (trimmedName.length > 0
-                                && trimmedName !== root.groupName) {
-                            root.groupNameRequested(trimmedName);
-                        } else {
-                            text = root.groupName;
-                        }
-                    }
+                    onEditingFinished: root.commitGroupNameEdit()
                 }
 
                 QQC2.ToolButton {

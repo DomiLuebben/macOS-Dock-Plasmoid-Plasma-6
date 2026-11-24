@@ -852,13 +852,14 @@ Item {
         var spacing = root.hasWindowPreviews
             ? Kirigami.Units.smallSpacing
             : Kirigami.Units.smallSpacing + 2;
-        var targetScreen = previewWindow.screen;
-        if (!targetScreen) {
-            return;
-        }
-
         var owningWindow = iconContainer.Window.window;
         if (!owningWindow || !owningWindow.contentItem) {
+            return;
+        }
+        // qmllint disable missing-property
+        var targetScreen = owningWindow["screen"] || previewWindow.screen;
+        // qmllint enable missing-property
+        if (!targetScreen) {
             return;
         }
         var localIconTopLeft = iconContainer.mapToItem(

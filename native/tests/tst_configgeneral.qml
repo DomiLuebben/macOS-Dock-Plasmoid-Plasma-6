@@ -107,6 +107,8 @@ TestCase {
     function test_acceptsAutoRemoveUninstalledAppsConfiguration() {
         failOnWarning(
             /ConfigGeneral does not have a property called cfg_autoRemoveUninstalledApps/);
+        failOnWarning(
+            /Created graphical object was not placed in the graphics scene/);
 
         var config = createTemporaryObject(configComponent, this, {
             cfg_autoRemoveUninstalledApps: false,

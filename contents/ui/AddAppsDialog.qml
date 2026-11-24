@@ -136,7 +136,17 @@ Window {
         root.assignments = map;
     }
 
+    function commitPendingFolderNames() {
+        for (var index = 0; index < newFoldersRepeater.count; ++index) {
+            var row = newFoldersRepeater.itemAt(index);
+            if (row && row.commitFolderName) {
+                row.commitFolderName();
+            }
+        }
+    }
+
     function allInNewFolder() {
+        commitPendingFolderNames();
         var key = addFolder("");
         root.assignments = Plan.allInOneFolder(root.selected, key);
     }
@@ -182,6 +192,7 @@ Window {
     // With several apps and no folder chosen yet, ask whether they should all
     // go into one folder.
     function requestAdd() {
+        commitPendingFolderNames();
         if (root.selected.length === 0) {
             return;
         }
@@ -358,6 +369,8 @@ Window {
 
                 // New folders
                 Repeater {
+                    id: newFoldersRepeater
+
                     model: root.newFolders
 
                     delegate: RowLayout {
@@ -367,17 +380,27 @@ Window {
 
                         Layout.fillWidth: true
 
+                        function commitFolderName() {
+                            if (folderNameField.text
+                                    !== String(folderRow.modelData.name)) {
+                                root.renameFolder(folderRow.modelData.key,
+                                    folderNameField.text);
+                            }
+                        }
+
                         Kirigami.Icon {
                             source: "folder"
                             Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
                             Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
                         }
                         QQC2.TextField {
+                            id: folderNameField
+                            objectName: "folderNameField"
+
                             Layout.fillWidth: true
                             text: String(folderRow.modelData.name)
                             placeholderText: i18n("Group name")
-                            onEditingFinished: root.renameFolder(
-                                folderRow.modelData.key, text)
+                            onEditingFinished: folderRow.commitFolderName()
                         }
                         QQC2.ToolButton {
                             icon.name: "edit-delete"
@@ -497,7 +520,10 @@ Window {
             height: questionColumn.implicitHeight + Kirigami.Units.largeSpacing * 2
             radius: Kirigami.Units.cornerRadius
             color: Kirigami.Theme.backgroundColor
-            border.color: Kirigami.Theme.separatorColor
+            border.width: 1
+            border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                Kirigami.Theme.textColor.g,
+                Kirigami.Theme.textColor.b, 0.22)
 
             ColumnLayout {
                 id: questionColumn

@@ -108,4 +108,17 @@ TestCase {
         }];
         tryCompare(popup, "expandedLauncher", "");
     }
+
+    function test_closingFlagReflectsCloseAnimation() {
+        var popup = createTemporaryObject(popupComponent, this, {
+            groupName: "Old Name",
+            visible: true,
+            openProgress: 1
+        });
+        verify(popup);
+        verify(!popup.closing);
+
+        popup.hidePopup();
+        verify(popup.closing);
+    }
 }

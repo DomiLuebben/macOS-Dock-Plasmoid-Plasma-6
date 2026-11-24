@@ -410,7 +410,8 @@ Item {
             var desktopEntry = normalizeDesktopId(
                 item.desktopEntry || (details ? details.desktopEntry : ""));
             var rawPercentage = Number(
-                details ? details.percentage : item.percentage);
+                (details && details.percentage !== undefined)
+                    ? details.percentage : item.percentage);
             var processedBytes = Number(details ? details.processedBytes : 0);
             var totalBytes = Number(details ? details.totalBytes : 0);
             var destination = normalizeUrl(details
@@ -499,8 +500,9 @@ Item {
                 progressSum += job.processedBytes / job.totalBytes;
                 ++knownProgressCount;
             } else if (job.percentage > 0) {
-                progressSum += job.percentage > 1
-                    ? job.percentage / 100 : job.percentage;
+                // NotificationManager reports integer percentages (0..100).
+                // Dividing unconditionally prevents 1% from reading as 100%.
+                progressSum += Math.min(1.0, job.percentage / 100.0);
                 ++knownProgressCount;
             }
         }
@@ -588,7 +590,12 @@ Item {
         };
     }
 
-    onMonitoringEnabledChanged: root.scheduleUpdate()
+    onMonitoringEnabledChanged: {
+        if (!root.monitoringEnabled) {
+            root.unityState = {};
+        }
+        root.scheduleUpdate();
+    }
     onBadgesEnabledChanged: {
         if (!root.badgesEnabled) {
             root.unityCountState = {};

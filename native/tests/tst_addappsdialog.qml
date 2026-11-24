@@ -168,4 +168,26 @@ TestCase {
         dialog.visible = true;
         compare(dialog.selected.length, 0);
     }
+
+    function test_uncommittedFolderFieldTextIsSavedOnRequestAdd() {
+        var dialog = openDialog();
+        pick(dialog, "alpha", "Alpha");
+        pick(dialog, "beta", "Beta");
+        var key = dialog.addFolder("Initial");
+        dialog.assign("applications:alpha.desktop", "new:" + key);
+        dialog.assign("applications:beta.desktop", "new:" + key);
+        wait(1);
+
+        var nameField = findChild(dialog.contentItem, "folderNameField");
+        verify(nameField);
+        // Simulate typing without pressing Enter or moving focus before
+        // clicking the Add button.
+        nameField.text = "Büro";
+        dialog.requestAdd();
+
+        compare(planSpy.count, 1);
+        var plan = planSpy.signalArguments[0][0];
+        compare(plan.groups.length, 2);
+        compare(plan.groups[1].name, "Büro");
+    }
 }

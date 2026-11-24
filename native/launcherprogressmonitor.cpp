@@ -249,9 +249,12 @@ void LauncherProgressMonitor::onPublisherUnregistered(const QString &service)
             continue;
         }
         const double progress = entry->progress;
-        const bool hadCount = entry->countVisible && entry->count > 0;
+        const bool hadProgress = entry->visible;
+        const bool hadCount = entry->countVisible;
         m_entries.erase(entry);
-        Q_EMIT progressUpdated(desktopId, progress, false);
+        if (hadProgress) {
+            Q_EMIT progressUpdated(desktopId, progress, false);
+        }
         if (hadCount) {
             // A publisher that exits cannot clear its own badge.
             Q_EMIT countUpdated(desktopId, 0, false);

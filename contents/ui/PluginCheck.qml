@@ -14,9 +14,8 @@ QtObject {
     readonly property int requiredApiVersion: 4
 
     // Overridable so tests can stand in for a plugin without PluginInfo.
-    property string probeSource: 'import QtQuick
-import "effects" as Effects
-Effects.PluginInfo {}'
+    property string probeSource:
+        "import QtQuick\nimport \"effects\" as Effects\nEffects.PluginInfo {}"
 
     property int apiVersion: 0
     readonly property bool current: apiVersion >= requiredApiVersion
@@ -28,9 +27,11 @@ Effects.PluginInfo {}'
 
     Component.onCompleted: {
         try {
-            var probe = Qt.createQmlObject(root.probeSource, root,
+            let probe = Qt.createQmlObject(root.probeSource, root,
                 Qt.resolvedUrl("PluginCheck.qml"));
-            root.apiVersion = Number(probe.apiVersion) || 0;
+            // qmllint disable missing-property
+            root.apiVersion = Number(probe["apiVersion"]) || 0;
+            // qmllint enable missing-property
             probe.destroy();
         } catch (error) {
             root.apiVersion = 0;

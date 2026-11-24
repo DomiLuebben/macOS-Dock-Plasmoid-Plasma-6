@@ -110,13 +110,30 @@ private slots:
                      .isEmpty());
 
         QSignalSpy successSpy(&model, &RemovableVolumesModel::operationSucceeded);
+        // Solid::OpticalDrive::ejectDone emits the parent drive UDI, not the
+        // child disc UDI stored in the model.
+        const QString opticalDriveUdi = QStringLiteral("/org/kde/solid/fakehw/optical-drive");
         QVERIFY(QMetaObject::invokeMethod(&model, "onEjectDone", Qt::DirectConnection,
                                           Q_ARG(Solid::ErrorType, Solid::NoError),
-                                          Q_ARG(QVariant, QVariant()), Q_ARG(QString, opticalUdi)));
+                                          Q_ARG(QVariant, QVariant()),
+                                          Q_ARG(QString, opticalDriveUdi)));
         QCOMPARE(successSpy.count(), 1);
+        QCOMPARE(successSpy.at(0).at(0).toString(), opticalUdi);
         QCOMPARE(model.data(model.index(opticalRow, 0), RemovableVolumesModel::ErrorTextRole)
                      .toString(),
                  QString());
+
+        // Also verify parent-drive error reporting clears busy state on the disc row.
+        QSignalSpy driveErrorSpy(&model, &RemovableVolumesModel::operationFailed);
+        QVERIFY(QMetaObject::invokeMethod(&model, "onEjectDone", Qt::DirectConnection,
+                                          Q_ARG(Solid::ErrorType, Solid::OperationFailed),
+                                          Q_ARG(QVariant, QVariant(QStringLiteral("Tray locked"))),
+                                          Q_ARG(QString, opticalDriveUdi)));
+        QCOMPARE(driveErrorSpy.count(), 1);
+        QCOMPARE(driveErrorSpy.at(0).at(0).toString(), opticalUdi);
+        QCOMPARE(model.data(model.index(opticalRow, 0), RemovableVolumesModel::ErrorTextRole)
+                     .toString(),
+                 QStringLiteral("Tray locked"));
     }
 
     void openInNewTabPropertyAndMethods()

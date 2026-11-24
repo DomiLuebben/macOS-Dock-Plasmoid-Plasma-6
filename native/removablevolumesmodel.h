@@ -120,6 +120,7 @@ private:
     void refreshModel();
     bool isCandidateDevice(const QString &udi, VolumeItem &itemOut, bool requireMounted = true);
     int findRowByUdi(const QString &udi) const;
+    int findRowForOpticalSignalUdi(const QString &udi) const;
     void connectDeviceSignals(const QString &udi);
     void reportError(const QString &udi, const QString &message);
     void open(const QString &udi, OpenMode mode);

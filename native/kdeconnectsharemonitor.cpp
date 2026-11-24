@@ -17,6 +17,7 @@
 #include <QTimer>
 
 #include <KApplicationTrader>
+#include <KIO/OpenUrlJob>
 #include <KService>
 
 #include <utility>
@@ -390,8 +391,15 @@ bool KdeConnectShareMonitor::isValidShareUrl(const QUrl &url)
         return !url.host().isEmpty();
     }
     if (scheme == QLatin1String("file") && url.isLocalFile()) {
-        const QFileInfo file(url.toLocalFile());
-        return file.isAbsolute() && file.exists();
+        const QString localPath = QDir::cleanPath(url.toLocalFile());
+        if (localPath.endsWith(QLatin1String(".desktop"), Qt::CaseInsensitive)
+                || localPath.startsWith(QLatin1String("/dev/"))
+                || localPath.startsWith(QLatin1String("/proc/"))
+                || localPath.startsWith(QLatin1String("/sys/"))) {
+            return false;
+        }
+        const QFileInfo file(localPath);
+        return file.isAbsolute() && (file.isFile() || file.isDir());
     }
     return false;
 }
@@ -569,7 +577,18 @@ QVariantMap KdeConnectShareMonitor::getLatestShareForFolder(
 bool KdeConnectShareMonitor::openShareUrl(const QString &urlString) const
 {
     const QUrl url(urlString, QUrl::StrictMode);
-    return isValidShareUrl(url) && QDesktopServices::openUrl(url);
+    if (!isValidShareUrl(url)) {
+        return false;
+    }
+    if (url.isLocalFile()) {
+        // Open received files with their associated viewer without executing
+        // scripts, binaries, or desktop launchers.
+        auto *job = new KIO::OpenUrlJob(url);
+        job->setRunExecutables(false);
+        job->start();
+        return true;
+    }
+    return QDesktopServices::openUrl(url);
 }
 
 void KdeConnectShareMonitor::clearRecentShares()

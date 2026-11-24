@@ -21,10 +21,13 @@
 #include <QDBusMessage>
 #include <QDBusReply>
 #include <QDesktopServices>
+#include <QElapsedTimer>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QTimer>
 #include <QDebug>
+
+#include <algorithm>
 
 namespace {
 
@@ -35,25 +38,32 @@ constexpr const char *kDolphinMainWindowIface = "org.kde.dolphin.MainWindow";
  * Plasma-Shell. Jeder synchrone D-Bus-Aufruf haelt damit die gesamte
  * Arbeitsflaeche an. Qts Vorgabe waeren 25 Sekunden PRO Aufruf — ein
  * haengender Gegenueber haette die Shell minutenlang eingefroren. Deshalb ein
- * knappes Limit und eine harte Obergrenze fuer die Zahl der Aufrufe.
+ * knappes Limit pro Aufruf sowie ein festes Gesamtzeitbudget fuer die gesamte
+ * Suche ueber alle Dienste und Fenster hinweg.
  *
  * Bewusst `QDBusMessage` statt `QDBusInterface`: dessen Konstruktor loest
  * selbst noch eine blockierende Introspektion aus, also eine zusaetzliche
  * Rundreise je Dienst und je Fenster.
  */
-constexpr int kDolphinDBusTimeoutMs = 400;
+constexpr int kDolphinDBusTimeoutMs = 350;
+constexpr qint64 kDolphinTotalBudgetMs = 900;
 constexpr int kMaxDolphinServices = 8;
 constexpr int kMaxDolphinWindows = 16;
 
 QDBusMessage callDolphin(const QDBusConnection &bus, const QString &service, const QString &path,
                          const QString &iface, const QString &method,
-                         const QVariantList &args = {})
+                         const QVariantList &args, const QElapsedTimer &budget)
 {
+    const qint64 remaining = kDolphinTotalBudgetMs - budget.elapsed();
+    if (remaining <= 0) {
+        return {};
+    }
     QDBusMessage msg = QDBusMessage::createMethodCall(service, path, iface, method);
     if (!args.isEmpty()) {
         msg.setArguments(args);
     }
-    return bus.call(msg, QDBus::Block, kDolphinDBusTimeoutMs);
+    const int timeoutMs = static_cast<int>(std::min<qint64>(kDolphinDBusTimeoutMs, remaining));
+    return bus.call(msg, QDBus::Block, timeoutMs);
 }
 
 } // namespace
@@ -161,6 +171,31 @@ int RemovableVolumesModel::findRowByUdi(const QString &udi) const
     for (int i = 0; i < m_items.size(); ++i) {
         if (m_items.at(i).udi == udi) {
             return i;
+        }
+    }
+    return -1;
+}
+
+int RemovableVolumesModel::findRowForOpticalSignalUdi(const QString &udi) const
+{
+    const int directRow = findRowByUdi(udi);
+    if (directRow != -1) {
+        return directRow;
+    }
+
+    // Solid::OpticalDrive::ejectDone emits the parent OpticalDrive UDI while
+    // m_items stores the child OpticalDisc UDI. Walk each optical item's parent
+    // chain so eject completion and error states reach the disc row.
+    for (int i = 0; i < m_items.size(); ++i) {
+        if (m_items.at(i).kind != QLatin1String("optical")) {
+            continue;
+        }
+        Solid::Device parentDev(m_items.at(i).udi);
+        while (parentDev.isValid()) {
+            if (parentDev.udi() == udi) {
+                return i;
+            }
+            parentDev = parentDev.parent();
         }
     }
     return -1;
@@ -459,11 +494,12 @@ void RemovableVolumesModel::onTeardownDone(Solid::ErrorType error, const QVarian
 void RemovableVolumesModel::onEjectDone(Solid::ErrorType error, const QVariant &errorData,
                                         const QString &udi)
 {
-    int row = findRowByUdi(udi);
+    int row = findRowForOpticalSignalUdi(udi);
     if (row == -1) {
         return;
     }
 
+    const QString itemUdi = m_items.at(row).udi;
     VolumeItem &item = m_items[row];
     item.busy = false;
     item.operation = QStringLiteral("idle");
@@ -482,9 +518,9 @@ void RemovableVolumesModel::onEjectDone(Solid::ErrorType error, const QVariant &
     QModelIndex idx = createIndex(row, 0);
     emit dataChanged(idx, idx, {BusyRole, OperationRole, ErrorTextRole});
     if (error != Solid::NoError) {
-        emit operationFailed(udi, errorMessage);
+        emit operationFailed(itemUdi, errorMessage);
     } else {
-        emit operationSucceeded(udi);
+        emit operationSucceeded(itemUdi);
     }
 }
 
@@ -774,8 +810,13 @@ bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
     QString chosenPath;
     bool foundActive = false;
     int inspectedServices = 0;
+    QElapsedTimer budget;
+    budget.start();
 
     for (const QString &service : services) {
+        if (budget.elapsed() >= kDolphinTotalBudgetMs) {
+            break;
+        }
         if (!isDolphinService(service)) {
             continue;
         }
@@ -785,7 +826,7 @@ bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
 
         const QDBusMessage xmlReply = callDolphin(bus, service, QStringLiteral("/dolphin"),
                                                   QStringLiteral("org.freedesktop.DBus.Introspectable"),
-                                                  QStringLiteral("Introspect"));
+                                                  QStringLiteral("Introspect"), {}, budget);
         if (xmlReply.type() != QDBusMessage::ReplyMessage || xmlReply.arguments().isEmpty()) {
             continue;
         }
@@ -795,10 +836,13 @@ bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
         auto it = nodeRe.globalMatch(xml);
         int inspectedWindows = 0;
         while (it.hasNext() && ++inspectedWindows <= kMaxDolphinWindows) {
+            if (budget.elapsed() >= kDolphinTotalBudgetMs) {
+                break;
+            }
             const QString winPath = QStringLiteral("/dolphin/") + it.next().captured(1);
             const QDBusMessage activeReply =
                 callDolphin(bus, service, winPath, QLatin1String(kDolphinMainWindowIface),
-                            QStringLiteral("isActiveWindow"));
+                            QStringLiteral("isActiveWindow"), {}, budget);
             if (activeReply.type() != QDBusMessage::ReplyMessage || activeReply.arguments().isEmpty()) {
                 continue;
             }
@@ -829,13 +873,13 @@ bool RemovableVolumesModel::openInDolphinTab(const QUrl &url)
     const QDBusMessage openReply =
         callDolphin(bus, chosenService, chosenPath, QLatin1String(kDolphinMainWindowIface),
                     QStringLiteral("openDirectories"),
-                    QVariantList{QStringList{url.toString()}, false});
+                    QVariantList{QStringList{url.toString()}, false}, budget);
     if (openReply.type() != QDBusMessage::ReplyMessage) {
         return false;
     }
 
     callDolphin(bus, chosenService, chosenPath, QLatin1String(kDolphinMainWindowIface),
-                QStringLiteral("activateWindow"), QVariantList{QString()});
+                QStringLiteral("activateWindow"), QVariantList{QString()}, budget);
     return true;
 }
 

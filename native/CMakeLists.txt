@@ -171,6 +171,10 @@ if(BUILD_TESTING)
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_appgrouppopup.qml"
     )
+    add_test(NAME folderpopupqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_folderpopup.qml"
+    )
     add_test(NAME addappsdialogqmltest
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_addappsdialog.qml"
@@ -219,6 +223,7 @@ if(BUILD_TESTING)
         removablevolumedragqmltest
         appgroupstoreqmltest
         appgrouppopupqmltest
+        folderpopupqmltest
         addappsdialogqmltest
         addappsplanqmltest
         plugincheckqmltest

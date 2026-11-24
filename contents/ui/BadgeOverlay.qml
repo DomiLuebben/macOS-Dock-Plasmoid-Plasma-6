@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import org.kde.kirigami as Kirigami
 import "BadgeStore.js" as BadgeStore
 
 // Unread badge on the corner of a dock icon, or of a group folder. It sits on
@@ -69,7 +68,7 @@ Item {
             text: root.label
             color: "white"
             font.bold: true
-            font.pixelSize: Math.round(badge.height * 0.58)
+            font.pixelSize: Math.max(9, Math.round(badge.height * 0.58))
             renderType: Text.NativeRendering
         }
     }
