@@ -8,6 +8,7 @@ import QtCore
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
 import org.kde.kquickcontrols as KQuickControls
+import "FolderStore.js" as FolderStore
 
 KCM.SimpleKCM {
     id: configPage
@@ -47,7 +48,7 @@ KCM.SimpleKCM {
     property alias cfg_autoOpenAppGroupWithRunningApp:
         autoOpenAppGroupWithRunningAppCheckBox.checked
     property alias cfg_appGroupViewMode: appGroupViewModeCombo.currentIndex
-    property alias cfg_folderUrl: folderUrlField.text
+    property string cfg_folderUrl: ""
     property var cfg_folderUrls: []
     property alias cfg_showTrash: showTrashCheckBox.checked
     property alias cfg_showRemovableVolumes: showRemovableVolumesCheckBox.checked
@@ -134,6 +135,63 @@ KCM.SimpleKCM {
     property bool cfg_showDockBackground: false
     property bool cfg_expanding: false
     property int cfg_length: 0
+
+    readonly property url defaultFolderUrl: StandardPaths.writableLocation(
+        StandardPaths.DownloadLocation)
+    readonly property var configuredFolderList: FolderStore.configuredFolders(
+        configPage.cfg_showFolderView,
+        configPage.cfg_folderUrl,
+        configPage.cfg_folderUrls,
+        configPage.defaultFolderUrl)
+
+    PluginCheck {
+        id: configPluginCheck
+        warnWhenOutdated: false
+    }
+
+    FolderPresenceController {
+        id: configFolderPresence
+        pluginApiVersion: configPluginCheck.apiVersion
+        watchedUrls: configPage.configuredFolderList
+    }
+
+    function applyFolderConfiguration(config) {
+        if (!config.showFolderView) {
+            configPage.cfg_showFolderView = false;
+            configPage.cfg_folderUrl = config.folderUrl;
+            configPage.cfg_folderUrls = config.folderUrls;
+        } else {
+            configPage.cfg_folderUrl = config.folderUrl;
+            configPage.cfg_folderUrls = config.folderUrls;
+            configPage.cfg_showFolderView = true;
+        }
+    }
+
+    function addConfiguredFolder(folderUrl) {
+        let config = FolderStore.addFolders(
+            configPage.cfg_showFolderView,
+            configPage.cfg_folderUrl,
+            configPage.cfg_folderUrls,
+            [folderUrl],
+            configPage.defaultFolderUrl);
+        if (config.changed) {
+            configPage.applyFolderConfiguration(config);
+        }
+        return config.changed;
+    }
+
+    function removeConfiguredFolder(folderUrl) {
+        let config = FolderStore.removeFolder(
+            configPage.cfg_showFolderView,
+            configPage.cfg_folderUrl,
+            configPage.cfg_folderUrls,
+            folderUrl,
+            configPage.defaultFolderUrl);
+        if (config.changed) {
+            configPage.applyFolderConfiguration(config);
+        }
+        return config.changed;
+    }
 
     Kirigami.FormLayout {
         anchors.left: parent.left
@@ -687,36 +745,122 @@ KCM.SimpleKCM {
             opacity: 0.78
         }
 
-        RowLayout {
-            Kirigami.FormData.label: i18n("Default folder:")
+        ColumnLayout {
+            Kirigami.FormData.label: i18n("Folders:")
             Layout.fillWidth: true
-            enabled: showFolderViewCheckBox.checked
+            spacing: Kirigami.Units.smallSpacing
 
-            QQC2.TextField {
-                id: folderUrlField
-
+            QQC2.Label {
                 Layout.fillWidth: true
-                placeholderText: StandardPaths.writableLocation(
-                    StandardPaths.DownloadLocation).toString()
-                selectByMouse: true
+                visible: configPage.configuredFolderList.length === 0
+                text: i18n("No folders configured")
+                opacity: 0.72
             }
 
-            QQC2.Button {
-                icon.name: "document-open-folder"
-                text: i18n("Choose…")
-                onClicked: folderDialog.open()
+            Repeater {
+                model: configPage.configuredFolderList
 
-                QQC2.ToolTip.visible: hovered
-                QQC2.ToolTip.text: i18n("Choose folder")
+                delegate: Rectangle {
+                    id: folderRow
+
+                    required property string modelData
+                    readonly property bool folderExists:
+                        configFolderPresence.directoryExists(modelData)
+                    readonly property bool isDownloads:
+                        FolderStore.comparableFolderKey(modelData)
+                            === FolderStore.comparableFolderKey(
+                                configPage.defaultFolderUrl)
+
+                    Layout.fillWidth: true
+                    implicitHeight: folderRowLayout.implicitHeight
+                        + Kirigami.Units.smallSpacing * 2
+                    radius: Kirigami.Units.cornerRadius
+                    color: Qt.rgba(Kirigami.Theme.textColor.r,
+                        Kirigami.Theme.textColor.g,
+                        Kirigami.Theme.textColor.b, 0.06)
+                    border.width: 1
+                    border.color: Qt.rgba(Kirigami.Theme.textColor.r,
+                        Kirigami.Theme.textColor.g,
+                        Kirigami.Theme.textColor.b, 0.14)
+
+                    RowLayout {
+                        id: folderRowLayout
+
+                        anchors.fill: parent
+                        anchors.margins: Kirigami.Units.smallSpacing
+                        spacing: Kirigami.Units.smallSpacing
+
+                        Kirigami.Icon {
+                            Layout.preferredWidth: Kirigami.Units.iconSizes.smallMedium
+                            Layout.preferredHeight: Kirigami.Units.iconSizes.smallMedium
+                            source: folderRow.isDownloads
+                                ? "folder-download" : "folder"
+                            opacity: folderRow.folderExists ? 1.0 : 0.45
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                                text: FolderStore.displayName(
+                                    folderRow.modelData, i18n("Folder"))
+                                opacity: folderRow.folderExists ? 1.0 : 0.65
+                            }
+
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                elide: Text.ElideMiddle
+                                font: Kirigami.Theme.smallFont
+                                text: FolderStore.displayPath(folderRow.modelData)
+                                opacity: 0.68
+                            }
+
+                            QQC2.Label {
+                                Layout.fillWidth: true
+                                visible: !folderRow.folderExists
+                                wrapMode: Text.WordWrap
+                                font: Kirigami.Theme.smallFont
+                                color: Kirigami.Theme.neutralTextColor
+                                text: i18n("Folder does not exist (hidden in Dock)")
+                            }
+                        }
+
+                        QQC2.ToolButton {
+                            icon.name: "edit-delete"
+                            display: QQC2.AbstractButton.IconOnly
+                            onClicked: configPage.removeConfiguredFolder(
+                                folderRow.modelData)
+
+                            QQC2.ToolTip.visible: hovered
+                            QQC2.ToolTip.text: i18n("Remove Folder from Dock")
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                QQC2.Button {
+                    icon.name: "folder-new"
+                    text: i18n("Add Folder…")
+                    onClicked: folderDialog.open()
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
             }
         }
 
         QQC2.Label {
             Kirigami.FormData.label: i18n("Folder view:")
             Layout.fillWidth: true
-            visible: showFolderViewCheckBox.checked
             wrapMode: Text.WordWrap
-            text: i18n("If no folder is selected, the Downloads folder is used. Drag folders from the file manager onto the Dock to add more stacks.")
+            text: i18n("Add or remove folders here, via the Dock context menu, or by dragging folders onto the Dock. Missing folders are hidden automatically until they exist again.")
             opacity: 0.78
         }
 
@@ -753,9 +897,8 @@ KCM.SimpleKCM {
         id: folderDialog
 
         title: i18n("Choose Folder for the Dock")
-        currentFolder: folderUrlField.text.length > 0
-            ? folderUrlField.text
-            : StandardPaths.writableLocation(StandardPaths.DownloadLocation)
-        onAccepted: folderUrlField.text = selectedFolder.toString()
+        currentFolder: StandardPaths.writableLocation(
+            StandardPaths.HomeLocation)
+        onAccepted: configPage.addConfiguredFolder(selectedFolder.toString())
     }
 }

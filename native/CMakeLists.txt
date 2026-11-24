@@ -20,6 +20,8 @@ add_library(macosdockeffectsplugin MODULE
     blurregion.cpp
     blurregion.h
     desktopidutils.h
+    folderwatcher.cpp
+    folderwatcher.h
     installedappsmodel.cpp
     installedappsmodel.h
     kdeconnectsharemonitor.cpp
@@ -97,6 +99,18 @@ if(BUILD_TESTING)
         Qt6::Test
         KF6::Service
     )
+    add_executable(folderwatchertest
+        tests/folderwatchertest.cpp
+        folderwatcher.cpp
+        folderwatcher.h
+    )
+    target_include_directories(folderwatchertest PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(folderwatchertest PRIVATE
+        Qt6::Core
+        Qt6::Test
+    )
     add_executable(launcherprogressmonitortest
         tests/launcherprogressmonitortest.cpp
         launcherprogressmonitor.cpp
@@ -150,6 +164,9 @@ if(BUILD_TESTING)
     add_test(NAME launchermonitortest
         COMMAND launchermonitortest
     )
+    add_test(NAME folderwatchertest
+        COMMAND folderwatchertest
+    )
     add_test(NAME launcherprogressmonitortest
         COMMAND launcherprogressmonitortest
     )
@@ -191,6 +208,10 @@ if(BUILD_TESTING)
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_launchercleanup.qml"
     )
+    add_test(NAME folderstoreqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_folderstore.qml"
+    )
     add_test(NAME badgestoreqmltest
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_badgestore.qml"
@@ -228,6 +249,7 @@ if(BUILD_TESTING)
         addappsplanqmltest
         plugincheckqmltest
         launchercleanupqmltest
+        folderstoreqmltest
         badgestoreqmltest
         progresscontrollerqmltest
         configgeneralqmltest

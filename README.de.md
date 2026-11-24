@@ -17,9 +17,11 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
   Entfernen einzelner Apps oder Auflösen der Gruppe; angeheftete Starter
   funktionieren unabhängig davon, ob ihre App geöffnet oder geschlossen ist,
   einschließlich der Zuordnung von Wine-/Proton-`.exe`-Fenstern
-- optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; weitere
-  Ordner lassen sich direkt aus dem Dateimanager auf das Dock ziehen; Liste,
-  Raster oder Fächer werden in den Dock-Einstellungen ausgewählt
+- optionale Download-/Ordnerstapel mit macOS-artiger Dateiansicht; Ordner
+  lassen sich in den Dock-Einstellungen, über das Kontextmenü oder per Ziehen
+  aus dem Dateimanager manuell hinzufügen und entfernen; Liste, Raster oder
+  Fächer werden in den Einstellungen ausgewählt, und nicht (mehr) existierende
+  Verzeichnisse werden im Dock automatisch ausgeblendet
 - optionale Fortschrittsringe für Plasma-Aufträge und Unity-kompatible
   Downloads auf Anwendungssymbolen und passenden Ordnerstapeln
 - Apps-hinzufügen-Auswahl: Rechtsklick auf das Dock (oder auf eine App oder Gruppe) und

@@ -118,4 +118,38 @@ TestCase {
         compare(config.cfg_autoRemoveUninstalledApps, false);
         compare(config.cfg_autoRemoveUninstalledAppsDefault, true);
     }
+
+    function test_managesConfiguredFolders() {
+        failOnWarning(
+            /ConfigGeneral does not have a property called cfg_folderUrl/);
+        failOnWarning(
+            /Created graphical object was not placed in the graphics scene/);
+
+        var config = createTemporaryObject(configComponent, this, {
+            cfg_showFolderView: true,
+            cfg_folderUrl: "",
+            cfg_folderUrls: ["file:///OneTouch/Nextcloud"]
+        });
+        verify(config);
+        compare(config.configuredFolderList.length, 2);
+        compare(config.configuredFolderList[1], "file:///OneTouch/Nextcloud");
+
+        // Removing the missing folder leaves the default Downloads folder.
+        compare(config.removeConfiguredFolder("file:///OneTouch/Nextcloud"), true);
+        compare(config.cfg_showFolderView, true);
+        compare(config.cfg_folderUrl, "");
+        compare(config.cfg_folderUrls, []);
+
+        // Removing the last remaining folder disables showFolderView cleanly.
+        var lastFolder = config.configuredFolderList[0];
+        compare(config.removeConfiguredFolder(lastFolder), true);
+        compare(config.cfg_showFolderView, false);
+        compare(config.configuredFolderList, []);
+
+        // Adding a new folder re-enables showFolderView with only that folder.
+        compare(config.addConfiguredFolder("file:///home/user/Projects"), true);
+        compare(config.cfg_showFolderView, true);
+        compare(config.cfg_folderUrl, "file:///home/user/Projects");
+        compare(config.cfg_folderUrls, []);
+    }
 }

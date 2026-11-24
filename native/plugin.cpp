@@ -1,4 +1,5 @@
 #include "blurregion.h"
+#include "folderwatcher.h"
 #include "windowactions.h"
 #include "installedappsmodel.h"
 #include "launchermonitor.h"
@@ -20,6 +21,7 @@ public:
     void registerTypes(const char *uri) override
     {
         qmlRegisterType<BlurRegion>(uri, 1, 0, "BlurRegion");
+        qmlRegisterType<FolderWatcher>(uri, 1, 0, "FolderWatcher");
         qmlRegisterType<WindowActions>(uri, 1, 0, "WindowActions");
         qmlRegisterType<InstalledAppsModel>(uri, 1, 0, "InstalledAppsModel");
         qmlRegisterType<LauncherMonitor>(uri, 1, 0, "LauncherMonitor");

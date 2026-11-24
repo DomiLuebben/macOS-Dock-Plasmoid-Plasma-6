@@ -17,9 +17,10 @@ color scheme.
   the animated grid or list to launch, rename, remove, or ungroup its apps;
   pinned launchers work whether their applications are open or closed,
   including matching Wine/Proton `.exe` windows to their desktop launchers
-- Optional Downloads/folder stacks with a macOS-style file popover; drag
-  folders from the file manager onto the Dock to add more, and select list,
-  grid, or fan layout in the widget settings
+- Optional Downloads/folder stacks with a macOS-style file popover; add or
+  remove folders in the widget settings, via the Dock context menu, or by
+  dragging folders from the file manager, with list, grid, or fan layout;
+  missing or unmounted directories are hidden automatically until they exist again
 - Optional progress rings for Plasma jobs and Unity-compatible downloads on
   application icons and matching folder stacks
 - Add Apps picker: right-click the Dock (or an app, or a group) and choose "Add Apps…" to

@@ -740,3 +740,23 @@ msgstr "Nettoyage :"
 #: contents/ui/ConfigGeneral.qml
 msgid "Automatically remove uninstalled applications"
 msgstr "Retirer automatiquement du Dock les applications désinstallées"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Folders:"
+msgstr "Dossiers :"
+
+#: contents/ui/ConfigGeneral.qml contents/ui/main.qml
+msgid "Add Folder…"
+msgstr "Ajouter un dossier…"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "No folders configured"
+msgstr "Aucun dossier configuré"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Folder does not exist (hidden in Dock)"
+msgstr "Le dossier n’existe pas (masqué dans le Dock)"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Add or remove folders here, via the Dock context menu, or by dragging folders onto the Dock. Missing folders are hidden automatically until they exist again."
+msgstr "Ajoutez ou retirez des dossiers ici, via le menu contextuel du Dock ou en les faisant glisser sur le Dock. Les dossiers introuvables sont masqués automatiquement jusqu’à ce qu’ils existent à nouveau."

@@ -19,9 +19,10 @@ couleurs du thème Qt.
   lanceurs épinglés fonctionnent, que l’application soit ouverte ou fermée,
   y compris pour les fenêtres `.exe` de Wine/Proton
 - Piles de téléchargements/dossiers facultatives avec vue de fichiers de style
-  macOS ; d’autres dossiers peuvent être glissés directement depuis le
-  gestionnaire de fichiers, avec une disposition en liste, grille ou éventail
-  sélectionnée dans les réglages
+  macOS ; ajoutez ou retirez des dossiers dans les réglages, via le menu
+  contextuel du Dock ou par glisser-déposer depuis le gestionnaire de fichiers,
+  avec une disposition en liste, grille ou éventail ; les répertoires
+  inexistants ou démontés sont masqués automatiquement dans le Dock
 - Anneaux de progression facultatifs pour les tâches Plasma et les
   téléchargements compatibles Unity sur les applications et les piles de dossiers correspondantes
 - Sélecteur d’ajout d’applications : clic droit sur le Dock (ou sur une application ou un

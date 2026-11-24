@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls as QQC2
+import QtQuick.Dialogs as QtDialogs
 import QtQuick.Layouts
 import QtCore
 import org.kde.kirigami as Kirigami
@@ -14,6 +15,7 @@ import org.kde.private.desktopcontainment.folder as Folder
 import "effects" as DockEffects
 import "AppGroupStore.js" as AppGroupStore
 import "BadgeStore.js" as BadgeStore
+import "FolderStore.js" as FolderStore
 
 PlasmoidItem {
     id: root
@@ -143,11 +145,15 @@ PlasmoidItem {
         Plasmoid.configuration.desktopSwitcherLabelMode, 0, 0, 1))
     readonly property url defaultFolderUrl: StandardPaths.writableLocation(
         StandardPaths.DownloadLocation)
-    readonly property url configuredFolderUrl:
-        String(Plasmoid.configuration.folderUrl || "").length > 0
-            ? Plasmoid.configuration.folderUrl : defaultFolderUrl
-    readonly property var additionalFolderUrls:
-        Plasmoid.configuration.folderUrls || []
+    readonly property var configuredFolderList: FolderStore.configuredFolders(
+        showFolderView,
+        Plasmoid.configuration.folderUrl,
+        Plasmoid.configuration.folderUrls,
+        defaultFolderUrl)
+    readonly property var visibleFolderUrls: showFolderView
+        ? folderPresence.existingUrls : []
+    readonly property url primaryVisibleFolderUrl: visibleFolderUrls.length > 0
+        ? visibleFolderUrls[0] : defaultFolderUrl
     readonly property real indicatorSize: 3
     readonly property real indicatorGap: 2
     readonly property real indicatorSpace: indicatorSize + indicatorGap
@@ -187,8 +193,7 @@ PlasmoidItem {
     readonly property real desktopButtonSpacing: 4
     readonly property real desktopAddButtonMainExtent:
         Math.max(26, Math.round(baseIconSize * 0.6))
-    readonly property int folderItemCount: showFolderView
-        ? 1 + additionalFolderUrls.length : 0
+    readonly property int folderItemCount: visibleFolderUrls.length
     readonly property bool powerButtonOnLeft:
         showPowerButton && powerButtonPosition === 0
     // Dock indices describe visual order along the main axis. A leading power
@@ -315,6 +320,15 @@ PlasmoidItem {
         onCheckRequested: root.scheduleMissingLaunchersPrune()
     }
 
+    FolderPresenceController {
+        id: folderPresence
+        pluginApiVersion: pluginCheck.apiVersion
+        watchedUrls: root.configuredFolderList
+        fallbackExistsFn: function (url) {
+            return windowActions.canonicalDirectoryUrl(url).length > 0;
+        }
+    }
+
     ProgressController {
         id: progressController
         monitoringEnabled: root.showProgressIndicators
@@ -367,7 +381,7 @@ PlasmoidItem {
     property bool autoOpenedAppGroupHovered: false
     property string activeAppGroupId: ""
     property bool folderDropActive: false
-    property url activeFolderUrl: configuredFolderUrl
+    property url activeFolderUrl: primaryVisibleFolderUrl
     property bool desktopCreationPending: false
     property int trashItemCount: 0
     property var openContextMenu: null
@@ -544,25 +558,12 @@ PlasmoidItem {
     }
 
     function folderUrlAt(index) {
-        if (index === 0) {
-            return configuredFolderUrl;
-        }
-        var additionalIndex = index - 1;
-        return additionalIndex >= 0
-                && additionalIndex < additionalFolderUrls.length
-            ? additionalFolderUrls[additionalIndex] : "";
+        return index >= 0 && index < visibleFolderUrls.length
+            ? String(visibleFolderUrls[index]) : "";
     }
 
     function folderName(folderUrl) {
-        var path = String(folderUrl || "").replace(/\/$/, "");
-        try {
-            path = decodeURIComponent(path);
-        } catch (error) {
-            // A malformed escape sequence must not break Dock delegates.
-        }
-        var slash = path.lastIndexOf("/");
-        var name = slash >= 0 ? path.substring(slash + 1) : path;
-        return name.length > 0 ? name : i18n("Folder");
+        return FolderStore.displayName(folderUrl, i18n("Folder"));
     }
 
     function folderIconName(folderUrl) {
@@ -577,7 +578,7 @@ PlasmoidItem {
         if (canonical.length > 0) {
             return canonical;
         }
-        return String(folderUrl || "").replace(/\/$/, "");
+        return FolderStore.comparableFolderKey(folderUrl);
     }
 
     function containsFolderUrl(folderUrls, candidate) {
@@ -594,6 +595,18 @@ PlasmoidItem {
         return false;
     }
 
+    function applyFolderConfiguration(config) {
+        if (!config.showFolderView) {
+            Plasmoid.configuration.showFolderView = false;
+            Plasmoid.configuration.folderUrl = config.folderUrl;
+            Plasmoid.configuration.folderUrls = config.folderUrls;
+        } else {
+            Plasmoid.configuration.folderUrl = config.folderUrl;
+            Plasmoid.configuration.folderUrls = config.folderUrls;
+            Plasmoid.configuration.showFolderView = true;
+        }
+    }
+
     function droppedUrlsContainFolder(urls) {
         var values = urls || [];
         for (var index = 0; index < values.length; ++index) {
@@ -605,57 +618,124 @@ PlasmoidItem {
     }
 
     function addDroppedFolders(urls) {
-        var next = [];
-        for (var existingIndex = 0;
-                existingIndex < additionalFolderUrls.length;
-                ++existingIndex) {
-            next.push(String(additionalFolderUrls[existingIndex]));
-        }
-
-        var changed = false;
+        var additions = [];
         var values = urls || [];
         for (var index = 0; index < values.length; ++index) {
             var folderUrl = windowActions.canonicalDirectoryUrl(values[index]);
             if (folderUrl.length === 0
-                    || comparableFolderUrl(configuredFolderUrl)
-                        === comparableFolderUrl(folderUrl)
-                    || containsFolderUrl(next, folderUrl)) {
+                    || containsFolderUrl(configuredFolderList, folderUrl)
+                    || containsFolderUrl(additions, folderUrl)) {
                 continue;
             }
-            next.push(folderUrl);
-            changed = true;
+            additions.push(folderUrl);
         }
 
-        if (changed) {
-            Plasmoid.configuration.folderUrls = next;
-            Plasmoid.configuration.showFolderView = true;
+        if (additions.length === 0) {
+            return false;
+        }
+
+        var config = FolderStore.addFolders(
+            showFolderView,
+            Plasmoid.configuration.folderUrl,
+            Plasmoid.configuration.folderUrls,
+            additions,
+            defaultFolderUrl);
+        if (config.changed) {
+            applyFolderConfiguration(config);
             revealDock();
             overlayOpen = true;
         }
-        return changed;
+        return config.changed;
     }
 
-    function removeAdditionalFolder(folderUrl) {
-        var target = comparableFolderUrl(folderUrl);
-        var next = [];
-        var changed = false;
-        for (var index = 0; index < additionalFolderUrls.length; ++index) {
-            if (comparableFolderUrl(additionalFolderUrls[index]) === target) {
-                changed = true;
-            } else {
-                next.push(String(additionalFolderUrls[index]));
+    function addSelectedFolderUrl(selectedUrl) {
+        var candidate = windowActions.canonicalDirectoryUrl(selectedUrl);
+        if (candidate.length === 0) {
+            candidate = FolderStore.normalizeFolderUrl(selectedUrl);
+        }
+        if (candidate.length === 0
+                || containsFolderUrl(configuredFolderList, candidate)) {
+            return false;
+        }
+
+        var config = FolderStore.addFolders(
+            showFolderView,
+            Plasmoid.configuration.folderUrl,
+            Plasmoid.configuration.folderUrls,
+            [candidate],
+            defaultFolderUrl);
+        if (config.changed) {
+            applyFolderConfiguration(config);
+            revealDock();
+            overlayOpen = true;
+        }
+        return config.changed;
+    }
+
+    function removeFolderFromDock(folderUrl) {
+        var target = String(folderUrl || "");
+        if (target.length === 0) {
+            return;
+        }
+        var config = FolderStore.removeFolder(
+            showFolderView,
+            Plasmoid.configuration.folderUrl,
+            Plasmoid.configuration.folderUrls,
+            target,
+            defaultFolderUrl);
+        if (!config.changed) {
+            var targetKey = comparableFolderUrl(target);
+            for (var i = 0; i < configuredFolderList.length; ++i) {
+                if (comparableFolderUrl(configuredFolderList[i])
+                        === targetKey) {
+                    config = FolderStore.removeFolder(
+                        showFolderView,
+                        Plasmoid.configuration.folderUrl,
+                        Plasmoid.configuration.folderUrls,
+                        configuredFolderList[i],
+                        defaultFolderUrl);
+                    break;
+                }
             }
         }
-        if (changed) {
-            if (comparableFolderUrl(activeFolderUrl) === target) {
+        if (config.changed) {
+            if (comparableFolderUrl(activeFolderUrl)
+                    === comparableFolderUrl(target)) {
                 closeFolderPopup();
             }
-            Plasmoid.configuration.folderUrls = next;
+            applyFolderConfiguration(config);
+        }
+    }
+
+    function openAddFolderDialog() {
+        scheduleDeferredMenuAction(function () {
+            root.showAddFolderDialog();
+        });
+    }
+
+    function showAddFolderDialog() {
+        addFolderDialogLoader.active = true;
+        var dialog = addFolderDialogLoader.item;
+        if (!dialog) {
+            return;
+        }
+        dialog.currentFolder = StandardPaths.writableLocation(
+            StandardPaths.HomeLocation);
+        dialog.open();
+    }
+
+    Loader {
+        id: addFolderDialogLoader
+
+        active: false
+        sourceComponent: QtDialogs.FolderDialog {
+            title: i18n("Choose Folder for the Dock")
+            onAccepted: root.addSelectedFolderUrl(selectedFolder)
         }
     }
 
     function openFolderExternally(folderUrl) {
-        Folder.AppLauncher.openUrl(folderUrl || configuredFolderUrl);
+        Folder.AppLauncher.openUrl(folderUrl || primaryVisibleFolderUrl);
     }
 
     function openTrashExternally() {
@@ -667,7 +747,10 @@ PlasmoidItem {
     }
 
     function openFolderPopup(folderUrl, visualParent) {
-        var targetUrl = String(folderUrl || configuredFolderUrl);
+        var targetUrl = String(folderUrl || primaryVisibleFolderUrl);
+        if (!containsFolderUrl(visibleFolderUrls, targetUrl)) {
+            return;
+        }
         if (folderPopup.visible) {
             folderPopup.close();
         }
@@ -683,7 +766,7 @@ PlasmoidItem {
     }
 
     function toggleFolderPopup(folderUrl, visualParent) {
-        var targetUrl = String(folderUrl || configuredFolderUrl);
+        var targetUrl = String(folderUrl || primaryVisibleFolderUrl);
         var sameTarget = comparableFolderUrl(activeFolderUrl)
             === comparableFolderUrl(targetUrl);
         closeAppGroupPopup();
@@ -698,7 +781,7 @@ PlasmoidItem {
     // Vom Überfahren ausgelöster Weg. Anders als der Klick schaltet er nicht
     // um: ist der Ordner schon offen, bleibt er offen.
     function autoOpenFolderPopup(folderUrl, visualParent) {
-        var targetUrl = String(folderUrl || configuredFolderUrl);
+        var targetUrl = String(folderUrl || primaryVisibleFolderUrl);
         if ((folderPopup.visible || folderPopupOpenPending)
                 && comparableFolderUrl(activeFolderUrl)
                     === comparableFolderUrl(targetUrl)) {
@@ -736,7 +819,8 @@ PlasmoidItem {
             return;
         }
         folderPopupOpenPending = false;
-        if (showFolderView && folderPopup.visualParent) {
+        if (showFolderView && folderPopup.visualParent
+                && containsFolderUrl(visibleFolderUrls, activeFolderUrl)) {
             folderPopup.showPopup();
         }
     }
@@ -2704,11 +2788,22 @@ PlasmoidItem {
         overlayOpen = false;
     }
 
-    onConfiguredFolderUrlChanged: {
+    function syncActiveFolderState() {
+        if (containsFolderUrl(visibleFolderUrls, activeFolderUrl)) {
+            if ((folderPopup.visible || folderPopupOpenPending)
+                    && !folderPopup.visualParent) {
+                closeFolderPopup();
+            }
+            return;
+        }
         closeFolderPopup();
-        activeFolderUrl = configuredFolderUrl;
-        folderModel.url = String(configuredFolderUrl);
+        var fallback = visibleFolderUrls.length > 0
+            ? String(visibleFolderUrls[0]) : "";
+        activeFolderUrl = fallback;
+        folderModel.url = fallback;
     }
+
+    onVisibleFolderUrlsChanged: syncActiveFolderState()
 
     onOverlayHoveredChanged: {
         if (folderPopup.visible && !folderPopup.hovered) {
@@ -2738,17 +2833,12 @@ PlasmoidItem {
             }
         }
 
+        function onFolderUrlChanged() {
+            root.syncActiveFolderState();
+        }
+
         function onFolderUrlsChanged() {
-            if (root.comparableFolderUrl(root.activeFolderUrl)
-                    === root.comparableFolderUrl(root.configuredFolderUrl)
-                    || root.containsFolderUrl(
-                        Plasmoid.configuration.folderUrls || [],
-                        root.activeFolderUrl)) {
-                return;
-            }
-            root.closeFolderPopup();
-            root.activeFolderUrl = root.configuredFolderUrl;
-            folderModel.url = String(root.configuredFolderUrl);
+            root.syncActiveFolderState();
         }
     }
 
@@ -2835,7 +2925,8 @@ PlasmoidItem {
     Folder.FolderModel {
         id: folderModel
 
-        url: String(root.configuredFolderUrl)
+        url: root.visibleFolderUrls.length > 0
+            ? String(root.visibleFolderUrls[0]) : ""
         sortMode: 0
         sortDesc: false
         sortDirsFirst: true
@@ -4778,6 +4869,12 @@ PlasmoidItem {
                 }
 
                 QQC2.MenuItem {
+                    text: i18n("Add Folder…")
+                    icon.name: "folder-new"
+                    onTriggered: root.openAddFolderDialog()
+                }
+
+                QQC2.MenuItem {
                     text: i18n("Configure Dock…")
                     icon.name: "configure"
                     onTriggered: root.scheduleDeferredMenuAction(function () {
@@ -5056,13 +5153,19 @@ PlasmoidItem {
 
                 QQC2.MenuItem {
                     visible: root.contextUtilityIsFolder
-                        && root.contextUtilityFolderIndex > 0
+                    text: i18n("Add Folder…")
+                    icon.name: "folder-new"
+                    onTriggered: root.openAddFolderDialog()
+                }
+
+                QQC2.MenuItem {
+                    visible: root.contextUtilityIsFolder
                     text: i18n("Remove Folder from Dock")
                     icon.name: "list-remove"
                     onTriggered: {
                         var folderUrl = root.contextUtilityFolderUrl;
                         root.scheduleDeferredMenuAction(function () {
-                            root.removeAdditionalFolder(folderUrl);
+                            root.removeFolderFromDock(folderUrl);
                         });
                     }
                 }

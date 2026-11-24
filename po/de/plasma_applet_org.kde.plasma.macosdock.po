@@ -738,3 +738,23 @@ msgstr "Bereinigung:"
 #: contents/ui/ConfigGeneral.qml
 msgid "Automatically remove uninstalled applications"
 msgstr "Deinstallierte Anwendungen automatisch aus dem Dock entfernen"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Folders:"
+msgstr "Ordner:"
+
+#: contents/ui/ConfigGeneral.qml contents/ui/main.qml
+msgid "Add Folder…"
+msgstr "Ordner hinzufügen …"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "No folders configured"
+msgstr "Keine Ordner eingerichtet"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Folder does not exist (hidden in Dock)"
+msgstr "Ordner existiert nicht (im Dock ausgeblendet)"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Add or remove folders here, via the Dock context menu, or by dragging folders onto the Dock. Missing folders are hidden automatically until they exist again."
+msgstr "Ordner lassen sich hier, über das Kontextmenü des Docks oder per Ziehen aus dem Dateimanager hinzufügen und entfernen. Nicht vorhandene Verzeichnisse werden im Dock automatisch ausgeblendet, bis sie wieder existieren."

@@ -11,13 +11,14 @@ QtObject {
     id: root
 
     // The API level this QML was written for (see native/plugininfo.h).
-    readonly property int requiredApiVersion: 4
+    readonly property int requiredApiVersion: 5
 
     // Overridable so tests can stand in for a plugin without PluginInfo.
     property string probeSource:
         "import QtQuick\nimport \"effects\" as Effects\nEffects.PluginInfo {}"
 
     property int apiVersion: 0
+    property bool warnWhenOutdated: true
     readonly property bool current: apiVersion >= requiredApiVersion
     readonly property string message: current ? "" :
         "macOS Dock: the native plugin in memory has API version " + apiVersion
@@ -36,7 +37,7 @@ QtObject {
         } catch (error) {
             root.apiVersion = 0;
         }
-        if (!root.current) {
+        if (!root.current && root.warnWhenOutdated) {
             console.warn(root.message);
         }
     }
