@@ -69,6 +69,8 @@ KCM.SimpleKCM {
         showNotificationBadgesCheckBox.checked
     property alias cfg_showKdeConnectRecentShares:
         showKdeConnectRecentSharesCheckBox.checked
+    property alias cfg_autoRemoveUninstalledApps:
+        autoRemoveUninstalledAppsCheckBox.checked
     property var cfg_launchers: []
     property var cfg_appGroups: []
 
@@ -123,6 +125,7 @@ KCM.SimpleKCM {
     property bool cfg_showProgressIndicatorsDefault: true
     property bool cfg_showNotificationBadgesDefault: true
     property bool cfg_showKdeConnectRecentSharesDefault: true
+    property bool cfg_autoRemoveUninstalledAppsDefault: true
     property var cfg_appGroupsDefault: []
     property var cfg_launchersDefault: []
 
@@ -730,6 +733,13 @@ KCM.SimpleKCM {
         Item {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("Applications")
+        }
+
+        QQC2.CheckBox {
+            id: autoRemoveUninstalledAppsCheckBox
+
+            Kirigami.FormData.label: i18n("Maintenance:")
+            text: i18n("Automatically remove uninstalled applications")
         }
 
         QQC2.Label {

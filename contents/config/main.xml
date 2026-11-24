@@ -134,6 +134,9 @@
     <entry name="showKdeConnectRecentShares" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="autoRemoveUninstalledApps" type="Bool">
+      <default>true</default>
+    </entry>
     <!--
       Each entry is a versioned JSON object. Keeping groups separate from the
       TaskManager launcher list preserves Plasma's native task activation and

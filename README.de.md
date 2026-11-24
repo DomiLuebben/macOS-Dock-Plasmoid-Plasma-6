@@ -26,6 +26,8 @@ Fenstersteuerung und einem zum Qt-Farbschema passenden Blur-Hintergrund.
   „Apps hinzufügen …“ wählen, alle installierten Programme durchsuchen, mehrere auf einmal
   ankreuzen und vor dem Hinzufügen in neue oder bestehende Gruppen sortieren; bei mehreren
   Apps ohne Gruppe fragt das Dock, ob alle in eine Gruppe sollen
+- automatisches Entfernen deinstallierter Anwendungen aus angehefteten Dock-Startern und
+  App-Gruppen, sobald deren Desktop-Einträge entfernt werden
 - Badges für ungelesene Nachrichten auf App-Symbolen und App-Gruppen-Ordnern wie
   bei ChromeOS: Ein geschlossener Ordner zeigt die Summe seiner Apps direkt auf
   dem Ordner. Die Zahlen stammen von Unity-kompatiblen Apps (Chat und Mail) oder

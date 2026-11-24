@@ -322,3 +322,88 @@ function stableIndexForDragVisual(visualIndex, originIndex, targetIndex,
     }
     return visualIndex;
 }
+
+function removeLaunchersFromList(launcherList, launchersToRemove) {
+    var source = launcherList || [];
+    var removedKeys = {};
+    var removeList = launchersToRemove || [];
+    for (var removeIndex = 0; removeIndex < removeList.length; ++removeIndex) {
+        var key = launcherKey(removeList[removeIndex]);
+        if (key !== launcherKey("")) {
+            removedKeys[key] = true;
+        }
+    }
+
+    var filtered = [];
+    var changed = false;
+    for (var index = 0; index < source.length; ++index) {
+        var entry = String(source[index] || "");
+        if (removedKeys[launcherKey(entry)]) {
+            changed = true;
+        } else {
+            filtered.push(entry);
+        }
+    }
+
+    return {
+        launchers: filtered,
+        changed: changed
+    };
+}
+
+function removeLaunchersFromGroups(groups, launchersToRemove) {
+    var sourceGroups = groups || [];
+    var removedLauncherKeys = {};
+    var removedAppIdKeys = {};
+    var removeList = launchersToRemove || [];
+    for (var removeIndex = 0; removeIndex < removeList.length; ++removeIndex) {
+        var raw = String(removeList[removeIndex] || "");
+        var key = launcherKey(raw);
+        if (key !== launcherKey("")) {
+            removedLauncherKeys[key] = true;
+        }
+        var idKey = identityAppIdKey(raw, "");
+        if (idKey) {
+            removedAppIdKeys[idKey] = true;
+        }
+    }
+
+    var nextGroups = [];
+    var changed = false;
+    for (var groupIndex = 0; groupIndex < sourceGroups.length; ++groupIndex) {
+        var group = sourceGroups[groupIndex];
+        var remainingMembers = [];
+        for (var memberIndex = 0;
+                memberIndex < group.members.length; ++memberIndex) {
+            var member = group.members[memberIndex];
+            var memberKey = launcherKey(member.launcher);
+            var memberIdKey = identityAppIdKey(
+                member.launcher, member.appId);
+            if (removedLauncherKeys[memberKey]
+                    || (memberIdKey && removedAppIdKeys[memberIdKey])) {
+                changed = true;
+            } else {
+                remainingMembers.push(member);
+            }
+        }
+
+        if (remainingMembers.length >= 2) {
+            nextGroups.push({
+                version: 1,
+                id: group.id,
+                name: group.name,
+                members: remainingMembers
+            });
+        } else if (group.members.length > 0) {
+            // Groups need at least two applications; when one of two is
+            // uninstalled, dissolve the group and leave the remaining app
+            // pinned on its own.
+            changed = true;
+        }
+    }
+
+    return {
+        groups: nextGroups,
+        changed: changed
+    };
+}

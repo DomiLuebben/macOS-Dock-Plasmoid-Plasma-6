@@ -97,7 +97,8 @@ cp -a "$SCRIPT_DIR/contents/." "$PACKAGE_DIR/contents/"
 
 printf '%s\n' "$MSG_INSTALL"
 
-if kpackagetool6 -t Plasma/Applet --show "$PLASMOID_ID" >/dev/null 2>&1; then
+LOCAL_PLASMOID_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/plasma/plasmoids/$PLASMOID_ID"
+if [[ -d "$LOCAL_PLASMOID_DIR" ]]; then
     kpackagetool6 -t Plasma/Applet --upgrade "$PACKAGE_DIR"
 else
     kpackagetool6 -t Plasma/Applet --install "$PACKAGE_DIR"

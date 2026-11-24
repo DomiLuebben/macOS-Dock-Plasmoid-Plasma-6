@@ -11,7 +11,7 @@ QtObject {
     id: root
 
     // The API level this QML was written for (see native/plugininfo.h).
-    readonly property int requiredApiVersion: 3
+    readonly property int requiredApiVersion: 4
 
     // Overridable so tests can stand in for a plugin without PluginInfo.
     property string probeSource: 'import QtQuick

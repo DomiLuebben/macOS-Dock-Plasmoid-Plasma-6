@@ -14,13 +14,14 @@
 //   1  progress rings (LauncherProgressMonitor::progressUpdated)
 //   2  unread counts (LauncherProgressMonitor::countUpdated), PluginInfo itself
 //   3  InstalledAppsModel (the "Add Apps" picker)
+//   4  LauncherMonitor (automatic cleanup of uninstalled launchers)
 class PluginInfo : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int apiVersion READ apiVersion CONSTANT)
 
 public:
-    static constexpr int kApiVersion = 3;
+    static constexpr int kApiVersion = 4;
 
     explicit PluginInfo(QObject *parent = nullptr)
         : QObject(parent)

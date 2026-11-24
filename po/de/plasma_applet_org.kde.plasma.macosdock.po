@@ -730,3 +730,11 @@ msgstr "Hinzuzufügen (%1)"
 #: contents/ui/AddAppsDialog.qml
 msgid "Yes, One Group"
 msgstr "Ja, eine Gruppe"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Maintenance:"
+msgstr "Bereinigung:"
+
+#: contents/ui/ConfigGeneral.qml
+msgid "Automatically remove uninstalled applications"
+msgstr "Deinstallierte Anwendungen automatisch aus dem Dock entfernen"

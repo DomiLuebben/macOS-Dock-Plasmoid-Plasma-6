@@ -103,4 +103,17 @@ TestCase {
         compare(config.cfg_autoOpenAppGroupWithRunningApp, false);
         compare(config.cfg_autoOpenAppGroupWithRunningAppDefault, true);
     }
+
+    function test_acceptsAutoRemoveUninstalledAppsConfiguration() {
+        failOnWarning(
+            /ConfigGeneral does not have a property called cfg_autoRemoveUninstalledApps/);
+
+        var config = createTemporaryObject(configComponent, this, {
+            cfg_autoRemoveUninstalledApps: false,
+            cfg_autoRemoveUninstalledAppsDefault: true
+        });
+        verify(config);
+        compare(config.cfg_autoRemoveUninstalledApps, false);
+        compare(config.cfg_autoRemoveUninstalledAppsDefault, true);
+    }
 }

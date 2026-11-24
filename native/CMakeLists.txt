@@ -24,6 +24,8 @@ add_library(macosdockeffectsplugin MODULE
     installedappsmodel.h
     kdeconnectsharemonitor.cpp
     kdeconnectsharemonitor.h
+    launchermonitor.cpp
+    launchermonitor.h
     launcherprogressmonitor.cpp
     launcherprogressmonitor.h
     opendocumentlocator.cpp
@@ -82,6 +84,19 @@ if(BUILD_TESTING)
         Qt6::Test
         KF6::Service
     )
+    add_executable(launchermonitortest
+        tests/launchermonitortest.cpp
+        launchermonitor.cpp
+        launchermonitor.h
+    )
+    target_include_directories(launchermonitortest PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    target_link_libraries(launchermonitortest PRIVATE
+        Qt6::Core
+        Qt6::Test
+        KF6::Service
+    )
     add_executable(launcherprogressmonitortest
         tests/launcherprogressmonitortest.cpp
         launcherprogressmonitor.cpp
@@ -132,6 +147,9 @@ if(BUILD_TESTING)
     add_test(NAME installedappsmodeltest
         COMMAND installedappsmodeltest
     )
+    add_test(NAME launchermonitortest
+        COMMAND launchermonitortest
+    )
     add_test(NAME launcherprogressmonitortest
         COMMAND launcherprogressmonitortest
     )
@@ -165,6 +183,10 @@ if(BUILD_TESTING)
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_plugincheck.qml"
     )
+    add_test(NAME launchercleanupqmltest
+        COMMAND Qt6::qmltestrunner
+            -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_launchercleanup.qml"
+    )
     add_test(NAME badgestoreqmltest
         COMMAND Qt6::qmltestrunner
             -input "${CMAKE_CURRENT_SOURCE_DIR}/tests/tst_badgestore.qml"
@@ -197,8 +219,14 @@ if(BUILD_TESTING)
         removablevolumedragqmltest
         appgroupstoreqmltest
         appgrouppopupqmltest
+        addappsdialogqmltest
+        addappsplanqmltest
+        plugincheckqmltest
+        launchercleanupqmltest
+        badgestoreqmltest
         progresscontrollerqmltest
         configgeneralqmltest
+        dockitembadgeqmltest
         dockitemscaleqmltest
         dockitemfocusqmltest
         dockitemtooltipqmltest

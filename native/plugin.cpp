@@ -1,6 +1,7 @@
 #include "blurregion.h"
 #include "windowactions.h"
 #include "installedappsmodel.h"
+#include "launchermonitor.h"
 #include "launcherprogressmonitor.h"
 #include "kdeconnectsharemonitor.h"
 #include "opendocumentlocator.h"
@@ -21,6 +22,7 @@ public:
         qmlRegisterType<BlurRegion>(uri, 1, 0, "BlurRegion");
         qmlRegisterType<WindowActions>(uri, 1, 0, "WindowActions");
         qmlRegisterType<InstalledAppsModel>(uri, 1, 0, "InstalledAppsModel");
+        qmlRegisterType<LauncherMonitor>(uri, 1, 0, "LauncherMonitor");
         qmlRegisterType<LauncherProgressMonitor>(uri, 1, 0, "LauncherProgressMonitor");
         qmlRegisterType<KdeConnectShareMonitor>(uri, 1, 0, "KdeConnectShareMonitor");
         qmlRegisterType<RemovableVolumesModel>(uri, 1, 0, "RemovableVolumesModel");

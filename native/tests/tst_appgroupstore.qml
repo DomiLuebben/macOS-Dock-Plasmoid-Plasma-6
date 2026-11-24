@@ -247,4 +247,50 @@ TestCase {
         compare(AppGroupStore.visualIndexForDrag(
             13, 14, 13, false), 14);
     }
+
+    function test_removesUninstalledLaunchersFromListAndGroups() {
+        var listResult = AppGroupStore.removeLaunchersFromList([
+            "preferred://filemanager",
+            "applications:org.linuxuniversalappcenter.desktop",
+            "applications:org.kde.konsole.desktop"
+        ], ["applications:org.linuxuniversalappcenter.desktop?iconData=test"]);
+
+        verify(listResult.changed);
+        compare(listResult.launchers, [
+            "preferred://filemanager",
+            "applications:org.kde.konsole.desktop"
+        ]);
+
+        var groups = AppGroupStore.parse([
+            JSON.stringify({
+                id: "pair",
+                name: "Pair",
+                members: [
+                    { launcher: "applications:removed.desktop", appId: "removed" },
+                    { launcher: "applications:survivor.desktop", appId: "survivor" }
+                ]
+            }),
+            JSON.stringify({
+                id: "trio",
+                name: "Trio",
+                members: [
+                    { launcher: "applications:first.desktop", appId: "first" },
+                    { launcher: "applications:gone.desktop", appId: "gone" },
+                    { launcher: "applications:third.desktop", appId: "third" }
+                ]
+            })
+        ], "Application", "Group");
+
+        var groupResult = AppGroupStore.removeLaunchersFromGroups(groups, [
+            "applications:removed.desktop",
+            "applications:gone.desktop"
+        ]);
+        verify(groupResult.changed);
+        // "pair" dropped to 1 app and therefore dissolved; "trio" shrank to 2.
+        compare(groupResult.groups.length, 1);
+        compare(groupResult.groups[0].id, "trio");
+        compare(groupResult.groups[0].members.length, 2);
+        compare(groupResult.groups[0].members[0].launcher, "applications:first.desktop");
+        compare(groupResult.groups[0].members[1].launcher, "applications:third.desktop");
+    }
 }

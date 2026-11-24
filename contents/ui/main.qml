@@ -298,10 +298,21 @@ PlasmoidItem {
         Plasmoid.configuration.showKdeConnectRecentShares === undefined
             ? true : Boolean(Plasmoid.configuration.showKdeConnectRecentShares)
 
+    readonly property bool autoRemoveUninstalledApps:
+        Plasmoid.configuration.autoRemoveUninstalledApps === undefined
+            ? true : Boolean(Plasmoid.configuration.autoRemoveUninstalledApps)
+
     // Warns in the log when this QML runs against an older native plugin than
     // it was written for (widget updated while plasmashell kept running).
     PluginCheck {
         id: pluginCheck
+    }
+
+    LauncherCleanupController {
+        id: launcherCleanup
+        enabled: root.autoRemoveUninstalledApps
+        pluginApiVersion: pluginCheck.apiVersion
+        onCheckRequested: root.scheduleMissingLaunchersPrune()
     }
 
     ProgressController {
@@ -360,7 +371,39 @@ PlasmoidItem {
     property bool desktopCreationPending: false
     property int trashItemCount: 0
     property var openContextMenu: null
-    property string pendingLauncherToggle: ""
+    property var pendingMenuActions: []
+    property bool pendingPruneAfterInteraction: false
+    property bool deferredRunningPrunePending: false
+    property int contextTaskIndex: -1
+    property bool contextTaskRunning: false
+    property bool contextTaskLauncherOnly: false
+    property bool contextTaskGroupParent: false
+    property bool contextTaskPinned: false
+    property string contextTaskLauncherTarget: ""
+    property bool contextTaskCanOpenNewInstance: false
+    property bool contextTaskHasRecentShare: false
+    property string contextTaskRecentShareDevice: ""
+    property string contextTaskRecentShareUrl: ""
+    property bool contextTaskAllMinimized: false
+    property bool contextTaskAllMaximized: false
+    property bool contextTaskCanMinimize: false
+    property bool contextTaskCanMaximize: false
+    property bool contextTaskCanClose: false
+    property string contextAppGroupId: ""
+    property int contextAppGroupRow: -1
+    property bool contextUtilityIsFolder: false
+    property bool contextUtilityIsTrash: false
+    property int contextUtilityFolderIndex: -1
+    property url contextUtilityFolderUrl: ""
+    property bool contextUtilityHasRecentShare: false
+    property string contextUtilityRecentShareDevice: ""
+    property string contextUtilityRecentShareUrl: ""
+    property string contextVolumeUdi: ""
+    property bool contextVolumeMounted: false
+    property bool contextVolumeBusy: false
+    property string contextVolumeOperation: ""
+    property string contextVolumeKind: ""
+    property bool contextVolumeCanRemove: false
     property real lastPointerMain: isVertical
         ? overlayWindowHeight / 2 : overlayWindowWidth / 2
 
@@ -922,8 +965,152 @@ PlasmoidItem {
             openContextMenu = null;
         }
         openMenuCount = Math.max(0, openMenuCount - 1);
+        if (openMenuCount === 0) {
+            if (pendingMenuActions.length > 0) {
+                deferredMenuActionTimer.interval = 0;
+                deferredMenuActionTimer.restart();
+            }
+            if (pendingPruneAfterInteraction && !taskDragActive) {
+                pendingPruneAfterInteraction = false;
+                scheduleMissingLaunchersPrune();
+            }
+        }
         scheduleOverlayClose();
         scheduleDockHide();
+    }
+
+    function scheduleDeferredMenuAction(actionFn) {
+        if (typeof actionFn !== "function") {
+            return;
+        }
+        // Context menus run in a separate transient popup window on Qt 6.8+.
+        // Mutating Repeater models while the popup window is still closing and
+        // retains activeFocusItem crashes QQuickWindowPrivate::polishItems()
+        // when Wayland synthesizes an expose event. Wait until onClosed has
+        // finished before running the action on the next clean event turn.
+        var nextQueue = pendingMenuActions.slice();
+        nextQueue.push(actionFn);
+        pendingMenuActions = nextQueue;
+        closeOpenContextMenu();
+        if (openMenuCount === 0) {
+            deferredMenuActionTimer.interval = 0;
+            deferredMenuActionTimer.restart();
+        } else {
+            deferredMenuActionTimer.interval = 300;
+            deferredMenuActionTimer.restart();
+        }
+    }
+
+    function flushPendingMenuActions() {
+        if (pendingMenuActions.length === 0) {
+            return;
+        }
+        var actions = pendingMenuActions.slice();
+        pendingMenuActions = [];
+        for (var index = 0; index < actions.length; ++index) {
+            actions[index]();
+        }
+    }
+
+    Timer {
+        id: deferredMenuActionTimer
+
+        interval: 0
+        repeat: false
+        onTriggered: root.flushPendingMenuActions()
+    }
+
+    function clearFocusedDelegatesIn(repeater) {
+        if (!repeater) {
+            return;
+        }
+        for (var index = 0; index < repeater.count; ++index) {
+            var item = repeater.itemAt(index);
+            if (item && item.activeFocus) {
+                item.focus = false;
+            }
+        }
+    }
+
+    function clearFocusedDockDelegates() {
+        clearFocusedDelegatesIn(baseRepeater);
+        clearFocusedDelegatesIn(overlayRepeater);
+        clearFocusedDelegatesIn(folderOverlayRepeater);
+        clearFocusedDelegatesIn(removableVolumeOverlayRepeater);
+    }
+
+    function contextMenuHostFor(delegate) {
+        if (delegate && delegate.inOverlay) {
+            return overlayContent;
+        }
+        return overlayWindow.visible ? overlayContent : baseContent;
+    }
+
+    function openTaskContextMenu(delegate) {
+        if (!delegate) {
+            return;
+        }
+        contextTaskIndex = delegate.index;
+        contextTaskRunning = delegate.runningTask;
+        contextTaskLauncherOnly = delegate.launcherOnly;
+        contextTaskGroupParent = delegate.groupParent;
+        contextTaskPinned = delegate.pinned;
+        contextTaskLauncherTarget = delegate.launcherTarget;
+        contextTaskCanOpenNewInstance = delegate.canOpenNewInstance;
+        contextTaskHasRecentShare = delegate.hasRecentShare;
+        contextTaskRecentShareDevice = delegate.recentShareDevice;
+        contextTaskRecentShareUrl = delegate.recentShareUrl;
+        contextTaskAllMinimized = delegate.allMinimized;
+        contextTaskAllMaximized = delegate.allMaximized;
+        contextTaskCanMinimize = delegate.canMinimize;
+        contextTaskCanMaximize = delegate.canMaximize;
+        contextTaskCanClose = delegate.canClose;
+        taskContextMenu.parent = contextMenuHostFor(delegate);
+        taskContextMenu.popup();
+    }
+
+    function openAppGroupContextMenu(delegate) {
+        if (!delegate || !delegate.appGroup) {
+            return;
+        }
+        contextAppGroupId = String(delegate.appGroup.id || "");
+        contextAppGroupRow = delegate.index;
+        appGroupContextMenu.parent = contextMenuHostFor(delegate);
+        appGroupContextMenu.popup();
+    }
+
+    function openUtilityContextMenu(delegate) {
+        if (!delegate) {
+            return;
+        }
+        contextUtilityIsFolder = delegate.isFolder;
+        contextUtilityIsTrash = delegate.isTrash;
+        contextUtilityFolderIndex = delegate.folderIndex;
+        contextUtilityFolderUrl = delegate.folderUrl;
+        contextUtilityHasRecentShare = delegate.hasRecentShare;
+        contextUtilityRecentShareDevice = delegate.recentShareDevice;
+        contextUtilityRecentShareUrl = delegate.recentShareUrl;
+        utilityContextMenu.parent = contextMenuHostFor(delegate);
+        utilityContextMenu.popup();
+    }
+
+    function openVolumeContextMenu(delegate) {
+        if (!delegate) {
+            return;
+        }
+        contextVolumeUdi = delegate.volumeUdi;
+        contextVolumeMounted = delegate.volumeMounted;
+        contextVolumeBusy = delegate.volumeBusy;
+        contextVolumeOperation = delegate.volumeOperation;
+        contextVolumeKind = delegate.volumeKind;
+        contextVolumeCanRemove = delegate.volumeCanRemove;
+        volumeContextMenu.parent = contextMenuHostFor(delegate);
+        volumeContextMenu.popup();
+    }
+
+    function openPowerContextMenu(delegate) {
+        powerContextMenu.parent = contextMenuHostFor(delegate);
+        powerContextMenu.popup();
     }
 
     function closeOpenContextMenu() {
@@ -1450,44 +1637,150 @@ PlasmoidItem {
         return "";
     }
 
-    function scheduleLauncherToggle(url) {
+    function removeLaunchersEverywhere(urlsToRemove) {
+        if (!urlsToRemove || urlsToRemove.length === 0) {
+            return;
+        }
+
+        clearFocusedDockDelegates();
+
+        for (var index = 0; index < urlsToRemove.length; ++index) {
+            var url = String(urlsToRemove[index] || "");
+            if (url.length > 0 && tasksModel.launcherPosition(url) !== -1) {
+                tasksModel.requestRemoveLauncher(url);
+            }
+        }
+
+        // Fallback for stale or uninstalled desktop entries that TaskManager's
+        // KService-based URL matcher can no longer resolve by position.
+        var modelResult = AppGroupStore.removeLaunchersFromList(
+            tasksModel.launcherList, urlsToRemove);
+        if (modelResult.changed) {
+            tasksModel.launcherList = modelResult.launchers;
+        }
+
+        var configResult = AppGroupStore.removeLaunchersFromList(
+            Plasmoid.configuration.launchers, urlsToRemove);
+        if (configResult.changed) {
+            Plasmoid.configuration.launchers = configResult.launchers;
+        }
+
+        var groupResult = AppGroupStore.removeLaunchersFromGroups(
+            appGroups, urlsToRemove);
+        if (groupResult.changed) {
+            saveAppGroups(groupResult.groups);
+            updateActiveAppGroupPopup();
+        }
+    }
+
+    function scheduleLauncherPinState(url, shouldPin) {
         var stableUrl = String(url || "");
         if (stableUrl.length === 0) {
             return;
         }
-
-        // A launcher-only row disappears synchronously when it is unpinned.
-        // Its context menu is owned by the same delegate and, on Qt 6.8+,
-        // lives in a separate transient window. Removing the row from inside
-        // MenuItem.onTriggered destroys both while Qt Quick is still
-        // dispatching and polishing that window, which can crash plasmashell.
-        // Close the transient UI first and let a root-owned timer mutate the
-        // model in the next event turn using a copied URL.
-        pendingLauncherToggle = stableUrl;
-        closeOpenContextMenu();
-        launcherToggleTimer.restart();
+        scheduleDeferredMenuAction(function () {
+            if (shouldPin) {
+                if (tasksModel.launcherPosition(stableUrl) === -1) {
+                    tasksModel.requestAddLauncher(stableUrl);
+                }
+            } else {
+                root.removeLaunchersEverywhere([stableUrl]);
+            }
+        });
     }
 
-    function applyPendingLauncherToggle() {
-        var url = pendingLauncherToggle;
-        pendingLauncherToggle = "";
-        if (url.length === 0) {
+    function launcherHasRunningTask(launcherUrl) {
+        var row = taskRowForLauncher(launcherUrl, "");
+        if (row < 0 || row >= taskCount) {
+            return false;
+        }
+        var idx = modelIndex(row);
+        if (!idx || !idx.valid) {
+            return false;
+        }
+        return !Boolean(taskRole(idx,
+            TaskManager.AbstractTasksModel.IsLauncher))
+            && (Boolean(taskRole(idx,
+                    TaskManager.AbstractTasksModel.IsWindow))
+                || Boolean(taskRole(idx,
+                    TaskManager.AbstractTasksModel.IsStartup))
+                || Boolean(taskRole(idx,
+                    TaskManager.AbstractTasksModel.IsGroupParent)));
+    }
+
+    function scheduleMissingLaunchersPrune() {
+        if (!autoRemoveUninstalledApps) {
+            return;
+        }
+        missingLaunchersPruneTimer.restart();
+    }
+
+    function applyMissingLaunchersPrune() {
+        if (!taskModelReady || !autoRemoveUninstalledApps
+                || !launcherCleanup.available) {
+            return;
+        }
+        if (openMenuCount > 0 || taskDragActive) {
+            pendingPruneAfterInteraction = true;
             return;
         }
 
-        if (tasksModel.launcherPosition(url) !== -1) {
-            tasksModel.requestRemoveLauncher(url);
-        } else {
-            tasksModel.requestAddLauncher(url);
+        var seen = {};
+        var candidates = [];
+        function collect(list) {
+            var source = list || [];
+            for (var i = 0; i < source.length; ++i) {
+                var value = String(source[i] || "").trim();
+                var key = AppGroupStore.launcherKey(value);
+                if (value.length > 0 && !seen[key]) {
+                    seen[key] = true;
+                    candidates.push(value);
+                }
+            }
+        }
+
+        collect(tasksModel.launcherList);
+        collect(Plasmoid.configuration.launchers);
+        for (var g = 0; g < appGroups.length; ++g) {
+            var members = appGroups[g].members || [];
+            for (var m = 0; m < members.length; ++m) {
+                collect([members[m].launcher]);
+            }
+        }
+
+        if (candidates.length === 0) {
+            deferredRunningPrunePending = false;
+            return;
+        }
+
+        var missing = launcherCleanup.findMissingLaunchers(candidates);
+        if (!missing || missing.length === 0) {
+            deferredRunningPrunePending = false;
+            return;
+        }
+
+        var removable = [];
+        var stillRunning = false;
+        for (var idx = 0; idx < missing.length; ++idx) {
+            if (launcherHasRunningTask(missing[idx])) {
+                stillRunning = true;
+            } else {
+                removable.push(missing[idx]);
+            }
+        }
+        deferredRunningPrunePending = stillRunning;
+
+        if (removable.length > 0) {
+            removeLaunchersEverywhere(removable);
         }
     }
 
     Timer {
-        id: launcherToggleTimer
+        id: missingLaunchersPruneTimer
 
         interval: 0
         repeat: false
-        onTriggered: root.applyPendingLauncherToggle()
+        onTriggered: root.applyMissingLaunchersPrune()
     }
 
     // ---- Add Apps picker -------------------------------------------------
@@ -1502,12 +1795,11 @@ PlasmoidItem {
         if (!addAppsAvailable) {
             return;
         }
-        // Like the launcher toggle: close the menu first and let a root-owned
-        // timer do the work in the next event turn, so nothing is shown or
-        // changed from inside MenuItem.onTriggered.
-        pendingAddAppsGroup = String(groupId || "");
-        closeOpenContextMenu();
-        addAppsOpenTimer.restart();
+        var targetGroupId = String(groupId || "");
+        scheduleDeferredMenuAction(function () {
+            root.pendingAddAppsGroup = targetGroupId;
+            root.showAddApps();
+        });
     }
 
     function showAddApps() {
@@ -1541,14 +1833,6 @@ PlasmoidItem {
             }
         }
         saveAppGroups(plan.groups);
-    }
-
-    Timer {
-        id: addAppsOpenTimer
-
-        interval: 0
-        repeat: false
-        onTriggered: root.showAddApps()
     }
 
     Timer {
@@ -2261,6 +2545,10 @@ PlasmoidItem {
         groupDropTargetSnapshot = null;
         reorderAnimationActive = true;
         reorderAnimationTimer.restart();
+        if (pendingPruneAfterInteraction && openMenuCount === 0) {
+            pendingPruneAfterInteraction = false;
+            scheduleMissingLaunchersPrune();
+        }
         scheduleOverlayClose();
         scheduleDockHide();
     }
@@ -2402,6 +2690,12 @@ PlasmoidItem {
         }
     }
 
+    onAutoRemoveUninstalledAppsChanged: {
+        if (autoRemoveUninstalledApps) {
+            scheduleMissingLaunchersPrune();
+        }
+    }
+
     onPowerButtonPositionChanged: {
         closeTransientUi();
         lastPointerMain = overlayWindowMainLength / 2;
@@ -2483,6 +2777,7 @@ PlasmoidItem {
             launcherList = Plasmoid.configuration.launchers || [];
             root.taskModelReady = true;
             root.scheduleTaskLayoutRefresh();
+            root.scheduleMissingLaunchersPrune();
         }
     }
 
@@ -2503,10 +2798,16 @@ PlasmoidItem {
             } else {
                 root.scheduleActiveAppGroupPopupRefresh();
             }
+            if (root.deferredRunningPrunePending) {
+                root.scheduleMissingLaunchersPrune();
+            }
         }
 
         function onModelReset() {
             root.scheduleTaskLayoutRefresh();
+            if (root.deferredRunningPrunePending) {
+                root.scheduleMissingLaunchersPrune();
+            }
         }
 
         function onRowsInserted() {
@@ -2515,6 +2816,9 @@ PlasmoidItem {
 
         function onRowsRemoved() {
             root.scheduleTaskLayoutRefresh();
+            if (root.deferredRunningPrunePending) {
+                root.scheduleMissingLaunchersPrune();
+            }
         }
 
         function onRowsMoved() {
@@ -2973,9 +3277,9 @@ PlasmoidItem {
 
         onContextMenuRequested: {
             if (appGroupLeader) {
-                appGroupMenu.popup();
+                root.openAppGroupContextMenu(taskDelegate);
             } else {
-                taskMenu.popup();
+                root.openTaskContextMenu(taskDelegate);
             }
         }
         onDragStarted: (sx, sy) => root.handleTaskDragStarted(taskDelegate, sx, sy)
@@ -2998,152 +3302,6 @@ PlasmoidItem {
             } else if (!visible && previewCountedAsOpen) {
                 previewCountedAsOpen = false;
                 root.previewClosed();
-            }
-        }
-
-        TrackedMenu {
-            id: taskMenu
-
-            QQC2.MenuItem {
-                text: taskDelegate.runningTask
-                    ? i18n("Activate") : i18n("Open")
-                icon.name: taskDelegate.runningTask ? "window" : "system-run"
-                onTriggered: root.openTask(taskDelegate.index,
-                    taskDelegate.launcherOnly)
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Open New Window")
-                icon.name: "window-new"
-                visible: taskDelegate.canOpenNewInstance
-                onTriggered: root.launchNewInstance(taskDelegate.index)
-            }
-
-            QQC2.MenuItem {
-                text: taskDelegate.hasRecentShare
-                    ? i18n("Open again from %1", taskDelegate.recentShareDevice)
-                    : ""
-                icon.name: "preferences-kde-connect"
-                visible: taskDelegate.hasRecentShare && taskDelegate.recentShareUrl.length > 0
-                onTriggered: {
-                    if (taskDelegate.recentShareUrl.length > 0) {
-                        kdeConnectMonitor.openShareUrl(taskDelegate.recentShareUrl);
-                    }
-                }
-            }
-
-            QQC2.MenuSeparator {}
-
-            QQC2.MenuItem {
-                text: taskDelegate.pinned
-                    ? i18n("Unpin from Dock") : i18n("Keep in Dock")
-                icon.name: taskDelegate.pinned ? "list-remove" : "bookmark-new"
-                enabled: taskDelegate.launcherTarget.length > 0
-                onTriggered:
-                    root.scheduleLauncherToggle(taskDelegate.launcherTarget)
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Add Apps…")
-                icon.name: "list-add"
-                visible: root.addAppsAvailable
-                onTriggered: root.openAddApps("")
-            }
-
-            QQC2.MenuItem {
-                text: root.isVertical ? i18n("Move Up") : i18n("Move Left")
-                icon.name: root.isVertical ? "go-up" : "go-previous"
-                visible: taskDelegate.pinned
-                enabled: root.stableVisualIndexForModelIndex(
-                    taskDelegate.index) > 0
-                onTriggered: root.moveTask(taskDelegate.index, -1)
-            }
-
-            QQC2.MenuItem {
-                text: root.isVertical ? i18n("Move Down") : i18n("Move Right")
-                icon.name: root.isVertical ? "go-down" : "go-next"
-                visible: taskDelegate.pinned
-                enabled: root.stableVisualIndexForModelIndex(
-                    taskDelegate.index) < root.taskVisualCount - 1
-                onTriggered: root.moveTask(taskDelegate.index, 1)
-            }
-
-            QQC2.MenuSeparator {
-                visible: taskDelegate.runningTask
-            }
-
-            QQC2.MenuItem {
-                text: taskDelegate.allMinimized
-                    ? (taskDelegate.groupParent
-                        ? i18n("Restore All") : i18n("Restore"))
-                    : (taskDelegate.groupParent
-                        ? i18n("Minimize All") : i18n("Minimize"))
-                icon.name: taskDelegate.allMinimized
-                    ? "window-restore" : "window-minimize"
-                visible: taskDelegate.runningTask
-                enabled: taskDelegate.canMinimize
-                onTriggered: root.setTaskMinimized(taskDelegate.index,
-                    !taskDelegate.allMinimized)
-            }
-
-            QQC2.MenuItem {
-                text: taskDelegate.allMaximized
-                    ? (taskDelegate.groupParent
-                        ? i18n("Restore All") : i18n("Restore"))
-                    : (taskDelegate.groupParent
-                        ? i18n("Maximize All") : i18n("Maximize"))
-                icon.name: taskDelegate.allMaximized
-                    ? "window-restore" : "window-maximize"
-                visible: taskDelegate.runningTask
-                enabled: taskDelegate.canMaximize
-                onTriggered: root.setTaskMaximized(taskDelegate.index,
-                    !taskDelegate.allMaximized)
-            }
-
-            QQC2.MenuItem {
-                text: taskDelegate.groupParent
-                    ? i18n("Close All Windows") : i18n("Close")
-                icon.name: "window-close"
-                visible: taskDelegate.runningTask
-                enabled: taskDelegate.canClose
-                onTriggered: root.closeTask(taskDelegate.index)
-            }
-
-            QQC2.MenuSeparator {
-                visible: taskDelegate.runningTask
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Force Quit Application…")
-                icon.name: "process-stop"
-                visible: taskDelegate.runningTask
-                enabled: windowActions.interactiveForceQuitAvailable
-                onTriggered: root.startInteractiveForceQuit()
-            }
-        }
-
-        TrackedMenu {
-            id: appGroupMenu
-
-            QQC2.MenuItem {
-                text: i18n("Open Group")
-                icon.name: "folder-open"
-                onTriggered: root.toggleAppGroupPopup(
-                    taskDelegate.appGroup.id, taskDelegate)
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Add Apps to This Group…")
-                icon.name: "list-add"
-                visible: root.addAppsAvailable
-                onTriggered: root.openAddApps(taskDelegate.appGroup.id)
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Ungroup")
-                icon.name: "edit-delete"
-                onTriggered: root.ungroupAppGroup(
-                    taskDelegate.appGroup.id)
             }
         }
     }
@@ -3532,7 +3690,7 @@ PlasmoidItem {
                 root.openTrashExternally();
             }
         }
-        onContextMenuRequested: utilityMenu.popup()
+        onContextMenuRequested: root.openUtilityContextMenu(utilityDelegate)
 
         // Ordner beim Überfahren aufklappen, sobald ein laufendes Fenster eine
         // Datei aus genau diesem Ordner nennt. Die Abfrage kostet ein
@@ -3599,105 +3757,16 @@ PlasmoidItem {
                 }
             }
         }
-
-        TrackedMenu {
-            id: utilityMenu
-
-            QQC2.MenuItem {
-                text: utilityDelegate.isFolder
-                    ? i18n("Open Folder") : i18n("Open Trash")
-                icon.name: utilityDelegate.isFolder
-                    ? "document-open-folder" : "user-trash"
-                onTriggered: {
-                    if (utilityDelegate.isFolder) {
-                        root.openFolderExternally(utilityDelegate.folderUrl);
-                    } else {
-                        root.openTrashExternally();
-                    }
-                }
-            }
-
-            QQC2.MenuItem {
-                text: utilityDelegate.hasRecentShare
-                    ? i18n("Open again from %1",
-                        utilityDelegate.recentShareDevice)
-                    : ""
-                icon.name: "preferences-kde-connect"
-                visible: utilityDelegate.hasRecentShare
-                    && utilityDelegate.recentShareUrl.length > 0
-                onTriggered: kdeConnectMonitor.openShareUrl(
-                    utilityDelegate.recentShareUrl)
-            }
-
-            QQC2.MenuItem {
-                visible: utilityDelegate.isFolder
-                    && utilityDelegate.folderIndex > 0
-                text: i18n("Remove Folder from Dock")
-                icon.name: "list-remove"
-                onTriggered: root.removeAdditionalFolder(
-                    utilityDelegate.folderUrl)
-            }
-
-            QQC2.MenuItem {
-                visible: utilityDelegate.isTrash
-                text: i18n("Empty Trash")
-                icon.name: "trash-empty"
-                enabled: root.trashItemCount > 0
-                onTriggered: root.emptyTrash()
-            }
-        }
     }
 
     component PowerDelegate: AuxiliaryDelegate {
+        id: powerDelegate
+
         appName: i18n("Power / Session")
         appIcon: "system-shutdown"
 
-        onClicked: powerMenu.popup()
-        onContextMenuRequested: powerMenu.popup()
-
-        TrackedMenu {
-            id: powerMenu
-
-            QQC2.MenuItem {
-                text: i18n("Sleep / Standby")
-                icon.name: "system-suspend"
-                enabled: sessionManagement.canSuspend
-                onTriggered: sessionManagement.suspend()
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Restart…")
-                icon.name: "system-reboot"
-                enabled: sessionManagement.canReboot
-                onTriggered: sessionManagement.requestReboot(
-                    Sessions.SessionManagement.ForcePrompt)
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Shut Down…")
-                icon.name: "system-shutdown"
-                enabled: sessionManagement.canShutdown
-                onTriggered: sessionManagement.requestShutdown(
-                    Sessions.SessionManagement.ForcePrompt)
-            }
-
-            QQC2.MenuSeparator {}
-
-            QQC2.MenuItem {
-                text: i18n("Lock Screen")
-                icon.name: "system-lock-screen"
-                enabled: sessionManagement.canLock
-                onTriggered: sessionManagement.lock()
-            }
-
-            QQC2.MenuItem {
-                text: i18n("Log Out…")
-                icon.name: "system-log-out"
-                enabled: sessionManagement.canLogout
-                onTriggered: sessionManagement.requestLogout(
-                    Sessions.SessionManagement.ForcePrompt)
-            }
-        }
+        onClicked: root.openPowerContextMenu(powerDelegate)
+        onContextMenuRequested: root.openPowerContextMenu(powerDelegate)
     }
 
     component RemovableVolumeDelegate: AuxiliaryDelegate {
@@ -3733,7 +3802,7 @@ PlasmoidItem {
             // open() handles mount-if-needed internally
             removableVolumesModel.open(volumeUdi);
         }
-        onContextMenuRequested: volumeMenu.popup()
+        onContextMenuRequested: root.openVolumeContextMenu(volumeDelegate)
 
         onVolumeErrorTextChanged: {
             if (volumeErrorText.length > 0) {
@@ -3772,58 +3841,6 @@ PlasmoidItem {
                     dragProxy.x = 0;
                     dragProxy.y = 0;
                 }
-            }
-        }
-
-        TrackedMenu {
-            id: volumeMenu
-
-            QQC2.MenuItem {
-                // Ist die Tab-Option aus, oeffnet die Standardaktion im
-                // eingestellten Dateimanager — dann darf hier auch nicht
-                // „In neuem Fenster" stehen, das waere eine Dolphin-Zusage,
-                // die die Standardaktion nicht einloest.
-                text: volumeDelegate.volumeMounted
-                    ? (root.openRemovableVolumesInNewTab
-                        ? i18n("Open in New Tab")
-                        : i18n("Open Volume"))
-                    : (volumeDelegate.volumeOperation === "mounting"
-                        ? i18n("Mounting…")
-                        : i18n("Mount Volume"))
-                icon.name: volumeDelegate.volumeMounted
-                    ? (root.openRemovableVolumesInNewTab
-                        ? "tab-new"
-                        : "document-open-folder")
-                    : "media-mount"
-                enabled: !volumeDelegate.volumeBusy
-                onTriggered: removableVolumesModel.open(volumeDelegate.volumeUdi)
-            }
-
-            QQC2.MenuItem {
-                text: root.openRemovableVolumesInNewTab
-                    ? i18n("Open in New Window")
-                    : i18n("Open in New Tab")
-                icon.name: root.openRemovableVolumesInNewTab
-                    ? "window-new"
-                    : "tab-new"
-                visible: volumeDelegate.volumeMounted
-                enabled: volumeDelegate.volumeMounted && !volumeDelegate.volumeBusy
-                onTriggered: removableVolumesModel.open(volumeDelegate.volumeUdi, !root.openRemovableVolumesInNewTab)
-            }
-
-            QQC2.MenuItem {
-                text: volumeDelegate.volumeOperation === "ejecting"
-                    ? i18n("Ejecting…")
-                    : (volumeDelegate.volumeOperation === "unmounting"
-                        ? i18n("Unmounting…")
-                        : (volumeDelegate.volumeKind === "optical"
-                            ? i18n("Eject Disc")
-                            : i18n("Unmount Volume")))
-                icon.name: "media-eject"
-                enabled: volumeDelegate.volumeMounted
-                    && volumeDelegate.volumeCanRemove
-                    && !volumeDelegate.volumeBusy
-                onTriggered: removableVolumesModel.remove(volumeDelegate.volumeUdi)
             }
         }
     }
@@ -4081,6 +4098,7 @@ PlasmoidItem {
         }
 
         Item {
+            id: baseContent
             anchors.fill: parent
             transform: Translate {
                 x: root.dockSlideX(baseWindow.width)
@@ -4749,7 +4767,426 @@ PlasmoidItem {
                 QQC2.MenuItem {
                     text: i18n("Configure Dock…")
                     icon.name: "configure"
-                    onTriggered: Plasmoid.internalAction("configure").trigger()
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        Plasmoid.internalAction("configure").trigger();
+                    })
+                }
+            }
+
+            // All item context menus live permanently under overlayContent
+            // rather than inside Repeater delegates. Unpinning a launcher,
+            // closing an unpinned window, removing a folder stack, or
+            // ejecting a volume can then never destroy a QQC2.Menu or its
+            // transient popup window while Qt Quick is still polishing it.
+            TrackedMenu {
+                id: taskContextMenu
+
+                QQC2.MenuItem {
+                    text: root.contextTaskRunning
+                        ? i18n("Activate") : i18n("Open")
+                    icon.name: root.contextTaskRunning ? "window" : "system-run"
+                    onTriggered: {
+                        var row = root.contextTaskIndex;
+                        var launcherOnly = root.contextTaskLauncherOnly;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (row >= 0 && row < root.taskCount) {
+                                root.openTask(row, launcherOnly);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Open New Window")
+                    icon.name: "window-new"
+                    visible: root.contextTaskCanOpenNewInstance
+                    onTriggered: {
+                        var row = root.contextTaskIndex;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (row >= 0 && row < root.taskCount) {
+                                root.launchNewInstance(row);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: root.contextTaskHasRecentShare
+                        ? i18n("Open again from %1",
+                            root.contextTaskRecentShareDevice)
+                        : ""
+                    icon.name: "preferences-kde-connect"
+                    visible: root.contextTaskHasRecentShare
+                        && root.contextTaskRecentShareUrl.length > 0
+                    onTriggered: {
+                        var shareUrl = root.contextTaskRecentShareUrl;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (shareUrl.length > 0) {
+                                kdeConnectMonitor.openShareUrl(shareUrl);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuSeparator {}
+
+                QQC2.MenuItem {
+                    text: root.contextTaskPinned
+                        ? i18n("Unpin from Dock") : i18n("Keep in Dock")
+                    icon.name: root.contextTaskPinned
+                        ? "list-remove" : "bookmark-new"
+                    enabled: root.contextTaskLauncherTarget.length > 0
+                    onTriggered: root.scheduleLauncherPinState(
+                        root.contextTaskLauncherTarget,
+                        !root.contextTaskPinned)
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Add Apps…")
+                    icon.name: "list-add"
+                    visible: root.addAppsAvailable
+                    onTriggered: root.openAddApps("")
+                }
+
+                QQC2.MenuItem {
+                    text: root.isVertical ? i18n("Move Up") : i18n("Move Left")
+                    icon.name: root.isVertical ? "go-up" : "go-previous"
+                    visible: root.contextTaskPinned
+                    enabled: root.stableVisualIndexForModelIndex(
+                        root.contextTaskIndex) > 0
+                    onTriggered: {
+                        var row = root.contextTaskIndex;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (row >= 0 && row < root.taskCount) {
+                                root.moveTask(row, -1);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: root.isVertical
+                        ? i18n("Move Down") : i18n("Move Right")
+                    icon.name: root.isVertical ? "go-down" : "go-next"
+                    visible: root.contextTaskPinned
+                    enabled: {
+                        var visualIdx = root.stableVisualIndexForModelIndex(
+                            root.contextTaskIndex);
+                        return visualIdx >= 0
+                            && visualIdx < root.taskVisualCount - 1;
+                    }
+                    onTriggered: {
+                        var row = root.contextTaskIndex;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (row >= 0 && row < root.taskCount) {
+                                root.moveTask(row, 1);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuSeparator {
+                    visible: root.contextTaskRunning
+                }
+
+                QQC2.MenuItem {
+                    text: root.contextTaskAllMinimized
+                        ? (root.contextTaskGroupParent
+                            ? i18n("Restore All") : i18n("Restore"))
+                        : (root.contextTaskGroupParent
+                            ? i18n("Minimize All") : i18n("Minimize"))
+                    icon.name: root.contextTaskAllMinimized
+                        ? "window-restore" : "window-minimize"
+                    visible: root.contextTaskRunning
+                    enabled: root.contextTaskCanMinimize
+                    onTriggered: {
+                        var row = root.contextTaskIndex;
+                        var targetMinimized = !root.contextTaskAllMinimized;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (row >= 0 && row < root.taskCount) {
+                                root.setTaskMinimized(row, targetMinimized);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: root.contextTaskAllMaximized
+                        ? (root.contextTaskGroupParent
+                            ? i18n("Restore All") : i18n("Restore"))
+                        : (root.contextTaskGroupParent
+                            ? i18n("Maximize All") : i18n("Maximize"))
+                    icon.name: root.contextTaskAllMaximized
+                        ? "window-restore" : "window-maximize"
+                    visible: root.contextTaskRunning
+                    enabled: root.contextTaskCanMaximize
+                    onTriggered: {
+                        var row = root.contextTaskIndex;
+                        var targetMaximized = !root.contextTaskAllMaximized;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (row >= 0 && row < root.taskCount) {
+                                root.setTaskMaximized(row, targetMaximized);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: root.contextTaskGroupParent
+                        ? i18n("Close All Windows") : i18n("Close")
+                    icon.name: "window-close"
+                    visible: root.contextTaskRunning
+                    enabled: root.contextTaskCanClose
+                    onTriggered: {
+                        var row = root.contextTaskIndex;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (row >= 0 && row < root.taskCount) {
+                                root.closeTask(row);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuSeparator {
+                    visible: root.contextTaskRunning
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Force Quit Application…")
+                    icon.name: "process-stop"
+                    visible: root.contextTaskRunning
+                    enabled: windowActions.interactiveForceQuitAvailable
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        root.startInteractiveForceQuit();
+                    })
+                }
+            }
+
+            TrackedMenu {
+                id: appGroupContextMenu
+
+                QQC2.MenuItem {
+                    text: i18n("Open Group")
+                    icon.name: "folder-open"
+                    onTriggered: {
+                        var groupId = root.contextAppGroupId;
+                        var row = root.contextAppGroupRow;
+                        root.scheduleDeferredMenuAction(function () {
+                            var target = overlayRepeater.itemAt(row)
+                                || baseRepeater.itemAt(row);
+                            if (groupId && target) {
+                                root.toggleAppGroupPopup(groupId, target);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Add Apps to This Group…")
+                    icon.name: "list-add"
+                    visible: root.addAppsAvailable
+                    onTriggered: root.openAddApps(root.contextAppGroupId)
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Ungroup")
+                    icon.name: "edit-delete"
+                    onTriggered: {
+                        var groupId = root.contextAppGroupId;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (groupId) {
+                                root.ungroupAppGroup(groupId);
+                            }
+                        });
+                    }
+                }
+            }
+
+            TrackedMenu {
+                id: utilityContextMenu
+
+                QQC2.MenuItem {
+                    text: root.contextUtilityIsFolder
+                        ? i18n("Open Folder") : i18n("Open Trash")
+                    icon.name: root.contextUtilityIsFolder
+                        ? "document-open-folder" : "user-trash"
+                    onTriggered: {
+                        var isFolder = root.contextUtilityIsFolder;
+                        var folderUrl = root.contextUtilityFolderUrl;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (isFolder) {
+                                root.openFolderExternally(folderUrl);
+                            } else {
+                                root.openTrashExternally();
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: root.contextUtilityHasRecentShare
+                        ? i18n("Open again from %1",
+                            root.contextUtilityRecentShareDevice)
+                        : ""
+                    icon.name: "preferences-kde-connect"
+                    visible: root.contextUtilityHasRecentShare
+                        && root.contextUtilityRecentShareUrl.length > 0
+                    onTriggered: {
+                        var shareUrl = root.contextUtilityRecentShareUrl;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (shareUrl.length > 0) {
+                                kdeConnectMonitor.openShareUrl(shareUrl);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    visible: root.contextUtilityIsFolder
+                        && root.contextUtilityFolderIndex > 0
+                    text: i18n("Remove Folder from Dock")
+                    icon.name: "list-remove"
+                    onTriggered: {
+                        var folderUrl = root.contextUtilityFolderUrl;
+                        root.scheduleDeferredMenuAction(function () {
+                            root.removeAdditionalFolder(folderUrl);
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    visible: root.contextUtilityIsTrash
+                    text: i18n("Empty Trash")
+                    icon.name: "trash-empty"
+                    enabled: root.trashItemCount > 0
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        root.emptyTrash();
+                    })
+                }
+            }
+
+            TrackedMenu {
+                id: volumeContextMenu
+
+                QQC2.MenuItem {
+                    text: root.contextVolumeMounted
+                        ? (root.openRemovableVolumesInNewTab
+                            ? i18n("Open in New Tab")
+                            : i18n("Open Volume"))
+                        : (root.contextVolumeOperation === "mounting"
+                            ? i18n("Mounting…")
+                            : i18n("Mount Volume"))
+                    icon.name: root.contextVolumeMounted
+                        ? (root.openRemovableVolumesInNewTab
+                            ? "tab-new"
+                            : "document-open-folder")
+                        : "media-mount"
+                    enabled: !root.contextVolumeBusy
+                    onTriggered: {
+                        var udi = root.contextVolumeUdi;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (udi) {
+                                removableVolumesModel.open(udi);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: root.openRemovableVolumesInNewTab
+                        ? i18n("Open in New Window")
+                        : i18n("Open in New Tab")
+                    icon.name: root.openRemovableVolumesInNewTab
+                        ? "window-new"
+                        : "tab-new"
+                    visible: root.contextVolumeMounted
+                    enabled: root.contextVolumeMounted
+                        && !root.contextVolumeBusy
+                    onTriggered: {
+                        var udi = root.contextVolumeUdi;
+                        var inNewTab = !root.openRemovableVolumesInNewTab;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (udi) {
+                                removableVolumesModel.open(udi, inNewTab);
+                            }
+                        });
+                    }
+                }
+
+                QQC2.MenuItem {
+                    text: root.contextVolumeOperation === "ejecting"
+                        ? i18n("Ejecting…")
+                        : (root.contextVolumeOperation === "unmounting"
+                            ? i18n("Unmounting…")
+                            : (root.contextVolumeKind === "optical"
+                                ? i18n("Eject Disc")
+                                : i18n("Unmount Volume")))
+                    icon.name: "media-eject"
+                    enabled: root.contextVolumeMounted
+                        && root.contextVolumeCanRemove
+                        && !root.contextVolumeBusy
+                    onTriggered: {
+                        var udi = root.contextVolumeUdi;
+                        root.scheduleDeferredMenuAction(function () {
+                            if (udi) {
+                                removableVolumesModel.remove(udi);
+                            }
+                        });
+                    }
+                }
+            }
+
+            TrackedMenu {
+                id: powerContextMenu
+
+                QQC2.MenuItem {
+                    text: i18n("Sleep / Standby")
+                    icon.name: "system-suspend"
+                    enabled: sessionManagement.canSuspend
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        sessionManagement.suspend();
+                    })
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Restart…")
+                    icon.name: "system-reboot"
+                    enabled: sessionManagement.canReboot
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        sessionManagement.requestReboot(
+                            Sessions.SessionManagement.ForcePrompt);
+                    })
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Shut Down…")
+                    icon.name: "system-shutdown"
+                    enabled: sessionManagement.canShutdown
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        sessionManagement.requestShutdown(
+                            Sessions.SessionManagement.ForcePrompt);
+                    })
+                }
+
+                QQC2.MenuSeparator {}
+
+                QQC2.MenuItem {
+                    text: i18n("Lock Screen")
+                    icon.name: "system-lock-screen"
+                    enabled: sessionManagement.canLock
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        sessionManagement.lock();
+                    })
+                }
+
+                QQC2.MenuItem {
+                    text: i18n("Log Out…")
+                    icon.name: "system-log-out"
+                    enabled: sessionManagement.canLogout
+                    onTriggered: root.scheduleDeferredMenuAction(function () {
+                        sessionManagement.requestLogout(
+                            Sessions.SessionManagement.ForcePrompt);
+                    })
                 }
             }
 

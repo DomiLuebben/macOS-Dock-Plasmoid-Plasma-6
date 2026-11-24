@@ -29,6 +29,8 @@ couleurs du thème Qt.
   en cocher plusieurs et les classer dans des groupes nouveaux ou existants avant l’ajout ;
   avec plusieurs applications sans groupe, le Dock demande si elles doivent toutes aller
   dans un seul groupe
+- Suppression automatique des applications désinstallées des lanceurs épinglés et des
+  groupes du Dock dès que leurs entrées de bureau disparaissent
 - Pastilles de messages non lus sur les icônes d’applications et sur les dossiers de
   groupes, comme sur ChromeOS : un dossier fermé affiche la somme de ses
   applications directement sur le dossier. Les nombres viennent des applications
