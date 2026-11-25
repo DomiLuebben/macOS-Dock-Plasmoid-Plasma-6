@@ -798,6 +798,17 @@ Item {
         }
     }
 
+    function contextMenuRectIn(targetItem) {
+        if (!targetItem) {
+            return Qt.rect(0, 0, Math.max(1, root.width),
+                Math.max(1, root.height));
+        }
+        var topLeft = iconContainer.mapToItem(targetItem, 0, 0);
+        return Qt.rect(topLeft.x, topLeft.y,
+            Math.max(1, iconContainer.width),
+            Math.max(1, iconContainer.height));
+    }
+
     function setPreviewOpen(open) {
         var requested = Boolean(open && tooltipOrPreviewAvailable);
         var previewWindow = previewWindowObject;

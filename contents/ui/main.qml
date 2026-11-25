@@ -1125,11 +1125,55 @@ PlasmoidItem {
         clearFocusedDelegatesIn(removableVolumeOverlayRepeater);
     }
 
-    function contextMenuHostFor(delegate) {
-        if (delegate && delegate.inOverlay) {
-            return overlayContent;
+    function popupContextMenuForDelegate(menu, delegate, overlayDelegate) {
+        if (!menu) {
+            return;
         }
-        return overlayWindow.visible ? overlayContent : baseContent;
+        if (openContextMenu) {
+            openContextMenu.close();
+        }
+        overlayCloseTimer.stop();
+        revealDock();
+        overlayOpen = true;
+
+        var useOverlay = overlayWindow.visible;
+        var target = (useOverlay && overlayDelegate)
+            ? overlayDelegate : delegate;
+        var host = useOverlay ? overlayContent : baseContent;
+        var anchor = useOverlay
+            ? overlayContextMenuAnchor : baseContextMenuAnchor;
+
+        if (target && host && anchor) {
+            var rect = typeof target.contextMenuRectIn === "function"
+                ? target.contextMenuRectIn(host)
+                : Qt.rect(target.mapToItem(host, 0, 0).x,
+                    target.mapToItem(host, 0, 0).y,
+                    Math.max(1, target.width),
+                    Math.max(1, target.height));
+            anchor.x = rect.x;
+            anchor.y = rect.y;
+            anchor.width = rect.width;
+            anchor.height = rect.height;
+            menu.parent = anchor;
+        } else {
+            menu.parent = host;
+        }
+        menu.popup(0, 0);
+    }
+
+    function openDockContextMenu(x, y) {
+        if (openContextMenu) {
+            openContextMenu.close();
+        }
+        overlayCloseTimer.stop();
+        revealDock();
+        overlayOpen = true;
+        overlayContextMenuAnchor.x = x;
+        overlayContextMenuAnchor.y = y;
+        overlayContextMenuAnchor.width = 1;
+        overlayContextMenuAnchor.height = 1;
+        dockMenu.parent = overlayContextMenuAnchor;
+        dockMenu.popup(0, 0);
     }
 
     function openTaskContextMenu(delegate) {
@@ -1151,8 +1195,9 @@ PlasmoidItem {
         contextTaskCanMinimize = delegate.canMinimize;
         contextTaskCanMaximize = delegate.canMaximize;
         contextTaskCanClose = delegate.canClose;
-        taskContextMenu.parent = contextMenuHostFor(delegate);
-        taskContextMenu.popup();
+        popupContextMenuForDelegate(taskContextMenu, delegate,
+            delegate.inOverlay ? delegate
+                : overlayRepeater.itemAt(delegate.index));
     }
 
     function openAppGroupContextMenu(delegate) {
@@ -1161,8 +1206,9 @@ PlasmoidItem {
         }
         contextAppGroupId = String(delegate.appGroup.id || "");
         contextAppGroupRow = delegate.index;
-        appGroupContextMenu.parent = contextMenuHostFor(delegate);
-        appGroupContextMenu.popup();
+        popupContextMenuForDelegate(appGroupContextMenu, delegate,
+            delegate.inOverlay ? delegate
+                : overlayRepeater.itemAt(delegate.index));
     }
 
     function openUtilityContextMenu(delegate) {
@@ -1176,8 +1222,12 @@ PlasmoidItem {
         contextUtilityHasRecentShare = delegate.hasRecentShare;
         contextUtilityRecentShareDevice = delegate.recentShareDevice;
         contextUtilityRecentShareUrl = delegate.recentShareUrl;
-        utilityContextMenu.parent = contextMenuHostFor(delegate);
-        utilityContextMenu.popup();
+        var overlayTarget = delegate.inOverlay ? delegate
+            : (delegate.isFolder
+                ? folderOverlayRepeater.itemAt(delegate.folderIndex)
+                : trashOverlayItem);
+        popupContextMenuForDelegate(utilityContextMenu, delegate,
+            overlayTarget);
     }
 
     function openVolumeContextMenu(delegate) {
@@ -1190,13 +1240,16 @@ PlasmoidItem {
         contextVolumeOperation = delegate.volumeOperation;
         contextVolumeKind = delegate.volumeKind;
         contextVolumeCanRemove = delegate.volumeCanRemove;
-        volumeContextMenu.parent = contextMenuHostFor(delegate);
-        volumeContextMenu.popup();
+        var volumeIndex = delegate.dockIndex
+            - root.removableVolumeDockStartIndex;
+        popupContextMenuForDelegate(volumeContextMenu, delegate,
+            delegate.inOverlay ? delegate
+                : removableVolumeOverlayRepeater.itemAt(volumeIndex));
     }
 
     function openPowerContextMenu(delegate) {
-        powerContextMenu.parent = contextMenuHostFor(delegate);
-        powerContextMenu.popup();
+        popupContextMenuForDelegate(powerContextMenu, delegate,
+            powerOverlayItem);
     }
 
     function closeOpenContextMenu() {
@@ -4209,6 +4262,14 @@ PlasmoidItem {
                 y: root.dockSlideY(baseWindow.height)
             }
 
+            Item {
+                id: baseContextMenuAnchor
+
+                width: 1
+                height: 1
+                enabled: false
+            }
+
             DockBackground {
                 id: baseSurface
 
@@ -4855,7 +4916,21 @@ PlasmoidItem {
             TapHandler {
                 acceptedButtons: Qt.RightButton
                 gesturePolicy: TapHandler.ReleaseWithinBounds
-                onTapped: dockMenu.popup()
+                onTapped: (eventPoint) => root.openDockContextMenu(
+                    eventPoint.position.x, eventPoint.position.y)
+            }
+
+            // Permanent non-Repeater anchor for transient QQC2.Menu windows.
+            // On Wayland, Qt's QQuickPopupWindow derives xdg_positioner's
+            // anchor_rect from menu.parent's scene bounding box rather than
+            // popup(x, y); parenting menus to the full-width overlayContent
+            // anchored every menu at x = 0 on the far left of the dock.
+            Item {
+                id: overlayContextMenuAnchor
+
+                width: 1
+                height: 1
+                enabled: false
             }
 
             TrackedMenu {
